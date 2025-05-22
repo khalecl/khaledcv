@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dr. Khaled Diab - Energy & Sustainability Training Specialist</title>
+    <style>
+        /* Base Styles */
+        :root {
+            --primary-color: #1a5276;
+            --secondary-color: #2e86c1;
+            --accent-color: #f39c12;
+            --light-bg: #f8f9fa;
+            --dark-text: #2c3e50;
+            --light-text: #ecf0f1;
+            --section-gap: 15px; /* Reduced from 30px */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', 'Helvetica Neue', Helvetica, sans-serif;
+        }
+
+        body {
+            color: var(--dark-text);
+            line-height: 1.4; /* Reduced from 1.6 */
+            background-color: #fff;
+            max-width: 210mm; /* A4 width */
+            margin: 10mm auto; /* Reduced margin for PDF */
+            padding: 10mm; /* Reduced padding */
+            font-size: 10pt; /* Base font size for compactness */
+        }
+
+        /* Header Styles */
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--light-text);
+            padding: 20px; /* Reduced from 40px */
+            border-radius: 8px;
+            margin-bottom: 15px; /* Reduced from 40px */
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .profile-info {
+            max-width: 65%; /* Slightly reduced */
+        }
+
+        .name {
+            font-size: 1.8rem; /* Reduced from 2.5rem */
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .title {
+            font-size: 1.2rem; /* Reduced from 1.5rem */
+            font-weight: 400;
+            margin-bottom: 8px;
+        }
+
+        .contact {
+            font-size: 0.8rem; /* Reduced from 0.9rem */
+            margin-top: 8px;
+        }
+
+        .contact a {
+            color: var(--light-text);
+            text-decoration: none;
+        }
+
+        .avatar {
+            width: 120px; /* Reduced from 180px */
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.3);
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Profile Styles */
+        .profile-section {
+            background-color: var(--light-bg);
+            padding: 15px; /* Reduced from 30px */
+            border-radius: 6px;
+            margin-bottom: var(--section-gap);
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .profile-heading {
+            font-size: 1.1rem; /* Reduced from 1.4rem */
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .profile-heading i {
+            margin-right: 8px;
+            font-size: 1.3rem; /* Reduced */
+        }
+
+        .profile-text {
+            font-size: 0.9rem; /* Reduced from 1.1rem */
+            line-height: 1.5;
+        }
+
+        /* Section Styles */
+        .section {
+            margin-bottom: var(--section-gap);
+        }
+
+        .section-title {
+            font-size: 1.3rem; /* Reduced from 1.8rem */
+            color: var(--primary-color);
+            margin-bottom: 10px; /* Reduced from 20px */
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--accent-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title i {
+            margin-right: 8px;
+            font-size: 1.4rem; /* Reduced */
+            background-color: var(--primary-color);
+            color: white;
+            height: 30px; /* Reduced */
+            width: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        /* Training Programs */
+        .training-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Smaller min width */
+            gap: 10px; /* Reduced from 20px */
+            margin-bottom: 10px;
+        }
+
+        .training-category {
+            background-color: var(--light-bg);
+            border-radius: 6px;
+            padding: 12px; /* Reduced from 20px */
+            border-top: 3px solid var(--accent-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .training-category h3 {
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 1rem; /* Reduced from 1.3rem */
+            padding-bottom: 5px;
+        }
+
+        .training-list {
+            list-style-type: none;
+            font-size: 0.85rem; /* Reduced */
+        }
+
+        .training-list li {
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .training-list li::before {
+            content: "→";
+            color: var(--accent-color);
+            position: absolute;
+            left: 0;
+        }
+
+        /* Client Portfolio */
+        .client-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Smaller min width */
+            gap: 10px; /* Reduced */
+        }
+
+        .client-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 10px; /* Reduced */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+
+        .client-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 3px;
+            font-size: 0.9rem; /* Reduced */
+        }
+
+        .client-description {
+            font-size: 0.8rem; /* Reduced */
+            opacity: 0.8;
+        }
+
+        /* Experience Section */
+        .experience-item {
+            margin-bottom: 12px; /* Reduced */
+            padding-left: 15px;
+            border-left: 2px solid var(--accent-color);
+            position: relative;
+        }
+
+        .experience-item::before {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            left: -6px;
+            top: 5px;
+        }
+
+        .job-title {
+            font-size: 1rem; /* Reduced */
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .company {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .period {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .job-description {
+            margin-top: 5px;
+        }
+
+        .responsibility {
+            margin-bottom: 3px;
+            padding-left: 15px;
+            font-size: 0.85rem;
+        }
+
+        .responsibility::before {
+            content: "•";
+            color: var(--secondary-color);
+            position: absolute;
+            left: 0;
+        }
+
+        /* Education and Credentials */
+        .credentials-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px; /* Reduced */
+        }
+
+        .credentials-box {
+            background-color: var(--light-bg);
+            border-radius: 6px;
+            padding: 12px; /* Reduced */
+        }
+
+        .credentials-box h3 {
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 1rem; /* Reduced */
+            padding-bottom: 3px;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .credential-item {
+            margin-bottom: 8px;
+        }
+
+        .credential-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .credential-org {
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+
+        .credential-year {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Technical Skills */
+        .skills-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Smaller min width */
+            gap: 10px; /* Reduced */
+        }
+
+        .skill-category h3 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            font-size: 0.95rem; /* Reduced */
+        }
+
+        .skill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .skill-tag {
+            background-color: var(--secondary-color);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        /* Training Methodology */
+        .methodology-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); /* Smaller min width */
+            gap: 10px;
+        }
+
+        .methodology-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            border-left: 2px solid var(--accent-color);
+        }
+
+        .methodology-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 3px;
+            font-size: 0.9rem;
+        }
+
+        .methodology-description {
+            font-size: 0.8rem;
+        }
+
+        /* Training Portfolio Highlights */
+        .highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .highlight-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+
+        .highlight-card .image-wrapper {
+            position: relative;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .highlight-card img {
+            width: 100%;
+            height: 150px; /* Increased for better visibility */
+            object-fit: cover; /* Changed from contain to cover for better presentation */
+            display: block;
+			border-radius: 4px;
+        }
+
+        .highlight-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .highlight-description {
+            font-size: 0.8rem;
+            opacity: 0.85;
+        }
+
+        .methodology-list {
+            list-style-type: none;
+            margin: 10px 0;
+            font-size: 0.85rem;
+        }
+
+        .methodology-list li {
+            margin-bottom: 6px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .methodology-list li::before {
+            content: "✓";
+            color: var(--accent-color);
+            position: absolute;
+            left: 0;
+        }
+
+        .testimonial {
+            background-color: var(--light-bg);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid var(--primary-color);
+            margin-top: 15px;
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        .testimonial cite {
+            margin-top: 8px;
+            font-style: normal;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .portfolio-note {
+            font-size: 0.85rem;
+            opacity: 0.75;
+            margin-top: 15px;
+            font-style: italic;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            margin-top: 15px;
+            color: var(--dark-text);
+            opacity: 0.6;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive Rules */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .profile-info {
+                max-width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .credentials-container {
+                grid-template-columns: 1fr;
+            }
+
+            .training-grid, .skills-container, .methodology-grid, .highlight-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 5mm;
+                background: none;
+                font-size: 9pt; /* Slightly smaller for print */
+            }
+
+            header, .section, .profile-section {
+                box-shadow: none;
+                margin: 0;
+                padding: 8px;
+            }
+
+            img {
+                max-width: 100%;
+                height: auto;
+            }
+
+            .highlight-card img {
+                height: 80px; /* Further reduced for print */
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="profile-info">
+                <h1 class="name">DR. KHALED M. DIAB</h1>
+                <h2 class="title">Energy & Sustainability Training Specialist</h2>
+                <p>PhD, CEM® - Over 14 Years of Industry Experience</p>
+                <div class="contact">
+                    <p><i class="fas fa-phone"></i> +20-115-554-4225 | <i class="fas fa-envelope"></i> khaleddiab@mail.com</p>
+                    <p><i class="fas fa-map-marker-alt"></i> Cairo, Egypt | <i class="fab fa-linkedin"></i> www.linkedin.com/in/dr-khaled-diab/</p>
+                    <p><i class="fas fa-language"></i> Arabic (Native), English (Fluent)</p>
+                </div>
+            </div>
+            <div class="avatar">
+                <img src="https://i.ibb.co/fzL9ZMzH/Picture1.jpg" alt="Dr. Khaled Diab, Energy & Sustainability Training Specialist">
+            </div>
+        </div>
+    </header>
+
+    <div class="profile-section">
+        <h2 class="profile-heading"><i class="fas fa-user-circle"></i> PROFESSIONAL PROFILE</h2>
+        <p class="profile-text">
+            Energy specialist with extensive shift operations leadership and operational excellence expertise. My journey from hands-on electrical maintenance engineer managing 24/7 operations to leading complex operational teams uniquely positions me to deliver high-impact training on shift management excellence. Having personally supervised rotating shift schedules, optimized maintenance workflows during operational windows, and implemented continuous improvement protocols across multiple facilities, I bring real-world operational excellence experience to training programs.
+        </p>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-award"></i> SIGNATURE TRAINING PROGRAMS</h2>
+        <div class="training-grid">
+            <div class="training-category">
+                <h3>Energy Efficiency & Sustainability</h3>
+                <ul class="training-list">
+                    <li>Energy Management Systems (ISO 50001)</li>
+                    <li>Carbon Management & GHG Reporting</li>
+                    <li>Renewable Energy Integration</li>
+                    <li>Environmental Compliance</li>
+                    <li>Sustainability Performance Leadership</li>
+                </ul>
+            </div>
+            <div class="training-category">
+                <h3>Power Systems & Technical Operations</h3>
+                <ul class="training-list">
+                    <li>Electrical Maintenance & troubleshooting</li>
+                    <li>Power System Analysis & Simulation</li>
+                    <li>Field Equipment Operation</li>
+                    <li>Artificial Lift Technologies</li>
+                    <li>Process Simulation & Optimization</li>
+                </ul>
+            </div>
+            <div class="training-category">
+                <h3>Digital Transformation & Analytics</h3>
+                <ul class="training-list">
+                    <li>Industry 4.0 Implementation</li>
+                    <li>Data Analytics & Visualization</li>
+                    <li>Enterprise Systems (SAP for Oil & Gas)</li>
+                    <li>Programming & Simulation</li>
+                    <li>Techno-Economic Analysis</li>
+                </ul>
+            </div>
+			<div class="training-category">
+    <h3>Operational Excellence & Shift Management</h3>
+    <ul class="training-list">
+        <li>Shift Operations Optimization</li>
+        <li>24/7 Operational Continuity</li>
+        <li>Maintenance Scheduling & Workflow</li>
+        <li>Team Leadership in Shift Environment</li>
+        <li>Performance Monitoring & KPIs</li>
+    </ul>
+</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-users"></i> ELITE CLIENT PORTFOLIO</h2>
+        <div class="client-grid">
+            <div class="client-card">
+                <h3 class="client-name">Saudi Electricity Company (SEC)</h3>
+                <p class="client-description">Environmental management and regulatory compliance programs</p>
+            </div>
+            <div class="client-card">
+                <h3 class="client-name">Saudi TAHAKOM</h3>
+                <p class="client-description">Waste management systems and OSHA compliance training</p>
+            </div>
+            <div class="client-card">
+                <h3 class="client-name">TVTC Saudi Arabia</h3>
+                <p class="client-description">Renewable energy practical applications training</p>
+            </div>
+            <div class="client-card">
+                <h3 class="client-name">Saudi Ministry of HRSD</h3>
+                <p class="client-description">Power generation and energy supply chain management</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-chalkboard-teacher"></i> TRAINING METHODOLOGY</h2>
+        <div class="methodology-grid">
+            <div class="methodology-card">
+                <h3 class="methodology-title">Hands-On Approach</h3>
+                <p class="methodology-description">Field-based demonstrations leveraging 5+ years of direct maintenance experience with equipment</p>
+            </div>
+            <div class="methodology-card">
+                <h3 class="methodology-title">Simulation-Based Learning</h3>
+                <p class="methodology-description">Interactive modeling using industry software (ETAP, PVSYST, PIPESIM, DIgSILENT)</p>
+            </div>
+            <div class="methodology-card">
+                <h3 class="methodology-title">Case Study Integration</h3>
+                <p class="methodology-description">Real-world implementations from personal project portfolio with measured results</p>
+            </div>
+            <div class="methodology-card">
+                <h3 class="methodology-title">Kolb Learning Cycle</h3>
+                <p class="methodology-description">Structured adult learning methodology with concrete experience, reflection, conceptualization</p>
+            </div>
+            <div class="methodology-card">
+                <h3 class="methodology-title">Blended Delivery</h3>
+                <p class="methodology-description">On-premises, virtual, and hybrid options customized to client needs and objectives</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-briefcase"></i> PROFESSIONAL EXPERIENCE</h2>
+        <div class="experience-item">
+            <h3 class="job-title">Technical Trainer and Project Coordinator (MENA Region)</h3>
+            <div class="company">Solartech UK</div>
+            <div class="period">December 2024 - Present</div>
+            <div class="job-description">
+                <div class="responsibility">Conduct ASHRAE Level 2 energy audits for major facilities (Marriott Hotel Dammam)</div>
+                <div class="responsibility">Design technical training programs on operational reliability and smart grid systems</div>
+                <div class="responsibility">Implement ISO 50001-compliant energy management solutions and EV infrastructure planning</div>
+            </div>
+        </div>
+        <div class="experience-item">
+            <h3 class="job-title">Environment and Sustainability Trainers Lead</h3>
+            <div class="company">Confidential/Ministry of Internal Affairs, Saudi Arabia</div>
+            <div class="period">September 2024 - December 2024</div>
+            <div class="job-description">
+                <div class="responsibility">Led comprehensive 3-month training program covering sustainability and operational excellence</div>
+                <div class="responsibility">Developed training modules on risk assessment and technical protocols for government personnel</div>
+            </div>
+        </div>
+        <div class="experience-item">
+            <h3 class="job-title">Renewable Energy & Environmental Impact Learning Specialist</h3>
+            <div class="company">Elm Company / TVTC, Saudi Arabia</div>
+            <div class="period">January 2024 - Present</div>
+            <div class="job-description">
+                <div class="responsibility">Deliver in-depth renewable energy technology training using specialized software</div>
+                <div class="responsibility">Develop curriculum focused on carbon management and environmental sustainability</div>
+            </div>
+        </div>
+        <div class="experience-item">
+            <h3 class="job-title">Head of Energy Efficiency & Climate Change</h3>
+            <div class="company">Petrosilah Petroleum / IPR Energy Group</div>
+            <div class="period">January 2023 - April 2024</div>
+            <div class="job-description">
+                <div class="responsibility">Implemented GHG monitoring and reporting systems aligned with international standards</div>
+                <div class="responsibility">Led energy efficiency initiatives resulting in significant CO2 emissions reductions</div>
+            </div>
+        </div>
+        <div class="experience-item">
+            <h3 class="job-title">Head of Energy Efficiency, Digital Transformation</h3>
+            <div class="company">Egyptian General Petroleum Corporation (EGPC)</div>
+            <div class="period">March 2018 - January 2023</div>
+            <div class="job-description">
+                <div class="responsibility">Facilitated $200 million EU-EBRD loan for energy modernization</div>
+                <div class="responsibility">Achieved annual savings of 295,000 tons CO2, 300 GWh energy, and 384,000 m³ water</div>
+                <div class="responsibility">Collaborated with World Bank and EBRD on emissions reduction strategies</div>
+                <div class="responsibility">Led feasibility studies for decarbonization projects including blue hydrogen production</div>
+            </div>
+        </div>
+        <div class="experience-item">
+            <h3 class="job-title">Maintenance And Projects Teams Leader</h3>
+            <div class="company">Petrosilah Petroleum Co. / Pharos Energy JV</div>
+            <div class="period">July 2016 - March 2018</div>
+            <div class="job-description">
+                <div class="responsibility">Developed zero routine gas flaring plan adopted by Board of Directors</div>
+                <div class="responsibility">Implemented Industry 4.0 solutions (IoT/AI) for autonomous well optimization</div>
+                <div class="responsibility">Led ISO 9001 and ISO 14001 management systems implementation</div>
+				<div class="responsibility">Led cross-functional maintenance teams across multiple shifts, optimizing operational workflows and achieving zero unplanned downtime</div>
+            </div>
+        </div>
+        <div class="experience-item">
+            <h3 class="job-title">Senior Electrical Engineer</h3>
+            <div class="company">Petrosilah Petroleum Co. / Pharos Energy JV</div>
+            <div class="period">March 2011 - July 2016</div>
+            <div class="job-description">
+                <div class="responsibility">Conducted hands-on maintenance of electrical systems, generators, and pumps</div>
+                <div class="responsibility">Optimized well operations reducing expenses by $420,000 annually</div>
+                <div class="responsibility">Led task force achieving $15.1 million total savings through efficiency improvements</div>
+				<div class="responsibility">Supervised 24/7 shift operations ensuring continuous production and implementing operational excellence protocols</div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-graduation-cap"></i> EDUCATION & CREDENTIALS</h2>
+        <div class="credentials-container">
+            <div class="credentials-box">
+                <h3>Academic Qualifications</h3>
+                <div class="credential-item">
+                    <div class="credential-title">Ph.D. in Electrical Power and Machines Engineering</div>
+                    <div class="credential-org">Cairo University</div>
+                    <div class="credential-year">2021</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-title">M.S. in Electrical Power Control System</div>
+                    <div class="credential-org">Cairo University</div>
+                    <div class="credential-year">2014</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-title">B.S. in Electrical Engineering</div>
+                    <div class="credential-org">Benha University</div>
+                    <div class="credential-year">2009</div>
+                </div>
+            </div>
+            <div class="credentials-box">
+                <h3>Key Professional Certifications</h3>
+                <div class="credential-item">
+                    <div class="credential-title">NEBOSH International General Certificate (IGC)</div>
+                    <div class="credential-org">NEBOSH</div>
+                    <div class="credential-year">2024</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-title">ICS 100-200-300-500-900-1400</div>
+                    <div class="credential-org">FEMA Disaster Management University</div>
+                    <div class="credential-year">2024</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-title">Digital Transformation for Sustainable Development</div>
+                    <div class="credential-org">United Nations System Staff College</div>
+                    <div class="credential-year">2023</div>
+                </div>
+                <div class="credential-item">
+                    <div class="credential-title">Certified Energy Manager (CEM®)</div>
+                    <div class="credential-org">Association of Energy Engineers</div>
+                    <div class="credential-year">2020</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-tools"></i> TECHNICAL EXPERTISE</h2>
+        <div class="skills-container">
+            <div class="skill-category">
+                <h3>Power Systems & Simulation</h3>
+                <div class="skill-list">
+                    <span class="skill-tag">ETAP</span>
+                    <span class="skill-tag">PSS®E</span>
+                    <span class="skill-tag">DIgSILENT</span>
+                    <span class="skill-tag">NEPLAN</span>
+                    <span class="skill-tag">Load Flow Analysis</span>
+                    <span class="skill-tag">System Stability</span>
+                </div>
+            </div>
+            <div class="skill-category">
+                <h3>Energy & Process Simulation</h3>
+                <div class="skill-list">
+                    <span class="skill-tag">PVSYST</span>
+                    <span class="skill-tag">WINDPRO</span>
+                    <span class="skill-tag">PIPESIM</span>
+                    <span class="skill-tag">SUBPUMP</span>
+                    <span class="skill-tag">COMFAR</span>
+                </div>
+            </div>
+            <div class="skill-category">
+                <h3>Field Equipment Experience</h3>
+                <div class="skill-list">
+                    <span class="skill-tag">Diesel Generators</span>
+                    <span class="skill-tag">Chemical Injection Pumps</span>
+                    <span class="skill-tag">ESP Systems</span>
+                    <span class="skill-tag">Sucker Rod Pumps</span>
+                    <span class="skill-tag">VFDs</span>
+                    <span class="skill-tag">Electrical Protection</span>
+                </div>
+            </div>
+            <div class="skill-category">
+                <h3>Digital & Analytics Tools</h3>
+                <div class="skill-list">
+                    <span class="skill-tag">MATLAB</span>
+                    <span class="skill-tag">Python</span>
+                    <span class="skill-tag">Power BI</span>
+                    <span class="skill-tag">Advanced Excel</span>
+                    <span class="skill-tag">SAP S/4 HANA</span>
+                    <span class="skill-tag">Ariba</span>
+                </div>
+            </div>
+            <div class="skill-category">
+                <h3>Industry 4.0 Technologies</h3>
+                <div class="skill-list">
+                    <span class="skill-tag">IIoT</span>
+                    <span class="skill-tag">Digital Twins</grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Smaller min width */
+                    <span class="skill-tag">Ambyint</span>
+                    <span class="skill-tag">SCADA Systems</span>
+                    <span class="skill-tag">AI Applications</span>
+                </div>
+            </div>
+            <div class="skill-category">
+                <h3>Energy Management & Sustainability</h3>
+                <div class="skill-list">
+                    <span class="skill-tag">ISO 50001</span>
+                    <span class="skill-tag">ISO 14001</span>
+                    <span class="skill-tag">GHG Accounting</span>
+                    <span class="skill-tag">Energy Auditing</span>
+                    <span class="skill-tag">ASHRAE Standards</span>
+                </div>
+            </div>
+			<div class="skill-category">
+			<h3>Operational Excellence & Management</h3>
+			<div class="skill-list">
+				<span class="skill-tag">Shift Scheduling</span>
+				<span class="skill-tag">Workflow Optimization</span>
+				<span class="skill-tag">Performance KPIs</span>
+				<span class="skill-tag">Team Leadership</span>
+				<span class="skill-tag">Continuous Improvement</span>
+				<span class="skill-tag">Operational Planning</span>
+				</div>
+</div>
+			
+        </div>
+    </div>
+
+
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-book-open"></i> TRAINING PORTFOLIO IN DEPTH</h2>
+        <div class="training-category" style="margin-bottom: 15px;">
+            <h3 style="color: var(--primary-color); font-size: 1rem; margin-bottom: 8px;">Energy Efficiency & Sustainability Training</h3>
+            <p style="margin-bottom: 8px;">My energy efficiency and sustainability training programs are built on both academic knowledge and hands-on implementation experience. I specialize in translating complex technical concepts into actionable insights for diverse audiences:</p>
+            <ul class="training-list">
+                <li><strong>ISO 50001 Energy Management Systems</strong> - Comprehensive implementation approach from initial energy review to continuous improvement</li>
+                <li><strong>Carbon Footprint Assessment & Reporting</strong> - Detailed walkthrough of Scope 1, 2, and 3 emissions calculation following GHG Protocol</li>
+                <li><strong>Renewable Energy System Design</strong> - Practical application of PVSYST and WINDPRO for solar and wind project development</li>
+                <li><strong>Energy Audit Methodologies</strong> - ASHRAE-compliant procedures for identifying and prioritizing efficiency opportunities</li>
+                <li><strong>ESG Reporting & Compliance</strong> - Framework integration for sustainability metrics and disclosure requirements</li>
+            </ul>
+        </div>
+        <div class="training-category" style="margin-bottom: 15px;">
+            <h3 style="color: var(--primary-color); font-size: 1rem; margin-bottom: 8px;">Technical Systems Training</h3>
+            <p style="margin-bottom: 8px;">Drawing on my field experience maintaining and optimizing electrical systems, I deliver technical training that bridges theoretical knowledge with practical application:</p>
+            <ul class="training-list">
+                <li><strong>Electrical System Maintenance</strong> - Hands-on troubleshooting for generators, motors, VFDs and protection systems</li>
+                <li><strong>Power System Simulation</strong> - Practical application of ETAP, PSS/E and DIgSILENT for system planning</li>
+                <li><strong>Artificial Lift Technologies</strong> - Operation and optimization of ESP and sucker rod systems using SUBPUMP</li>
+                <li><strong>Process Optimization</strong> - PIPESIM modeling for production systems and efficiency improvements</li>
+                <li><strong>Electrical Protection & Safety</strong> - Hazardous area classifications and protection system design</li>
+            </ul>
+        </div>
+        <div class="training-category">
+            <h3 style="color: var(--primary-color); font-size: 1rem; margin-bottom: 8px;">Digital Transformation Training</h3>
+            <p style="margin-bottom: 8px;">My digital transformation training programs help organizations leverage technology to improve operational performance and sustainability:</p>
+            <ul class="training-list">
+                <li><strong>Industry 4.0 Implementation</strong> - IIoT architecture and digital twin deployment for energy assets</li>
+                <li><strong>Data Analytics for Energy</strong> - Power BI dashboarding and advanced analytics for energy management</li>
+                <li><strong>SAP Implementation for Energy Sector</strong> - Enterprise system configuration and workflow optimization</li>
+                <li><strong>Programming for Engineers</strong> - Practical MATLAB and Python applications for energy analysis</li>
+                <li><strong>Investment Analysis</strong> - COMFAR modeling for renewable energy and efficiency project assessment</li>
+            </ul>
+        </div>
+		<div class="training-category" style="margin-bottom: 15px;">
+    <h3 style="color: var(--primary-color); font-size: 1rem; margin-bottom: 8px;">Operational Excellence & Shift Management Training</h3>
+    <p style="margin-bottom: 8px;">Drawing from my extensive experience managing 24/7 operations and leading maintenance teams across multiple shifts, I deliver comprehensive training on operational excellence:</p>
+    <ul class="training-list">
+        <li><strong>Shift Operations Optimization</strong> - Systematic approach to maximizing productivity during shift transitions and continuous operations</li>
+        <li><strong>Team Leadership in Shift Environment</strong> - Effective communication and coordination strategies for rotating shift teams</li>
+        <li><strong>Maintenance Workflow Integration</strong> - Optimizing planned maintenance activities within operational constraints</li>
+        <li><strong>Performance Monitoring Systems</strong> - KPI development and real-time monitoring for shift-based operations</li>
+        <li><strong>Continuous Improvement Protocols</strong> - Implementing Kaizen and operational excellence methodologies in shift environments</li>
+    </ul>
+</div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-gem"></i> UNIQUE VALUE PROPOSITION</h2>
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1; background-color: var(--light-bg); padding: 12px; border-radius: 6px; border-top: 3px solid var(--accent-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 8px; font-size: 1rem;">Bridging Theory & Practice</h3>
+                <p style="line-height: 1.5; font-size: 0.85rem;">My journey from hands-on field engineer to strategic leadership provides a unique perspective that enriches all my training programs. I don't just teach theoretical concepts—I demonstrate their practical application through real-world examples from my own experience maintaining generators, optimizing production systems, and implementing enterprise-scale sustainability initiatives.</p>
+            </div>
+            <div style="flex: 1; background-color: var(--light-bg); padding: 12px; border-radius: 6px; border-top: 3px solid var(--accent-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 8px; font-size: 1rem;">Regional Expertise</h3>
+                <p style="line-height: 1.5; font-size: 0.85rem;">With extensive experience delivering specialized training across the MENA region, I understand the unique energy landscape, regulatory environment, and cultural context of the area. My training programs are tailored to address specific regional challenges while incorporating global best practices in sustainability and energy management.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+            <div style="flex: 1; background-color: var(--light-bg); padding: 12px; border-radius: 6px; border-top: 3px solid var(--accent-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 8px; font-size: 1rem;">Quantifiable Impact</h3>
+                <p style="line-height: 1.5; font-size: 0.85rem;">My approach to training focuses on delivering measurable results. My past projects have achieved significant outcomes including $200M in investment secured, 295,000 tons CO₂ emissions reduced annually, and $15.1M in operational savings. I bring this results-oriented mindset to all training programs, ensuring participants gain actionable skills that drive real business value.</p>
+            </div>
+            <div style="flex: 1; background-color: var(--light-bg); padding: 12px; border-radius: 6px; border-top: 3px solid var(--accent-color);">
+                <h3 style="color: var(--primary-color); margin-bottom: 8px; font-size: 1rem;">Multi-Disciplinary Expertise</h3>
+                <p style="line-height: 1.5; font-size: 0.85rem;">My background spans electrical engineering, sustainability, digital transformation, and economic analysis. This interdisciplinary expertise allows me to deliver comprehensive training that addresses the complex, interconnected challenges of modern energy systems. From technical implementation to strategic planning, I provide holistic solutions that consider all aspects of sustainable energy management.</p>
+            </div>
+        </div>
+        <div class="profile-section">
+            <h2 class="profile-heading"><i class="fas fa-comment-alt"></i> TRAINING PHILOSOPHY</h2>
+            <p class="profile-text">
+                I believe effective training goes beyond information transfer—it must inspire action and drive meaningful change. My training programs emphasize practical application, critical thinking, and collaborative problem-solving. By combining rigorous technical content with engaging delivery methods, I create learning experiences that empower participants to implement sustainable solutions in their own organizations. My ultimate goal is to accelerate the transition to more efficient, sustainable energy systems by building capacity and transferring knowledge throughout the MENA region.
+            </p>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title"><i class="fas fa-camera"></i> TRAINING PORTFOLIO HIGHLIGHTS</h2>
+        <p style="font-size: 0.9rem; margin-bottom: 10px; opacity: 0.9;">
+            Captivating moments from my training programs across Saudi Arabia, showcasing dynamic and impactful learning experiences
+        </p>
+        <h3 style="color: var(--primary-color); font-size: 1rem; font-weight: 700; margin-bottom: 10px; border-left: 3px solid var(--accent-color); padding-left: 8px;">
+            Technical Instruction & Knowledge Transfer
+        </h3>
+        <div class="highlight-grid">
+            <div class="highlight-card">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/N6RnjnF2/Picture3.jpg" alt="Dr. Khaled Diab explaining energy formulas on a whiteboard at TVTC Saudi Arabia">
+                </div>
+                <h3 class="highlight-title">Advanced Concept Visualization</h3>
+                <p class="highlight-description">Engaging TVTC Saudi Arabia professionals with clear, visual explanations of complex energy formulas</p>
+            </div>
+            <div class="highlight-card">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/KxTWVBXz/Picture9.jpg" alt="Dr. Khaled Diab demonstrating energy monitoring systems in a Saudi industrial facility">
+                </div>
+                <h3 class="highlight-title">Hands-On Equipment Training</h3>
+                <p class="highlight-description">Demonstrating cutting-edge energy monitoring systems in a Saudi industrial facility</p>
+            </div>
+        </div>
+        <h3 style="color: var(--primary-color); font-size: 1rem; font-weight: 700; margin-bottom: 10px; border-left: 3px solid var(--accent-color); padding-left: 8px;">
+            Collaborative & Interactive Methodologies
+        </h3>
+        <div class="highlight-grid">
+            <div class="highlight-card">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/7JhjMjSR/Picture4.jpg" alt="Dr. Khaled Diab facilitating a sustainability workshop for Saudi executives">
+                </div>
+                <h3 class="highlight-title">Design Thinking Workshop</h3>
+                <p class="highlight-description">Leading an interactive sustainability workshop for Saudi executives</p>
+            </div>
+            <div class="highlight-card">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/tM6RXxQ6/Picture10.jpg" alt="Dr. Khaled Diab guiding problem-solving in a certification program in Saudi Arabia">
+                </div>
+                <h3 class="highlight-title">Small Group Instruction</h3>
+                <p class="highlight-description">Guiding collaborative problem-solving in a certification program</p>
+            </div>
+        </div>
+        <h3 style="color: var(--primary-color); font-size: 1rem; font-weight: 700; margin-bottom: 10px; border-left: 3px solid var(--accent-color); padding-left: 8px;">
+            Professional Corporate Training
+        </h3>
+        <div class="highlight-grid">
+            <div class="highlight-card">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/hScqPdx/Picture6.jpg" alt="Dr. Khaled Diab delivering corporate training for Saudi management">
+                </div>
+                <h3 class="highlight-title">Corporate Leadership Program</h3>
+                <p class="highlight-description">Delivering high-impact training for Saudi management teams</p>
+            </div>
+            <div class="highlight-card">
+                <div class="image-wrapper">
+                    <img src="https://i.ibb.co/TDWmNPpz/Picture2.jpg" alt="Dr. Khaled Diab presenting sustainability metrics to Saudi corporate clients">
+                </div>
+                <h3 class="highlight-title">Data-Driven Analysis</h3>
+                <p class="highlight-description">Presenting actionable sustainability metrics to corporate clients</p>
+            </div>
+        </div>
+        <h3 style="color: var(--primary-color); font-size: 1rem; font-weight: 700; margin-bottom: 10px; border-left: 3px solid var(--accent-color); padding-left: 8px;">
+            Training Methodology
+        </h3>
+        <ul class="methodology-list">
+            <li>Multi-Modal Learning: Engaging visual, auditory, and kinesthetic techniques for superior knowledge retention</li>
+            <li>Technical-to-Practical Translation: Simplifying complex concepts into actionable strategies</li>
+            <li>Customized Regional Context: Tailoring global standards to Saudi organizational needs</li>
+            <li>Bilingual Expertise: Delivering seamless instruction in English and Arabic with cultural fluency</li>
+        </ul>
+        <div class="testimonial">
+            <p>“Dr. Diab’s training approach perfectly balanced technical depth with practical application, resulting in immediate implementation of energy efficiency measures across our facilities.”</p>
+            <cite>— Senior Manager, Saudi Electricity Company</cite>
+        </div>
+        <p class="portfolio-note">This portfolio showcases a selection of over 45 specialized training programs delivered to leading Saudi organizations, including Saudi Electricity Company, TVTC, and MA’ADEN.</p>
+    </div>
+
+    <footer>
+        <p>Dr. Khaled Diab - Energy & Sustainability Training Specialist - Updated April 2025<br>
+        For detailed training proposals, contact: khaleddiab@mail.com | +20-115-554-4225</p>
+    </footer>
+</body>
+</html>
