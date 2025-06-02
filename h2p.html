@@ -1,5 +1,4 @@
-
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,26 +13,24 @@
             box-sizing: border-box;
         }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Remove the gradient background */
-    background: #ffffff;  /* White background instead */
-    min-height: 100vh;
-    padding: 20px;
-}
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    overflow: hidden;
-}
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
 
         .header {
-            background: #ffffff;  /* linear-gradient(135deg, #667eea 0%, #764ba2 100%);*/
-            /* color: white;*/
+            background: #ffffff;
             text-align: center;
             padding: 30px;
         }
@@ -242,11 +239,11 @@ body {
             .main-content {
                 padding: 20px;
             }
-            
+
             .header h1 {
                 font-size: 2em;
             }
-            
+
             .options-section {
                 grid-template-columns: 1fr;
             }
@@ -337,6 +334,7 @@ body {
 
     <script>
         let currentHtmlContent = '';
+        const USE_SERVER = true; // Set to false to use client-side fallback
 
         // File input handling
         document.getElementById('htmlFile').addEventListener('change', function(e) {
@@ -360,7 +358,7 @@ body {
 
         // Drag and drop functionality
         const fileInputLabel = document.querySelector('.file-input-label');
-        
+
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             fileInputLabel.addEventListener(eventName, preventDefaults, false);
         });
@@ -393,7 +391,7 @@ body {
         function handleDrop(e) {
             const dt = e.dataTransfer;
             const files = dt.files;
-            
+
             if (files.length > 0) {
                 const file = files[0];
                 if (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
@@ -411,7 +409,6 @@ body {
         function updatePreview() {
             const previewContent = document.getElementById('previewContent');
             if (currentHtmlContent.trim()) {
-                // Create a safe preview by rendering in an iframe-like manner
                 previewContent.innerHTML = currentHtmlContent;
             } else {
                 previewContent.innerHTML = '<div class="preview-placeholder">Preview will appear here when you upload a file or paste HTML code</div>';
@@ -428,7 +425,7 @@ body {
         function showProgress(show = true) {
             const progressContainer = document.getElementById('progressContainer');
             const convertBtn = document.getElementById('convertBtn');
-            
+
             if (show) {
                 progressContainer.style.display = 'block';
                 convertBtn.disabled = true;
@@ -452,78 +449,119 @@ body {
             showProgress(true);
             updateProgress(10, 'Preparing content...');
 
+            // Ensure fonts are loaded
             try {
-                // Create a temporary container for rendering with proper font sizing
+                await document.fonts.ready;
+                if (!document.fonts.check('12px Arial')) {
+                    console.warn('Some fonts may not be loaded, which could affect PDF quality.');
+                }
+            } catch (e) {
+                console.warn('Font loading check failed:', e);
+            }
+
+            if (USE_SERVER) {
+                // Server-side PDF generation
+                try {
+                    updateProgress(30, 'Sending to server...');
+                    const pageSize = document.querySelector('input[name="pageSize"]:checked').value;
+
+                    const response = await fetch('http://localhost:3000/convert-to-pdf', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ htmlContent: currentHtmlContent, pageSize }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Server error: ' + response.statusText);
+                    }
+
+                    updateProgress(70, 'Generating PDF...');
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `html-to-pdf-${new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-')}.pdf`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+
+                    updateProgress(100, 'Download ready!');
+                    setTimeout(() => showProgress(false), 1000);
+                } catch (error) {
+                    console.error('Server-side PDF conversion failed:', error);
+                    alert('Server-side conversion failed. Falling back to client-side conversion.');
+                    await convertToPDFClientSide();
+                }
+            } else {
+                // Client-side fallback
+                await convertToPDFClientSide();
+            }
+        }
+
+        async function convertToPDFClientSide() {
+            try {
+                updateProgress(30, 'Loading fonts and styles...');
+
+                // Create a temporary container for rendering
                 const tempContainer = document.createElement('div');
                 tempContainer.style.position = 'absolute';
                 tempContainer.style.left = '-9999px';
                 tempContainer.style.top = '0';
-                tempContainer.style.width = '794px'; // 210mm at 96dpi for proper font scaling
+                tempContainer.style.width = '794px';
                 tempContainer.style.fontSizeAdjust = 'none';
                 tempContainer.style.webkitFontSmoothing = 'antialiased';
                 tempContainer.style.textRendering = 'optimizeLegibility';
                 tempContainer.innerHTML = currentHtmlContent;
                 document.body.appendChild(tempContainer);
 
-                // Ensure all fonts are properly loaded and preserve font sizes
                 const allElements = tempContainer.querySelectorAll('*');
                 allElements.forEach(el => {
                     const computedStyle = window.getComputedStyle(el);
                     const fontSize = computedStyle.fontSize;
                     const fontFamily = computedStyle.fontFamily;
-                    
-                    // Preserve the exact font size
+
                     if (fontSize && fontSize !== 'medium' && fontSize !== 'inherit') {
                         el.style.fontSize = fontSize;
                     }
                     if (fontFamily && fontFamily !== 'inherit') {
                         el.style.fontFamily = fontFamily;
                     }
-                    
-                    // Prevent font size adjustments
+
                     el.style.webkitTextSizeAdjust = '100%';
                     el.style.textSizeAdjust = '100%';
                 });
-
-                updateProgress(30, 'Loading fonts and styles...');
-
-                // Wait for images and fonts to load properly
-                await new Promise(resolve => setTimeout(resolve, 2000));
 
                 updateProgress(50, 'Capturing content...');
 
                 const pageSize = document.querySelector('input[name="pageSize"]:checked').value;
                 const quality = document.querySelector('input[name="quality"]:checked').value;
+                const dpiScale = 96 / 72;
+                const scale = quality === 'high' ? 4 * dpiScale : 2 * dpiScale;
 
-                // Use consistent DPI scaling for font preservation
-                const dpiScale = 96 / 72; // Convert from screen DPI to print DPI
-                const scale = quality === 'high' ? 2 * dpiScale : 1 * dpiScale;
+                const canvas = await html2canvas(tempContainer, {
+                    useCORS: true,
+                    allowTaint: true,
+                    scale: scale,
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: 794,
+                    windowHeight: tempContainer.scrollHeight,
+                    backgroundColor: '#ffffff',
+                    removeContainer: false,
+                    onclone: function(clonedDoc) {
+                        const clonedContainer = clonedDoc.querySelector('div');
+                        if (clonedContainer) {
+                            clonedContainer.style.background = 'white';
+                            clonedContainer.style.position = 'static';
+                            clonedContainer.style.left = 'auto';
+                            clonedContainer.style.width = '794px';
 
-    const canvas = await html2canvas(tempContainer, {
-        useCORS: true,
-        allowTaint: true,
-        scale: scale,
-        scrollX: 0,
-        scrollY: 0,
-        windowWidth: 794,
-        windowHeight: tempContainer.scrollHeight,
-        backgroundColor: '#ffffff', // Explicit white background
-        removeContainer: false,
-        onclone: function(clonedDoc) {
-            const clonedContainer = clonedDoc.querySelector('div');
-            if (clonedContainer) {
-                clonedContainer.style.background = 'white'; // Ensure white background
-                clonedContainer.style.position = 'static';
-                clonedContainer.style.left = 'auto';
-                clonedContainer.style.width = '794px';
-                            
-                // Preserve font rendering in cloned document
-                const clonedElements = clonedContainer.querySelectorAll('*');
-                clonedElements.forEach(el => {
-                    el.style.webkitTextSizeAdjust = '100%';
-                    el.style.textSizeAdjust = '100%';
-                    el.style.webkitFontSmoothing = 'antialiased';
-                    el.style.textRendering = 'optimizeLegibility';
+                            const clonedElements = clonedContainer.querySelectorAll('*');
+                            clonedElements.forEach(el => {
+                                el.style.webkitTextSizeAdjust = '100%';
+                                el.style.textSizeAdjust = '100%';
+                                el.style.webkitFontSmoothing = 'antialiased';
+                                el.style.textRendering = 'optimizeLegibility';
                             });
                         }
                     }
@@ -531,41 +569,33 @@ body {
 
                 updateProgress(70, 'Generating PDF...');
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.95); // Use JPEG for better compression
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
                 const { jsPDF } = window.jspdf;
 
                 let pdf;
                 const imgWidth = canvas.width;
                 const imgHeight = canvas.height;
 
-                // Calculate proper dimensions to maintain font size
-                const mmToPx = 3.779528; // mm to px conversion at 96 DPI
-                const pdfWidthMm = 210; // A4 width
-                const pdfHeightMm = 297; // A4 height
+                const mmToPx = 3.779528;
+                const pdfWidthMm = 210;
+                const pdfHeightMm = 297;
                 const pdfWidthPx = pdfWidthMm * mmToPx;
 
                 if (pageSize === 'fit') {
-                    // Fit content - maintain exact proportions for font accuracy
                     const aspectRatio = imgHeight / imgWidth;
                     const pdfHeightMm = pdfWidthMm * aspectRatio;
-                    
+
                     pdf = new jsPDF('p', 'mm', [pdfWidthMm, pdfHeightMm]);
-                    
-                    // Add image with exact scaling to preserve fonts
                     pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidthMm, pdfHeightMm, '', 'FAST');
                 } else {
-                    // A4 pages with proper font scaling
                     pdf = new jsPDF('p', 'mm', 'a4');
-                    
-                    // Calculate scaling to maintain font proportions
+
                     const scaleRatio = pdfWidthPx / imgWidth;
                     const scaledHeightMm = (imgHeight * scaleRatio) / mmToPx;
 
                     if (scaledHeightMm <= pdfHeightMm) {
-                        // Fits in one page with proper font scaling
                         pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidthMm, scaledHeightMm, '', 'FAST');
                     } else {
-                        // Multiple pages needed - maintain font proportions
                         const pageHeightPx = pdfHeightMm * mmToPx / scaleRatio;
                         const totalPages = Math.ceil(imgHeight / pageHeightPx);
 
@@ -578,17 +608,15 @@ body {
                             const sourceHeight = Math.min(pageHeightPx, imgHeight - sourceY);
                             const destHeightMm = (sourceHeight * scaleRatio) / mmToPx;
 
-                            // Create a temporary canvas for this page section
                             const pageCanvas = document.createElement('canvas');
                             pageCanvas.width = imgWidth;
                             pageCanvas.height = sourceHeight;
                             const pageCtx = pageCanvas.getContext('2d');
-                            
-                            // Use high-quality image rendering
+
                             pageCtx.imageSmoothingEnabled = true;
                             pageCtx.imageSmoothingQuality = 'high';
                             pageCtx.drawImage(canvas, 0, sourceY, imgWidth, sourceHeight, 0, 0, imgWidth, sourceHeight);
-                            
+
                             const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.95);
                             pdf.addImage(pageImgData, 'JPEG', 0, 0, pdfWidthMm, destHeightMm, '', 'FAST');
                         }
@@ -597,21 +625,16 @@ body {
 
                 updateProgress(90, 'Finalizing PDF...');
 
-                // Clean up
                 document.body.removeChild(tempContainer);
 
                 updateProgress(100, 'Download ready!');
 
-                // Download the PDF
                 const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
                 pdf.save(`html-to-pdf-${timestamp}.pdf`);
 
-                setTimeout(() => {
-                    showProgress(false);
-                }, 1000);
-
+                setTimeout(() => showProgress(false), 1000);
             } catch (error) {
-                console.error('Error converting to PDF:', error);
+                console.error('Client-side PDF conversion failed:', error);
                 alert('An error occurred while converting to PDF. Please check the console for details.');
                 showProgress(false);
             }
