@@ -499,31 +499,31 @@ body {
                 const dpiScale = 96 / 72; // Convert from screen DPI to print DPI
                 const scale = quality === 'high' ? 2 * dpiScale : 1 * dpiScale;
 
-                const canvas = await html2canvas(tempContainer, {
-                    useCORS: true,
-                    allowTaint: true,
-                    scale: scale,
-                    scrollX: 0,
-                    scrollY: 0,
-                    windowWidth: 794, // 210mm at 96dpi
-                    windowHeight: tempContainer.scrollHeight,
-                    backgroundColor: '#ffffff',
-                    removeContainer: false,
-                    onclone: function(clonedDoc) {
-                        // Ensure all styles are preserved in the cloned document
-                        const clonedContainer = clonedDoc.querySelector('div');
-                        if (clonedContainer) {
-                            clonedContainer.style.position = 'static';
-                            clonedContainer.style.left = 'auto';
-                            clonedContainer.style.width = '794px';
+    const canvas = await html2canvas(tempContainer, {
+        useCORS: true,
+        allowTaint: true,
+        scale: scale,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 794,
+        windowHeight: tempContainer.scrollHeight,
+        backgroundColor: '#ffffff', // Explicit white background
+        removeContainer: false,
+        onclone: function(clonedDoc) {
+            const clonedContainer = clonedDoc.querySelector('div');
+            if (clonedContainer) {
+                clonedContainer.style.background = 'white'; // Ensure white background
+                clonedContainer.style.position = 'static';
+                clonedContainer.style.left = 'auto';
+                clonedContainer.style.width = '794px';
                             
-                            // Preserve font rendering in cloned document
-                            const clonedElements = clonedContainer.querySelectorAll('*');
-                            clonedElements.forEach(el => {
-                                el.style.webkitTextSizeAdjust = '100%';
-                                el.style.textSizeAdjust = '100%';
-                                el.style.webkitFontSmoothing = 'antialiased';
-                                el.style.textRendering = 'optimizeLegibility';
+                // Preserve font rendering in cloned document
+                const clonedElements = clonedContainer.querySelectorAll('*');
+                clonedElements.forEach(el => {
+                    el.style.webkitTextSizeAdjust = '100%';
+                    el.style.textSizeAdjust = '100%';
+                    el.style.webkitFontSmoothing = 'antialiased';
+                    el.style.textRendering = 'optimizeLegibility';
                             });
                         }
                     }
