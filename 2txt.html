@@ -292,7 +292,7 @@
                 <div class="upload-icon">📁</div>
                 <h3>Drop your ebook file here or click to browse</h3>
                 <p style="margin: 15px 0; color: #666;">Supports PDF, EPUB, and MOBI files up to 50MB</p>
-                <input type="file" id="fileInput" class="file-input" accept=".pdf,.epub,.mobi">
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.epub,.mobi,application/pdf,application/epub+zip,application/x-mobipocket-ebook">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     Choose Ebook File
                 </button>
@@ -369,7 +369,9 @@
             
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-                handleFileUpload(files[0]);
+                const file = files[0];
+                console.log(`Dropped file: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
+                handleFileUpload(file);
             }
         });
 
@@ -381,14 +383,26 @@
         }
 
         function handleFileUpload(file) {
-            // Get file extension
+            // Get file extension and MIME type
             const fileExtension = file.name.toLowerCase().split('.').pop();
-            const allowedTypes = ['pdf', 'epub', 'mobi'];
+            const allowedExtensions = ['pdf', 'epub', 'mobi'];
+            const allowedMimeTypes = [
+                'application/pdf',
+                'application/epub+zip',
+                'application/x-mobipocket-ebook',
+                'application/octet-stream' // Some systems use this for MOBI
+            ];
             
-            // Validate file type
-            if (!allowedTypes.includes(fileExtension)) {
-                showError('Please select a valid PDF, EPUB, or MOBI file.');
+            // Validate file type by extension (more reliable than MIME type)
+            if (!allowedExtensions.includes(fileExtension)) {
+                showError(`Please select a valid PDF, EPUB, or MOBI file. Selected file type: .${fileExtension}`);
                 return;
+            }
+
+            // Additional MIME type check (but don't block if extension is correct)
+            const mimeValid = allowedMimeTypes.includes(file.type) || file.type === '';
+            if (!mimeValid) {
+                console.warn(`Unexpected MIME type: ${file.type}, but proceeding based on file extension: .${fileExtension}`);
             }
 
             // Validate file size (50MB limit)
@@ -400,7 +414,9 @@
             fileName = file.name.replace(/\.(pdf|epub|mobi)$/i, '');
             showProgress();
             
-            // Route to appropriate converter based on file type
+            console.log(`Processing ${fileExtension.toUpperCase()} file: ${file.name} (${file.type})`);
+            
+            // Route to appropriate converter based on file extension
             switch(fileExtension) {
                 case 'pdf':
                     convertPdfToText(file);
