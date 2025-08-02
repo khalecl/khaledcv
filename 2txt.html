@@ -290,11 +290,11 @@
         <div class="content">
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📁</div>
-                <h3>Drop your PDF file here or click to browse</h3>
-                <p style="margin: 15px 0; color: #666;">Supports PDF files up to 50MB</p>
-                <input type="file" id="fileInput" class="file-input" accept=".pdf">
+                <h3>Drop your ebook file here or click to browse</h3>
+                <p style="margin: 15px 0; color: #666;">Supports PDF, EPUB, and MOBI files up to 50MB</p>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.epub,.mobi">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                    Choose PDF File
+                    Choose Ebook File
                 </button>
             </div>
 
@@ -381,9 +381,13 @@
         }
 
         function handleFileUpload(file) {
+            // Get file extension
+            const fileExtension = file.name.toLowerCase().split('.').pop();
+            const allowedTypes = ['pdf', 'epub', 'mobi'];
+            
             // Validate file type
-            if (file.type !== 'application/pdf') {
-                showError('Please select a valid PDF file.');
+            if (!allowedTypes.includes(fileExtension)) {
+                showError('Please select a valid PDF, EPUB, or MOBI file.');
                 return;
             }
 
@@ -393,12 +397,301 @@
                 return;
             }
 
-            fileName = file.name.replace('.pdf', '');
+            fileName = file.name.replace(/\.(pdf|epub|mobi)$/i, '');
             showProgress();
-            convertPdfToText(file);
+            
+            // Route to appropriate converter based on file type
+            switch(fileExtension) {
+                case 'pdf':
+                    convertPdfToText(file);
+                    break;
+                case 'epub':
+                    convertEpubToText(file);
+                    break;
+                case 'mobi':
+                    convertMobiToText(file);
+                    break;
+                default:
+                    showError('Unsupported file format.');
+                    hideProgress();
+            }
         }
 
-        async function convertPdfToText(file) {
+        async function convertEpubToText(file) {
+            try {
+                updateProgress(10, 'Reading EPUB file...');
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                
+                updateProgress(20, 'Parsing EPUB structure...');
+                
+                // Read the content.opf file to get the reading order
+                let contentOpf = null;
+                let contentOpfPath = '';
+                
+                // Find content.opf file
+                for (let path in zip.files) {
+                    if (path.endsWith('.opf') || path.includes('content.opf')) {
+                        contentOpf = await zip.files[path].async('text');
+                        contentOpfPath = path.substring(0, path.lastIndexOf('/') + 1);
+                        break;
+                    }
+                }
+                
+                if (!contentOpf) {
+                    // Fallback: look for common EPUB files
+                    const htmlFiles = Object.keys(zip.files).filter(path => 
+                        path.endsWith('.html') || path.endsWith('.xhtml')
+                    ).sort();
+                    
+                    if (htmlFiles.length === 0) {
+                        throw new Error('No readable content found in EPUB');
+                    }
+                    
+                    return await extractTextFromHtmlFiles(zip, htmlFiles);
+                }
+                
+                updateProgress(40, 'Extracting content order...');
+                
+                // Parse the spine to get reading order
+                const spineMatches = contentOpf.match(/<spine[^>]*>([\s\S]*?)<\/spine>/i);
+                if (!spineMatches) {
+                    throw new Error('Invalid EPUB structure');
+                }
+                
+                const itemrefMatches = spineMatches[1].match(/<itemref[^>]*idref="([^"]*)"[^>]*>/g) || [];
+                const manifest = contentOpf.match(/<manifest[^>]*>([\s\S]*?)<\/manifest>/i);
+                
+                if (!manifest) {
+                    throw new Error('Invalid EPUB manifest');
+                }
+                
+                // Build file mapping
+                const fileMap = {};
+                const itemMatches = manifest[1].match(/<item[^>]*>/g) || [];
+                
+                itemMatches.forEach(item => {
+                    const idMatch = item.match(/id="([^"]*)"/);
+                    const hrefMatch = item.match(/href="([^"]*)"/);
+                    if (idMatch && hrefMatch) {
+                        fileMap[idMatch[1]] = hrefMatch[1];
+                    }
+                });
+                
+                // Extract text from files in order
+                let fullText = '';
+                let processedFiles = 0;
+                
+                for (let itemref of itemrefMatches) {
+                    const idMatch = itemref.match(/idref="([^"]*)"/);
+                    if (idMatch && fileMap[idMatch[1]]) {
+                        const filePath = contentOpfPath + fileMap[idMatch[1]];
+                        
+                        if (zip.files[filePath]) {
+                            const content = await zip.files[filePath].async('text');
+                            const textContent = extractTextFromHtml(content);
+                            if (textContent.trim()) {
+                                fullText += `--- Chapter ${processedFiles + 1} ---\n${textContent}\n\n`;
+                            }
+                            processedFiles++;
+                            
+                            const progress = 40 + (processedFiles / itemrefMatches.length) * 50;
+                            updateProgress(progress, `Processing chapter ${processedFiles}...`);
+                        }
+                    }
+                }
+                
+                extractedText = fullText.trim();
+                
+                if (!extractedText) {
+                    throw new Error('No text content found in EPUB');
+                }
+                
+                displayResults();
+                
+            } catch (error) {
+                console.error('Error converting EPUB:', error);
+                showError(`Failed to convert EPUB: ${error.message}`);
+                hideProgress();
+            }
+        }
+        
+        async function extractTextFromHtmlFiles(zip, htmlFiles) {
+            let fullText = '';
+            
+            for (let i = 0; i < htmlFiles.length; i++) {
+                const content = await zip.files[htmlFiles[i]].async('text');
+                const textContent = extractTextFromHtml(content);
+                if (textContent.trim()) {
+                    fullText += `--- Chapter ${i + 1} ---\n${textContent}\n\n`;
+                }
+                
+                const progress = 40 + ((i + 1) / htmlFiles.length) * 50;
+                updateProgress(progress, `Processing file ${i + 1} of ${htmlFiles.length}...`);
+            }
+            
+            extractedText = fullText.trim();
+            
+            if (!extractedText) {
+                throw new Error('No text content found in EPUB');
+            }
+            
+            displayResults();
+        }
+        
+        function extractTextFromHtml(html) {
+            // Create a temporary div to parse HTML
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            
+            // Remove script and style elements
+            const scripts = div.querySelectorAll('script, style');
+            scripts.forEach(el => el.remove());
+            
+            // Get text content
+            let text = div.textContent || div.innerText || '';
+            
+            // Clean up whitespace
+            text = text.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
+            
+            return text;
+        }
+        
+        async function convertMobiToText(file) {
+            try {
+                updateProgress(10, 'Reading MOBI file...');
+                
+                const arrayBuffer = await file.arrayBuffer();
+                const dataView = new DataView(arrayBuffer);
+                
+                // Check MOBI header
+                const header = new TextDecoder().decode(arrayBuffer.slice(60, 68));
+                if (header !== 'BOOKMOBI' && header !== 'TPZ3') {
+                    throw new Error('Invalid MOBI file format');
+                }
+                
+                updateProgress(30, 'Parsing MOBI structure...');
+                
+                // Parse PalmDOC header
+                const textLength = dataView.getUint32(4, false);
+                const recordCount = dataView.getUint16(76, false);
+                
+                updateProgress(50, 'Extracting text records...');
+                
+                // Find text records
+                let fullText = '';
+                let recordOffset = 78; // Start after header
+                
+                for (let i = 0; i < Math.min(recordCount, 100); i++) { // Limit to prevent infinite loops
+                    try {
+                        const recordStart = dataView.getUint32(recordOffset + (i * 8), false);
+                        const nextRecordStart = i < recordCount - 1 ? 
+                            dataView.getUint32(recordOffset + ((i + 1) * 8), false) : 
+                            arrayBuffer.byteLength;
+                        
+                        if (recordStart < arrayBuffer.byteLength && nextRecordStart > recordStart) {
+                            const recordData = arrayBuffer.slice(recordStart, nextRecordStart);
+                            
+                            // Try to decompress if it's PalmDOC compressed
+                            let text;
+                            try {
+                                text = decompressPalmDOC(recordData);
+                            } catch (e) {
+                                // If decompression fails, try as plain text
+                                text = new TextDecoder('utf-8', {ignoreBOM: true, fatal: false}).decode(recordData);
+                            }
+                            
+                            // Clean and add text
+                            const cleanText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+                            if (cleanText && cleanText.length > 10) {
+                                fullText += cleanText + '\n\n';
+                            }
+                        }
+                        
+                        const progress = 50 + ((i + 1) / Math.min(recordCount, 100)) * 40;
+                        updateProgress(progress, `Processing record ${i + 1}...`);
+                        
+                    } catch (recordError) {
+                        console.warn(`Error processing record ${i}:`, recordError);
+                        continue;
+                    }
+                }
+                
+                // Fallback: try to extract any readable text from the entire file
+                if (!fullText.trim()) {
+                    updateProgress(90, 'Attempting fallback text extraction...');
+                    const decoder = new TextDecoder('utf-8', {ignoreBOM: true, fatal: false});
+                    const rawText = decoder.decode(arrayBuffer);
+                    
+                    // Extract potential text content
+                    const textParts = rawText.match(/[a-zA-Z\s.,!?;:'"()-]{50,}/g) || [];
+                    fullText = textParts.join('\n\n');
+                }
+                
+                extractedText = fullText.trim();
+                
+                if (!extractedText || extractedText.length < 100) {
+                    throw new Error('No readable text found in MOBI file. The file might be DRM-protected or corrupted.');
+                }
+                
+                displayResults();
+                
+            } catch (error) {
+                console.error('Error converting MOBI:', error);
+                showError(`Failed to convert MOBI: ${error.message}`);
+                hideProgress();
+            }
+        }
+        
+        function decompressPalmDOC(data) {
+            // Simple PalmDOC decompression implementation
+            const input = new Uint8Array(data);
+            const output = [];
+            let i = 0;
+            
+            while (i < input.length) {
+                const byte = input[i];
+                
+                if (byte === 0) {
+                    break;
+                } else if (byte >= 1 && byte <= 8) {
+                    // Copy next byte as-is
+                    if (i + 1 < input.length) {
+                        output.push(input[i + 1]);
+                        i += 2;
+                    } else {
+                        break;
+                    }
+                } else if (byte >= 0x80 && byte <= 0xBF) {
+                    // Back-reference
+                    if (i + 1 < input.length) {
+                        const nextByte = input[i + 1];
+                        const distance = ((byte & 0x3F) << 8) | nextByte;
+                        const length = (byte >> 6) + 3;
+                        
+                        // Copy from back-reference
+                        for (let j = 0; j < length && output.length > distance; j++) {
+                            output.push(output[output.length - distance]);
+                        }
+                        i += 2;
+                    } else {
+                        break;
+                    }
+                } else if (byte >= 0xC0) {
+                    // Space + character
+                    output.push(32); // space
+                    output.push(byte ^ 0x80);
+                    i++;
+                } else {
+                    // Regular character
+                    output.push(byte);
+                    i++;
+                }
+            }
+            
+            return new TextDecoder('utf-8', {ignoreBOM: true, fatal: false}).decode(new Uint8Array(output));
+        }
             try {
                 const arrayBuffer = await file.arrayBuffer();
                 
