@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to Text Converter</title>
+    <title>Universal Ebook to Text Converter</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -292,7 +292,7 @@
                 <div class="upload-icon">📁</div>
                 <h3>Drop your ebook file here or click to browse</h3>
                 <p style="margin: 15px 0; color: #666;">Supports PDF, EPUB, and MOBI files up to 50MB</p>
-                <input type="file" id="fileInput" class="file-input" accept="*">
+                <input type="file" id="fileInput" class="file-input">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     Choose Ebook File
                 </button>
@@ -336,75 +336,70 @@
     </div>
 
     <script>
-        // Initialize PDF.js with proper worker
+        // Initialize PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        
-        // Disable worker if there are issues (fallback)
-        if (typeof Worker === 'undefined') {
-            pdfjsLib.disableWorker = true;
-        }
 
+        // Global variables
         let extractedText = '';
         let fileName = '';
 
-        // File input handling
-        document.getElementById('fileInput').addEventListener('change', handleFile);
-
-        // Drag and drop handling
-        const uploadSection = document.getElementById('uploadSection');
-
-        uploadSection.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadSection.classList.add('dragover');
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
         });
 
-        uploadSection.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            uploadSection.classList.remove('dragover');
-        });
+        function initializeApp() {
+            // File input handling
+            document.getElementById('fileInput').addEventListener('change', handleFile);
 
-        uploadSection.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadSection.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                console.log(`Dropped file: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
-                handleFileUpload(file);
-            }
-        });
+            // Drag and drop handling
+            const uploadSection = document.getElementById('uploadSection');
+
+            uploadSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadSection.classList.add('dragover');
+            });
+
+            uploadSection.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('dragover');
+            });
+
+            uploadSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileUpload(files[0]);
+                }
+            });
+        }
 
         function handleFile(event) {
             const file = event.target.files[0];
             if (file) {
-                console.log('File input changed:', file.name);
                 handleFileUpload(file);
-            } else {
-                console.log('No file selected');
             }
         }
 
         function handleFileUpload(file) {
-            console.log(`File selected: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
-            
             // Get file extension
             const fileExtension = file.name.toLowerCase().split('.').pop();
             const allowedExtensions = ['pdf', 'epub', 'mobi'];
             
-            // Validate file type by extension
+            // Validate file type
             if (!allowedExtensions.includes(fileExtension)) {
                 showError(`Unsupported file type: .${fileExtension}. Please select a PDF, EPUB, or MOBI file.`);
                 return;
             }
 
-            // Validate file size (50MB limit)
+            // Validate file size
             if (file.size > 50 * 1024 * 1024) {
                 showError('File size must be less than 50MB.');
                 return;
             }
 
-            // Validate file is not empty
             if (file.size === 0) {
                 showError('The selected file is empty.');
                 return;
@@ -414,43 +409,24 @@
             showProgress();
             clearError();
             
-            console.log(`Processing ${fileExtension.toUpperCase()} file...`);
-            
             // Route to appropriate converter
-            try {
-                switch(fileExtension) {
-                    case 'pdf':
-                        convertPdfToText(file);
-                        break;
-                    case 'epub':
-                        convertEpubToText(file);
-                        break;
-                    case 'mobi':
-                        convertMobiToText(file);
-                        break;
-                    default:
-                        throw new Error('Unsupported file format');
-                }
-            } catch (error) {
-                console.error('Error in file processing:', error);
-                showError(`Error processing file: ${error.message}`);
-                hideProgress();
+            switch(fileExtension) {
+                case 'pdf':
+                    convertPdfToText(file);
+                    break;
+                case 'epub':
+                    convertEpubToText(file);
+                    break;
+                case 'mobi':
+                    convertMobiToText(file);
+                    break;
             }
         }
 
         async function convertPdfToText(file) {
             try {
                 const arrayBuffer = await file.arrayBuffer();
-                
-                // Load PDF with additional options to prevent worker issues
-                const loadingTask = pdfjsLib.getDocument({
-                    data: arrayBuffer,
-                    useWorkerFetch: false,
-                    isEvalSupported: false,
-                    useSystemFonts: true
-                });
-                
-                const pdf = await loadingTask.promise;
+                const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
                 
                 const totalPages = pdf.numPages;
                 updateProgress(0, `Processing page 1 of ${totalPages}...`);
@@ -475,14 +451,13 @@
                     const progress = (pageNum / totalPages) * 100;
                     updateProgress(progress, `Processing page ${pageNum} of ${totalPages}...`);
                     
-                    // Add small delay to prevent blocking UI
                     await new Promise(resolve => setTimeout(resolve, 10));
                 }
                 
                 extractedText = fullText.trim();
                 
                 if (!extractedText) {
-                    showError('No text found in PDF. The file might contain only images or be password-protected.');
+                    showError('No text found in PDF. The file might contain only images.');
                     hideProgress();
                     return;
                 }
@@ -491,23 +466,11 @@
                 
             } catch (error) {
                 console.error('Error converting PDF:', error);
-                let errorMessage = 'Failed to convert PDF. ';
-                
-                if (error.name === 'PasswordException') {
-                    errorMessage += 'The PDF is password-protected.';
-                } else if (error.name === 'InvalidPDFException') {
-                    errorMessage += 'The PDF file is corrupted or invalid.';
-                } else if (error.name === 'MissingPDFException') {
-                    errorMessage += 'The PDF file could not be found or read.';
-                } else {
-                    errorMessage += 'Please try with a different PDF file.';
-                }
-                
-                showError(errorMessage);
+                showError('Failed to convert PDF. The file might be corrupted or password-protected.');
                 hideProgress();
             }
         }
-        
+
         async function convertEpubToText(file) {
             try {
                 updateProgress(10, 'Reading EPUB file...');
@@ -515,82 +478,32 @@
                 const arrayBuffer = await file.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
                 
-                updateProgress(20, 'Parsing EPUB structure...');
+                updateProgress(30, 'Finding text files...');
                 
-                // Read the content.opf file to get the reading order
-                let contentOpf = null;
-                let contentOpfPath = '';
+                // Find HTML/XHTML files
+                const textFiles = Object.keys(zip.files).filter(path => 
+                    (path.endsWith('.html') || path.endsWith('.xhtml')) && 
+                    !zip.files[path].dir
+                ).sort();
                 
-                // Find content.opf file
-                for (let path in zip.files) {
-                    if (path.endsWith('.opf') || path.includes('content.opf')) {
-                        contentOpf = await zip.files[path].async('text');
-                        contentOpfPath = path.substring(0, path.lastIndexOf('/') + 1);
-                        break;
-                    }
+                if (textFiles.length === 0) {
+                    throw new Error('No readable content found in EPUB');
                 }
                 
-                if (!contentOpf) {
-                    // Fallback: look for common EPUB files
-                    const htmlFiles = Object.keys(zip.files).filter(path => 
-                        path.endsWith('.html') || path.endsWith('.xhtml')
-                    ).sort();
-                    
-                    if (htmlFiles.length === 0) {
-                        throw new Error('No readable content found in EPUB');
-                    }
-                    
-                    return await extractTextFromHtmlFiles(zip, htmlFiles);
-                }
-                
-                updateProgress(40, 'Extracting content order...');
-                
-                // Parse the spine to get reading order
-                const spineMatches = contentOpf.match(/<spine[^>]*>([\s\S]*?)<\/spine>/i);
-                if (!spineMatches) {
-                    throw new Error('Invalid EPUB structure');
-                }
-                
-                const itemrefMatches = spineMatches[1].match(/<itemref[^>]*idref="([^"]*)"[^>]*>/g) || [];
-                const manifest = contentOpf.match(/<manifest[^>]*>([\s\S]*?)<\/manifest>/i);
-                
-                if (!manifest) {
-                    throw new Error('Invalid EPUB manifest');
-                }
-                
-                // Build file mapping
-                const fileMap = {};
-                const itemMatches = manifest[1].match(/<item[^>]*>/g) || [];
-                
-                itemMatches.forEach(item => {
-                    const idMatch = item.match(/id="([^"]*)"/);
-                    const hrefMatch = item.match(/href="([^"]*)"/);
-                    if (idMatch && hrefMatch) {
-                        fileMap[idMatch[1]] = hrefMatch[1];
-                    }
-                });
-                
-                // Extract text from files in order
                 let fullText = '';
-                let processedFiles = 0;
                 
-                for (let itemref of itemrefMatches) {
-                    const idMatch = itemref.match(/idref="([^"]*)"/);
-                    if (idMatch && fileMap[idMatch[1]]) {
-                        const filePath = contentOpfPath + fileMap[idMatch[1]];
-                        
-                        if (zip.files[filePath]) {
-                            const content = await zip.files[filePath].async('text');
-                            const textContent = extractTextFromHtml(content);
-                            if (textContent.trim()) {
-                                fullText += `--- Chapter ${processedFiles + 1} ---\n${textContent}\n\n`;
-                            }
-                            processedFiles++;
-                            
-                            const progress = 40 + (processedFiles / itemrefMatches.length) * 50;
-                            updateProgress(progress, `Processing chapter ${processedFiles}...`);
-                        }
+                for (let i = 0; i < textFiles.length; i++) {
+                    const content = await zip.files[textFiles[i]].async('text');
+                    const textContent = extractTextFromHtml(content);
+                    
+                    if (textContent.trim()) {
+                        fullText += `--- Chapter ${i + 1} ---\n${textContent}\n\n`;
                     }
+                    
+                    const progress = 30 + ((i + 1) / textFiles.length) * 60;
+                    updateProgress(progress, `Processing chapter ${i + 1} of ${textFiles.length}...`);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
                 
                 extractedText = fullText.trim();
@@ -607,133 +520,43 @@
                 hideProgress();
             }
         }
-        
-        async function extractTextFromHtmlFiles(zip, htmlFiles) {
-            let fullText = '';
-            
-            for (let i = 0; i < htmlFiles.length; i++) {
-                try {
-                    const content = await zip.files[htmlFiles[i]].async('text');
-                    const textContent = extractTextFromHtml(content);
-                    if (textContent.trim()) {
-                        fullText += `--- Chapter ${i + 1} ---\n${textContent}\n\n`;
-                    }
-                    
-                    const progress = 40 + ((i + 1) / htmlFiles.length) * 50;
-                    updateProgress(progress, `Processing file ${i + 1} of ${htmlFiles.length}...`);
-                    
-                    // Small delay to prevent UI blocking
-                    await new Promise(resolve => setTimeout(resolve, 5));
-                } catch (error) {
-                    console.warn(`Error processing file ${htmlFiles[i]}:`, error);
-                    continue;
-                }
-            }
-            
-            extractedText = fullText.trim();
-            
-            if (!extractedText) {
-                throw new Error('No text content found in EPUB');
-            }
-            
-            displayResults();
-        }
-        
+
         function extractTextFromHtml(html) {
-            // Create a temporary div to parse HTML
             const div = document.createElement('div');
             div.innerHTML = html;
             
-            // Remove script and style elements
+            // Remove scripts and styles
             const scripts = div.querySelectorAll('script, style');
             scripts.forEach(el => el.remove());
             
-            // Get text content
             let text = div.textContent || div.innerText || '';
-            
-            // Clean up whitespace
             text = text.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
             
             return text;
         }
-        
+
         async function convertMobiToText(file) {
             try {
                 updateProgress(10, 'Reading MOBI file...');
                 
                 const arrayBuffer = await file.arrayBuffer();
-                const dataView = new DataView(arrayBuffer);
+                const decoder = new TextDecoder('utf-8', {ignoreBOM: true, fatal: false});
+                const text = decoder.decode(arrayBuffer);
                 
-                // Check MOBI header
-                const header = new TextDecoder().decode(arrayBuffer.slice(60, 68));
-                if (header !== 'BOOKMOBI' && header !== 'TPZ3') {
-                    throw new Error('Invalid MOBI file format');
+                updateProgress(50, 'Extracting text content...');
+                
+                // Extract readable text using regex
+                const textParts = text.match(/[a-zA-Z\s.,!?;:'"()\-]{50,}/g) || [];
+                const cleanedParts = textParts
+                    .filter(part => part.trim().length > 100)
+                    .map(part => part.replace(/[\x00-\x1F\x7F]/g, '').trim())
+                    .filter(part => part.length > 50);
+                
+                if (cleanedParts.length === 0) {
+                    throw new Error('No readable text found in MOBI file');
                 }
                 
-                updateProgress(30, 'Parsing MOBI structure...');
-                
-                // Parse PalmDOC header
-                const textLength = dataView.getUint32(4, false);
-                const recordCount = dataView.getUint16(76, false);
-                
-                updateProgress(50, 'Extracting text records...');
-                
-                // Find text records
-                let fullText = '';
-                let recordOffset = 78; // Start after header
-                
-                for (let i = 0; i < Math.min(recordCount, 100); i++) { // Limit to prevent infinite loops
-                    try {
-                        const recordStart = dataView.getUint32(recordOffset + (i * 8), false);
-                        const nextRecordStart = i < recordCount - 1 ? 
-                            dataView.getUint32(recordOffset + ((i + 1) * 8), false) : 
-                            arrayBuffer.byteLength;
-                        
-                        if (recordStart < arrayBuffer.byteLength && nextRecordStart > recordStart) {
-                            const recordData = arrayBuffer.slice(recordStart, nextRecordStart);
-                            
-                            // Try to decompress if it's PalmDOC compressed
-                            let text;
-                            try {
-                                text = decompressPalmDOC(recordData);
-                            } catch (e) {
-                                // If decompression fails, try as plain text
-                                text = new TextDecoder('utf-8', {ignoreBOM: true, fatal: false}).decode(recordData);
-                            }
-                            
-                            // Clean and add text
-                            const cleanText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
-                            if (cleanText && cleanText.length > 10) {
-                                fullText += cleanText + '\n\n';
-                            }
-                        }
-                        
-                        const progress = 50 + ((i + 1) / Math.min(recordCount, 100)) * 40;
-                        updateProgress(progress, `Processing record ${i + 1}...`);
-                        
-                    } catch (recordError) {
-                        console.warn(`Error processing record ${i}:`, recordError);
-                        continue;
-                    }
-                }
-                
-                // Fallback: try to extract any readable text from the entire file
-                if (!fullText.trim()) {
-                    updateProgress(90, 'Attempting fallback text extraction...');
-                    const decoder = new TextDecoder('utf-8', {ignoreBOM: true, fatal: false});
-                    const rawText = decoder.decode(arrayBuffer);
-                    
-                    // Extract potential text content
-                    const textParts = rawText.match(/[a-zA-Z\s.,!?;:'"()-]{50,}/g) || [];
-                    fullText = textParts.join('\n\n');
-                }
-                
-                extractedText = fullText.trim();
-                
-                if (!extractedText || extractedText.length < 100) {
-                    throw new Error('No readable text found in MOBI file. The file might be DRM-protected or corrupted.');
-                }
-                
+                extractedText = cleanedParts.join('\n\n');
                 displayResults();
                 
             } catch (error) {
@@ -742,128 +565,10 @@
                 hideProgress();
             }
         }
-        
-        function decompressPalmDOC(data) {
-            // Simple PalmDOC decompression implementation
-            const input = new Uint8Array(data);
-            const output = [];
-            let i = 0;
-            
-            while (i < input.length) {
-                const byte = input[i];
-                
-                if (byte === 0) {
-                    break;
-                } else if (byte >= 1 && byte <= 8) {
-                    // Copy next byte as-is
-                    if (i + 1 < input.length) {
-                        output.push(input[i + 1]);
-                        i += 2;
-                    } else {
-                        break;
-                    }
-                } else if (byte >= 0x80 && byte <= 0xBF) {
-                    // Back-reference
-                    if (i + 1 < input.length) {
-                        const nextByte = input[i + 1];
-                        const distance = ((byte & 0x3F) << 8) | nextByte;
-                        const length = (byte >> 6) + 3;
-                        
-                        // Copy from back-reference
-                        for (let j = 0; j < length && output.length > distance; j++) {
-                            output.push(output[output.length - distance]);
-                        }
-                        i += 2;
-                    } else {
-                        break;
-                    }
-                } else if (byte >= 0xC0) {
-                    // Space + character
-                    output.push(32); // space
-                    output.push(byte ^ 0x80);
-                    i++;
-                } else {
-                    // Regular character
-                    output.push(byte);
-                    i++;
-                }
-            }
-            
-            return new TextDecoder('utf-8', {ignoreBOM: true, fatal: false}).decode(new Uint8Array(output));
-        }
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                
-                // Load PDF with additional options to prevent worker issues
-                const loadingTask = pdfjsLib.getDocument({
-                    data: arrayBuffer,
-                    useWorkerFetch: false,
-                    isEvalSupported: false,
-                    useSystemFonts: true
-                });
-                
-                const pdf = await loadingTask.promise;
-                
-                const totalPages = pdf.numPages;
-                updateProgress(0, `Processing page 1 of ${totalPages}...`);
-                
-                let fullText = '';
-                
-                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                    const page = await pdf.getPage(pageNum);
-                    const textContent = await page.getTextContent();
-                    
-                    let pageText = '';
-                    textContent.items.forEach(item => {
-                        if (item.str && item.str.trim()) {
-                            pageText += item.str + ' ';
-                        }
-                    });
-                    
-                    if (pageText.trim()) {
-                        fullText += `--- Page ${pageNum} ---\n${pageText.trim()}\n\n`;
-                    }
-                    
-                    const progress = (pageNum / totalPages) * 100;
-                    updateProgress(progress, `Processing page ${pageNum} of ${totalPages}...`);
-                    
-                    // Add small delay to prevent blocking UI
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-                
-                extractedText = fullText.trim();
-                
-                if (!extractedText) {
-                    showError('No text found in PDF. The file might contain only images or be password-protected.');
-                    hideProgress();
-                    return;
-                }
-                
-                displayResults();
-                
-            } catch (error) {
-                console.error('Error converting PDF:', error);
-                let errorMessage = 'Failed to convert PDF. ';
-                
-                if (error.name === 'PasswordException') {
-                    errorMessage += 'The PDF is password-protected.';
-                } else if (error.name === 'InvalidPDFException') {
-                    errorMessage += 'The PDF file is corrupted or invalid.';
-                } else if (error.name === 'MissingPDFException') {
-                    errorMessage += 'The PDF file could not be found or read.';
-                } else {
-                    errorMessage += 'Please try with a different PDF file.';
-                }
-                
-                showError(errorMessage);
-                hideProgress();
-            }
-        }
 
         function showProgress() {
             document.getElementById('progressContainer').style.display = 'block';
             document.getElementById('resultSection').style.display = 'none';
-            clearError();
         }
 
         function hideProgress() {
@@ -881,7 +586,6 @@
             const words = extractedText.split(/\s+/).filter(word => word.length > 0).length;
             const chars = extractedText.length;
             
-            // Count pages/chapters differently based on content
             let sections = 1;
             if (extractedText.includes('--- Page ')) {
                 sections = (extractedText.match(/--- Page \d+ ---/g) || []).length;
@@ -901,49 +605,25 @@
 
         function downloadText() {
             if (!extractedText) {
-                showError('No text to download. Please convert a PDF first.');
+                showError('No text to download. Please convert a file first.');
                 return;
             }
             
             try {
-                // Create blob with UTF-8 encoding
-                const blob = new Blob([extractedText], { 
-                    type: 'text/plain;charset=utf-8' 
-                });
-                
-                // Create download link
+                const blob = new Blob([extractedText], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${fileName || 'converted-pdf'}.txt`;
+                a.download = `${fileName || 'converted'}.txt`;
                 a.style.display = 'none';
                 
-                // Add to DOM, click, and remove
                 document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
                 
-                // Force click event
-                if (a.click) {
-                    a.click();
-                } else {
-                    // Fallback for older browsers
-                    const event = new MouseEvent('click', {
-                        bubbles: true,
-                        cancelable: true,
-                        view: window
-                    });
-                    a.dispatchEvent(event);
-                }
-                
-                // Cleanup
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-                
-                showSuccess('Text file download started!');
-                
+                showSuccess('Text file downloaded!');
             } catch (error) {
-                console.error('Download error:', error);
                 showError('Download failed. Please try copying the text instead.');
             }
         }
@@ -955,49 +635,22 @@
             }
             
             try {
-                // Modern clipboard API
-                if (navigator.clipboard && navigator.clipboard.writeText) {
+                if (navigator.clipboard) {
                     await navigator.clipboard.writeText(extractedText);
                     showSuccess('Text copied to clipboard!');
                 } else {
-                    // Fallback for older browsers or insecure contexts
                     const textArea = document.createElement('textarea');
                     textArea.value = extractedText;
                     textArea.style.position = 'fixed';
                     textArea.style.left = '-999999px';
-                    textArea.style.top = '-999999px';
                     document.body.appendChild(textArea);
-                    textArea.focus();
                     textArea.select();
-                    
-                    const successful = document.execCommand('copy');
+                    document.execCommand('copy');
                     document.body.removeChild(textArea);
-                    
-                    if (successful) {
-                        showSuccess('Text copied to clipboard!');
-                    } else {
-                        throw new Error('Copy command failed');
-                    }
+                    showSuccess('Text copied to clipboard!');
                 }
             } catch (error) {
-                console.error('Copy error:', error);
-                showError('Failed to copy text. Please select and copy manually from the text box below.');
-                
-                // Focus and select the text output for manual copying
-                const textOutput = document.getElementById('textOutput');
-                if (textOutput) {
-                    textOutput.focus();
-                    if (textOutput.select) {
-                        textOutput.select();
-                    } else {
-                        // For div elements, select all text
-                        const range = document.createRange();
-                        range.selectNodeContents(textOutput);
-                        const selection = window.getSelection();
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    }
-                }
+                showError('Failed to copy. Please select and copy manually from the text box.');
             }
         }
 
@@ -1013,9 +666,7 @@
         function showError(message) {
             clearSuccess();
             const existingError = document.querySelector('.error');
-            if (existingError) {
-                existingError.remove();
-            }
+            if (existingError) existingError.remove();
             
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error';
@@ -1026,9 +677,7 @@
         function showSuccess(message) {
             clearError();
             const existingSuccess = document.querySelector('.success');
-            if (existingSuccess) {
-                existingSuccess.remove();
-            }
+            if (existingSuccess) existingSuccess.remove();
             
             const successDiv = document.createElement('div');
             successDiv.className = 'success';
@@ -1036,9 +685,7 @@
             document.querySelector('.content').insertBefore(successDiv, document.getElementById('progressContainer'));
             
             setTimeout(() => {
-                if (successDiv.parentNode) {
-                    successDiv.remove();
-                }
+                if (successDiv.parentNode) successDiv.remove();
             }, 3000);
         }
 
