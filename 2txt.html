@@ -292,7 +292,7 @@
                 <div class="upload-icon">📁</div>
                 <h3>Drop your ebook file here or click to browse</h3>
                 <p style="margin: 15px 0; color: #666;">Supports PDF, EPUB, and MOBI files up to 50MB</p>
-                <input type="file" id="fileInput" class="file-input" accept=".pdf,.epub,.mobi,application/pdf,application/epub+zip,application/x-mobipocket-ebook">
+                <input type="file" id="fileInput" class="file-input" accept="*">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     Choose Ebook File
                 </button>
@@ -378,31 +378,24 @@
         function handleFile(event) {
             const file = event.target.files[0];
             if (file) {
+                console.log('File input changed:', file.name);
                 handleFileUpload(file);
+            } else {
+                console.log('No file selected');
             }
         }
 
         function handleFileUpload(file) {
-            // Get file extension and MIME type
+            console.log(`File selected: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
+            
+            // Get file extension
             const fileExtension = file.name.toLowerCase().split('.').pop();
             const allowedExtensions = ['pdf', 'epub', 'mobi'];
-            const allowedMimeTypes = [
-                'application/pdf',
-                'application/epub+zip',
-                'application/x-mobipocket-ebook',
-                'application/octet-stream' // Some systems use this for MOBI
-            ];
             
-            // Validate file type by extension (more reliable than MIME type)
+            // Validate file type by extension
             if (!allowedExtensions.includes(fileExtension)) {
-                showError(`Please select a valid PDF, EPUB, or MOBI file. Selected file type: .${fileExtension}`);
+                showError(`Unsupported file type: .${fileExtension}. Please select a PDF, EPUB, or MOBI file.`);
                 return;
-            }
-
-            // Additional MIME type check (but don't block if extension is correct)
-            const mimeValid = allowedMimeTypes.includes(file.type) || file.type === '';
-            if (!mimeValid) {
-                console.warn(`Unexpected MIME type: ${file.type}, but proceeding based on file extension: .${fileExtension}`);
             }
 
             // Validate file size (50MB limit)
@@ -411,28 +404,110 @@
                 return;
             }
 
+            // Validate file is not empty
+            if (file.size === 0) {
+                showError('The selected file is empty.');
+                return;
+            }
+
             fileName = file.name.replace(/\.(pdf|epub|mobi)$/i, '');
             showProgress();
+            clearError();
             
-            console.log(`Processing ${fileExtension.toUpperCase()} file: ${file.name} (${file.type})`);
+            console.log(`Processing ${fileExtension.toUpperCase()} file...`);
             
-            // Route to appropriate converter based on file extension
-            switch(fileExtension) {
-                case 'pdf':
-                    convertPdfToText(file);
-                    break;
-                case 'epub':
-                    convertEpubToText(file);
-                    break;
-                case 'mobi':
-                    convertMobiToText(file);
-                    break;
-                default:
-                    showError('Unsupported file format.');
-                    hideProgress();
+            // Route to appropriate converter
+            try {
+                switch(fileExtension) {
+                    case 'pdf':
+                        convertPdfToText(file);
+                        break;
+                    case 'epub':
+                        convertEpubToText(file);
+                        break;
+                    case 'mobi':
+                        convertMobiToText(file);
+                        break;
+                    default:
+                        throw new Error('Unsupported file format');
+                }
+            } catch (error) {
+                console.error('Error in file processing:', error);
+                showError(`Error processing file: ${error.message}`);
+                hideProgress();
             }
         }
 
+        async function convertPdfToText(file) {
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                
+                // Load PDF with additional options to prevent worker issues
+                const loadingTask = pdfjsLib.getDocument({
+                    data: arrayBuffer,
+                    useWorkerFetch: false,
+                    isEvalSupported: false,
+                    useSystemFonts: true
+                });
+                
+                const pdf = await loadingTask.promise;
+                
+                const totalPages = pdf.numPages;
+                updateProgress(0, `Processing page 1 of ${totalPages}...`);
+                
+                let fullText = '';
+                
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    
+                    let pageText = '';
+                    textContent.items.forEach(item => {
+                        if (item.str && item.str.trim()) {
+                            pageText += item.str + ' ';
+                        }
+                    });
+                    
+                    if (pageText.trim()) {
+                        fullText += `--- Page ${pageNum} ---\n${pageText.trim()}\n\n`;
+                    }
+                    
+                    const progress = (pageNum / totalPages) * 100;
+                    updateProgress(progress, `Processing page ${pageNum} of ${totalPages}...`);
+                    
+                    // Add small delay to prevent blocking UI
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+                
+                extractedText = fullText.trim();
+                
+                if (!extractedText) {
+                    showError('No text found in PDF. The file might contain only images or be password-protected.');
+                    hideProgress();
+                    return;
+                }
+                
+                displayResults();
+                
+            } catch (error) {
+                console.error('Error converting PDF:', error);
+                let errorMessage = 'Failed to convert PDF. ';
+                
+                if (error.name === 'PasswordException') {
+                    errorMessage += 'The PDF is password-protected.';
+                } else if (error.name === 'InvalidPDFException') {
+                    errorMessage += 'The PDF file is corrupted or invalid.';
+                } else if (error.name === 'MissingPDFException') {
+                    errorMessage += 'The PDF file could not be found or read.';
+                } else {
+                    errorMessage += 'Please try with a different PDF file.';
+                }
+                
+                showError(errorMessage);
+                hideProgress();
+            }
+        }
+        
         async function convertEpubToText(file) {
             try {
                 updateProgress(10, 'Reading EPUB file...');
@@ -537,14 +612,22 @@
             let fullText = '';
             
             for (let i = 0; i < htmlFiles.length; i++) {
-                const content = await zip.files[htmlFiles[i]].async('text');
-                const textContent = extractTextFromHtml(content);
-                if (textContent.trim()) {
-                    fullText += `--- Chapter ${i + 1} ---\n${textContent}\n\n`;
+                try {
+                    const content = await zip.files[htmlFiles[i]].async('text');
+                    const textContent = extractTextFromHtml(content);
+                    if (textContent.trim()) {
+                        fullText += `--- Chapter ${i + 1} ---\n${textContent}\n\n`;
+                    }
+                    
+                    const progress = 40 + ((i + 1) / htmlFiles.length) * 50;
+                    updateProgress(progress, `Processing file ${i + 1} of ${htmlFiles.length}...`);
+                    
+                    // Small delay to prevent UI blocking
+                    await new Promise(resolve => setTimeout(resolve, 5));
+                } catch (error) {
+                    console.warn(`Error processing file ${htmlFiles[i]}:`, error);
+                    continue;
                 }
-                
-                const progress = 40 + ((i + 1) / htmlFiles.length) * 50;
-                updateProgress(progress, `Processing file ${i + 1} of ${htmlFiles.length}...`);
             }
             
             extractedText = fullText.trim();
@@ -797,16 +880,23 @@
             
             const words = extractedText.split(/\s+/).filter(word => word.length > 0).length;
             const chars = extractedText.length;
-            const pages = (extractedText.match(/--- Page \d+ ---/g) || []).length;
             
-            document.getElementById('pageCount').textContent = pages;
+            // Count pages/chapters differently based on content
+            let sections = 1;
+            if (extractedText.includes('--- Page ')) {
+                sections = (extractedText.match(/--- Page \d+ ---/g) || []).length;
+            } else if (extractedText.includes('--- Chapter ')) {
+                sections = (extractedText.match(/--- Chapter \d+ ---/g) || []).length;
+            }
+            
+            document.getElementById('pageCount').textContent = sections;
             document.getElementById('wordCount').textContent = words.toLocaleString();
             document.getElementById('charCount').textContent = chars.toLocaleString();
             
             document.getElementById('textOutput').textContent = extractedText;
             document.getElementById('resultSection').style.display = 'block';
             
-            showSuccess('PDF converted successfully!');
+            showSuccess('File converted successfully!');
         }
 
         function downloadText() {
@@ -859,20 +949,55 @@
         }
 
         async function copyText() {
-            if (!extractedText) return;
+            if (!extractedText) {
+                showError('No text to copy. Please convert a file first.');
+                return;
+            }
             
             try {
-                await navigator.clipboard.writeText(extractedText);
-                showSuccess('Text copied to clipboard!');
+                // Modern clipboard API
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(extractedText);
+                    showSuccess('Text copied to clipboard!');
+                } else {
+                    // Fallback for older browsers or insecure contexts
+                    const textArea = document.createElement('textarea');
+                    textArea.value = extractedText;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-999999px';
+                    textArea.style.top = '-999999px';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    
+                    if (successful) {
+                        showSuccess('Text copied to clipboard!');
+                    } else {
+                        throw new Error('Copy command failed');
+                    }
+                }
             } catch (error) {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = extractedText;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showSuccess('Text copied to clipboard!');
+                console.error('Copy error:', error);
+                showError('Failed to copy text. Please select and copy manually from the text box below.');
+                
+                // Focus and select the text output for manual copying
+                const textOutput = document.getElementById('textOutput');
+                if (textOutput) {
+                    textOutput.focus();
+                    if (textOutput.select) {
+                        textOutput.select();
+                    } else {
+                        // For div elements, select all text
+                        const range = document.createRange();
+                        range.selectNodeContents(textOutput);
+                        const selection = window.getSelection();
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                }
             }
         }
 
