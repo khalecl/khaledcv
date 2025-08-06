@@ -291,7 +291,7 @@
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📁</div>
                 <h3>Drop your ebook file here or click to browse</h3>
-                <p style="margin: 15px 0; color: #666;">Supports PDF, EPUB, and MOBI files up to 50MB</p>
+                <p style="margin: 15px 0; color: #666;">Supports PDF, EPUB, and MOBI files</p>
                 <input type="file" id="fileInput" class="file-input">
                 <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                     Choose Ebook File
@@ -391,12 +391,6 @@
             // Validate file type
             if (!allowedExtensions.includes(fileExtension)) {
                 showError(`Unsupported file type: .${fileExtension}. Please select a PDF, EPUB, or MOBI file.`);
-                return;
-            }
-
-            // Validate file size
-            if (file.size > 50 * 1024 * 1024) {
-                showError('File size must be less than 50MB.');
                 return;
             }
 
