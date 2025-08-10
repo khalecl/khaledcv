@@ -439,7 +439,7 @@
                     });
                     
                     if (pageText.trim()) {
-                        fullText += `--- Page ${pageNum} ---\n${pageText.trim()}\n\n`;
+                        fullText += `[PAGE_${pageNum}_START]\n--- Page ${pageNum} ---\n${pageText.trim()}\n[PAGE_${pageNum}_END]\n\n`;
                     }
                     
                     const progress = (pageNum / totalPages) * 100;
@@ -491,7 +491,7 @@
                     const textContent = extractTextFromHtml(content);
                     
                     if (textContent.trim()) {
-                        fullText += `--- Chapter ${i + 1} ---\n${textContent}\n\n`;
+                        fullText += `[CHAPTER_${i + 1}_START]\n--- Chapter ${i + 1} ---\n${textContent}\n[CHAPTER_${i + 1}_END]\n\n`;
                     }
                     
                     const progress = 30 + ((i + 1) / textFiles.length) * 60;
@@ -550,7 +550,13 @@
                     throw new Error('No readable text found in MOBI file');
                 }
                 
-                extractedText = cleanedParts.join('\n\n');
+                // Add section markers for MOBI content
+                let formattedText = '';
+                cleanedParts.forEach((part, index) => {
+                    formattedText += `[SECTION_${index + 1}_START]\n--- Section ${index + 1} ---\n${part}\n[SECTION_${index + 1}_END]\n\n`;
+                });
+                
+                extractedText = formattedText.trim();
                 displayResults();
                 
             } catch (error) {
@@ -581,10 +587,12 @@
             const chars = extractedText.length;
             
             let sections = 1;
-            if (extractedText.includes('--- Page ')) {
-                sections = (extractedText.match(/--- Page \d+ ---/g) || []).length;
-            } else if (extractedText.includes('--- Chapter ')) {
-                sections = (extractedText.match(/--- Chapter \d+ ---/g) || []).length;
+            if (extractedText.includes('[PAGE_') && extractedText.includes('_START]')) {
+                sections = (extractedText.match(/\[PAGE_\d+_START\]/g) || []).length;
+            } else if (extractedText.includes('[CHAPTER_') && extractedText.includes('_START]')) {
+                sections = (extractedText.match(/\[CHAPTER_\d+_START\]/g) || []).length;
+            } else if (extractedText.includes('[SECTION_') && extractedText.includes('_START]')) {
+                sections = (extractedText.match(/\[SECTION_\d+_START\]/g) || []).length;
             }
             
             document.getElementById('pageCount').textContent = sections;
