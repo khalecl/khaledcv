@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Khutbah Live Translator</title>
+    <style>
+        :root {
+            /* 8px Grid System */
+            --spacing-xs: 8px;
+            --spacing-sm: 16px;
+            --spacing-md: 24px;
+            --spacing-lg: 32px;
+            --spacing-xl: 40px;
+            --spacing-2xl: 48px;
+            --spacing-3xl: 64px;
+
+```
+        /* Type Scale */
+        --text-xs: 12px;
+        --text-sm: 14px;
+        --text-base: 16px;
+        --text-lg: 18px;
+        --text-xl: 20px;
+        --text-2xl: 24px;
+        --text-3xl: 32px;
+        --text-4xl: 48px;
+        
+        /* Islamic Teal/Green Colors */
+        --primary: #0D9488;
+        --primary-hover: #0F766E;
+        --primary-active: #115E59;
+        --secondary: #14B8A6;
+        --danger: #DC2626;
+        --danger-hover: #B91C1C;
+        --text-primary: #1F2937;
+        --text-secondary: #4B5563;
+        --text-tertiary: #9CA3AF;
+        --bg-primary: #FFFFFF;
+        --bg-secondary: #F0FDFA;
+        --bg-tertiary: #CCFBF1;
+        --border: #D1D5DB;
+        --border-focus: #0D9488;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-full: 9999px;
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+        background: linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #2DD4BF 100%);
+        min-height: 100vh;
+        padding: var(--spacing-md);
+        color: var(--text-primary);
+        line-height: 1.6;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Header - Following Visual Hierarchy Principles */
+    .header {
+        text-align: center;
+        color: white;
+        margin-bottom: var(--spacing-xl);
+        padding: var(--spacing-lg) var(--spacing-md);
+    }
+
+    .header h1 {
+        font-size: var(--text-3xl);
+        font-weight: 700;
+        margin-bottom: var(--spacing-xs);
+        letter-spacing: -0.02em;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header p {
+        font-size: var(--text-lg);
+        opacity: 0.95;
+        font-weight: 400;
+    }
+
+    /* Card Component */
+    .card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xl);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-md);
+    }
+
+    /* Alert Component */
+    .alert {
+        background: #FEF3C7;
+        border-left: 4px solid #F59E0B;
+        padding: var(--spacing-md);
+        border-radius: var(--radius-sm);
+        margin-bottom: var(--spacing-lg);
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: flex-start;
+    }
+
+    .alert-icon {
+        font-size: var(--text-xl);
+        flex-shrink: 0;
+    }
+
+    .alert-content h4 {
+        font-size: var(--text-base);
+        font-weight: 600;
+        color: #92400E;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .alert-content p {
+        font-size: var(--text-sm);
+        color: #78350F;
+        line-height: 1.5;
+    }
+
+    /* Form Controls - 8px Grid Alignment */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: var(--text-sm);
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        letter-spacing: 0.01em;
+    }
+
+    .form-label-icon {
+        width: 16px;
+        height: 16px;
+        color: var(--primary);
+    }
+
+    .form-select {
+        /* Button Height: 48px minimum (following Material Design) */
+        height: 48px;
+        padding: 0 var(--spacing-md);
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: var(--text-base);
+        background: var(--bg-primary);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .form-select:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    /* Status Indicator */
+    .status-card {
+        background: var(--bg-secondary);
+        border: 2px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-sm);
+        margin-bottom: var(--spacing-lg);
+        transition: all 0.3s ease;
+    }
+
+    .status-card.listening {
+        background: #ECFDF5;
+        border-color: #10B981;
+    }
+
+    .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: var(--radius-full);
+        background: var(--text-tertiary);
+        transition: all 0.3s ease;
+    }
+
+    .status-dot.active {
+        background: var(--secondary);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.6; transform: scale(1.1); }
+    }
+
+    .status-text {
+        font-size: var(--text-base);
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .status-text.active {
+        color: var(--secondary);
+    }
+
+    /* Button Hierarchy - Primary/Secondary/Tertiary */
+    .button-group {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: center;
+        margin: var(--spacing-lg) 0;
+    }
+
+    .btn {
+        /* Button sizing: 48px height for mobile, proper padding */
+        height: 48px;
+        padding: 0 var(--spacing-lg);
+        font-size: var(--text-base);
+        font-weight: 600;
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--spacing-xs);
+        letter-spacing: 0.01em;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Primary Button (CTA) */
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .btn-primary:active {
+        background: var(--primary-active);
+        transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+        background: var(--text-tertiary);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Secondary Button (Danger) */
+    .btn-danger {
+        background: var(--danger);
+        color: white;
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-danger:hover {
+        background: var(--danger-hover);
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-2px);
+    }
+
+    .btn-danger:active {
+        background: #B91C1C;
+        transform: translateY(0);
+    }
+
+    .btn-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Translation Display - Proper Spacing */
+    .translation-container {
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-lg);
+        min-height: 400px;
+        margin-top: var(--spacing-md);
+    }
+
+    .translation-section {
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .translation-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .translation-header {
+        font-size: var(--text-sm);
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .translation-box {
+        background: var(--bg-primary);
+        padding: var(--spacing-md);
+        border-radius: var(--radius-sm);
+        font-size: var(--text-lg);
+        line-height: 1.8;
+        color: var(--text-primary);
+        min-height: 120px;
+        border-left: 4px solid var(--primary);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .translation-box.large {
+        font-size: var(--text-xl);
+        font-weight: 500;
+    }
+
+    .translation-box.rtl {
+        direction: rtl;
+        text-align: right;
+        border-left: none;
+        border-right: 4px solid var(--primary);
+    }
+
+    .translation-box.empty {
+        color: var(--text-tertiary);
+        font-style: italic;
+    }
+
+    /* Info Section */
+    .info-section {
+        margin-top: var(--spacing-xl);
+    }
+
+    .info-title {
+        font-size: var(--text-lg);
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-sm);
+        font-size: var(--text-sm);
+        color: var(--text-secondary);
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        color: white;
+        margin-top: var(--spacing-2xl);
+        padding: var(--spacing-lg);
+    }
+
+    .footer p {
+        opacity: 0.95;
+        margin-bottom: var(--spacing-xs);
+    }
+
+    .footer-secondary {
+        font-size: var(--text-sm);
+        opacity: 0.85;
+    }
+
+    /* Responsive - Mobile First */
+    @media (max-width: 768px) {
+        body {
+            padding: var(--spacing-sm);
+        }
+
+        .header h1 {
+            font-size: var(--text-2xl);
+        }
+
+        .card {
+            padding: var(--spacing-md);
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .button-group {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+
+        .translation-box {
+            font-size: var(--text-base);
+        }
+
+        .translation-box.large {
+            font-size: var(--text-lg);
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="container">
+        <!-- Header with Clear Hierarchy -->
+        <header class="header">
+            <h1>Khutbah Live Translator</h1>
+            <p>Free Real-Time Translation for Friday Sermons</p>
+        </header>
+
+```
+    <!-- Main Card -->
+    <main class="card">
+        <!-- Alert Component -->
+        <div class="alert">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-content">
+                <h4>Microphone Access Required</h4>
+                <p>Click "Allow" when your browser asks for microphone permission. Check the address bar for a microphone icon 🎤 if nothing happens.</p>
+            </div>
+        </div>
+
+        <!-- Form Controls with 8px Grid -->
+        <form class="form-grid">
+            <div class="form-group">
+                <label class="form-label">
+                    <svg class="form-label-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                    Sheikh's Language
+                </label>
+                <select id="inputLang" class="form-select">
+                    <option value="ar-SA">Arabic</option>
+                    <option value="en-US">English</option>
+                    <option value="ur-PK">Urdu</option>
+                    <option value="tr-TR">Turkish</option>
+                    <option value="id-ID">Indonesian</option>
+                    <option value="ms-MY">Malay</option>
+                    <option value="bn-BD">Bengali</option>
+                    <option value="fa-IR">Persian (Farsi)</option>
+                    <option value="ru-RU">Russian</option>
+                    <option value="fr-FR">French</option>
+                    <option value="es-ES">Spanish</option>
+                    <option value="de-DE">German</option>
+                    <option value="it-IT">Italian</option>
+                    <option value="pt-PT">Portuguese</option>
+                    <option value="hi-IN">Hindi</option>
+                    <option value="zh-CN">Chinese</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <svg class="form-label-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
+                    </svg>
+                    Your Language
+                </label>
+                <select id="outputLang" class="form-select">
+                    <option value="en">English</option>
+                    <option value="ar">Arabic</option>
+                    <option value="es">Spanish</option>
+                    <option value="fr">French</option>
+                    <option value="de">German</option>
+                    <option value="it">Italian</option>
+                    <option value="ru">Russian</option>
+                    <option value="tr">Turkish</option>
+                    <option value="ur">Urdu</option>
+                    <option value="id">Indonesian</option>
+                    <option value="bn">Bengali</option>
+                    <option value="fa">Persian</option>
+                    <option value="pt">Portuguese</option>
+                    <option value="zh">Chinese</option>
+                    <option value="hi">Hindi</option>
+                    <option value="nl">Dutch</option>
+                    <option value="pl">Polish</option>
+                    <option value="ja">Japanese</option>
+                    <option value="ko">Korean</option>
+                </select>
+            </div>
+        </form>
+
+        <!-- Status Indicator -->
+        <div class="status-card" id="statusCard">
+            <div class="status-dot" id="statusDot"></div>
+            <span class="status-text" id="statusText">Ready to start</span>
+        </div>
+
+        <!-- Button Group with Proper Hierarchy -->
+        <div class="button-group">
+            <button class="btn btn-primary" id="startBtn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                Start Listening
+            </button>
+            <button class="btn btn-danger" id="stopBtn" style="display: none;">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="6" width="12" height="12"/>
+                </svg>
+                Stop
+            </button>
+        </div>
+
+        <!-- Translation Display with Proper Spacing -->
+        <div class="translation-container">
+            <div class="translation-section">
+                <div class="translation-header">Original Speech</div>
+                <div class="translation-box empty" id="originalText">
+                    Waiting for speech...
+                </div>
+            </div>
+
+            <div class="translation-section">
+                <div class="translation-header">Translation</div>
+                <div class="translation-box large empty" id="translatedText">
+                    Translation will appear here...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Supported Languages Card -->
+    <div class="card">
+        <div class="info-section">
+            <h2 class="info-title">
+                <span>📱</span>
+                Supported Languages
+            </h2>
+            <div class="info-grid">
+                <div class="info-item">✓ Arabic</div>
+                <div class="info-item">✓ English</div>
+                <div class="info-item">✓ Spanish</div>
+                <div class="info-item">✓ French</div>
+                <div class="info-item">✓ German</div>
+                <div class="info-item">✓ Italian</div>
+                <div class="info-item">✓ Russian</div>
+                <div class="info-item">✓ Turkish</div>
+                <div class="info-item">✓ Urdu</div>
+                <div class="info-item">✓ Indonesian</div>
+                <div class="info-item">✓ Malay</div>
+                <div class="info-item">✓ Bengali</div>
+                <div class="info-item">✓ Persian</div>
+                <div class="info-item">✓ Portuguese</div>
+                <div class="info-item">✓ Chinese</div>
+                <div class="info-item">✓ Hindi</div>
+                <div class="info-item">✓ Dutch</div>
+                <div class="info-item">✓ Polish</div>
+                <div class="info-item">+ More</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Free service for the Muslim community worldwide • Made with ❤️</p>
+        <p class="footer-secondary">May Allah accept from us and from you</p>
+    </footer>
+</div>
+
+<script>
+    let recognition;
+    let isListening = false;
+    let translationTimeout;
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusCard = document.getElementById('statusCard');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const originalText = document.getElementById('originalText');
+    const translatedText = document.getElementById('translatedText');
+    const inputLang = document.getElementById('inputLang');
+    const outputLang = document.getElementById('outputLang');
+
+    if (!SpeechRecognition) {
+        statusText.textContent = 'Speech recognition not supported. Please use Chrome, Edge, or Safari.';
+        statusText.classList.add('active');
+        startBtn.disabled = true;
+    }
+
+    startBtn.addEventListener('click', startListening);
+    stopBtn.addEventListener('click', stopListening);
+
+    async function startListening() {
+        if (!SpeechRecognition) {
+            alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            return;
+        }
+
+        try {
+            statusText.textContent = 'Requesting microphone access...';
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach(track => track.stop());
+            
+            statusText.textContent = 'Starting...';
+        } catch (error) {
+            alert('Microphone access denied or unavailable. Please:\n\n1. Click the lock icon in your browser address bar\n2. Allow microphone access\n3. Refresh the page and try again');
+            statusText.textContent = 'Microphone access denied';
+            return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = inputLang.value;
+
+        recognition.onstart = () => {
+            isListening = true;
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-flex';
+            statusCard.classList.add('listening');
+            statusDot.classList.add('active');
+            statusText.classList.add('active');
+            statusText.textContent = '🎤 Listening... Speak now!';
+            originalText.textContent = '';
+            originalText.classList.remove('empty');
+            translatedText.textContent = '';
+            translatedText.classList.remove('empty');
+        };
+
+        recognition.onresult = (event) => {
+            let interimTranscript = '';
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            const displayText = finalTranscript || interimTranscript;
+            if (displayText) {
+                originalText.textContent = displayText;
+                
+                clearTimeout(translationTimeout);
+                if (finalTranscript) {
+                    translationTimeout = setTimeout(() => {
+                        translateText(finalTranscript.trim());
+                    }, 500);
+                }
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            if (event.error === 'no-speech') {
+                statusText.textContent = 'No speech detected. Please speak louder.';
+            } else if (event.error === 'not-allowed') {
+                statusText.textContent = 'Microphone access denied';
+                stopListening();
+            } else {
+                statusText.textContent = `Error: ${event.error}`;
+            }
+        };
+
+        recognition.onend = () => {
+            if (isListening) {
+                recognition.start();
+            }
+        };
+
+        recognition.start();
+    }
+
+    function stopListening() {
+        isListening = false;
+        if (recognition) {
+            recognition.stop();
+        }
+        startBtn.style.display = 'inline-flex';
+        stopBtn.style.display = 'none';
+        statusCard.classList.remove('listening');
+        statusDot.classList.remove('active');
+        statusText.classList.remove('active');
+        statusText.textContent = 'Stopped';
+    }
+
+    async function translateText(text) {
+        if (!text.trim()) return;
+
+        const sourceLang = inputLang.value.split('-')[0];
+        const targetLang = outputLang.value;
+
+        if (sourceLang === targetLang) {
+            translatedText.textContent = text;
+            return;
+        }
+
+        try {
+            translatedText.textContent = 'Translating...';
+            
+            const response = await fetch(
+                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
+            );
+            
+            const data = await response.json();
+            
+            if (data.responseStatus === 200 && data.responseData) {
+                translatedText.textContent = data.responseData.translatedText;
+            } else {
+                translatedText.textContent = 'Translation unavailable: ' + text;
+            }
+        } catch (error) {
+            console.error('Translation error:', error);
+            translatedText.textContent = 'Translation error: ' + text;
+        }
+    }
+
+    inputLang.addEventListener('change', () => {
+        const lang = inputLang.value;
+        if (lang.startsWith('ar') || lang.startsWith('ur') || lang.startsWith('fa')) {
+            originalText.classList.add('rtl');
+        } else {
+            originalText.classList.remove('rtl');
+        }
+    });
+
+    outputLang.addEventListener('change', () => {
+        const lang = outputLang.value;
+        if (lang === 'ar' || lang === 'ur' || lang === 'fa') {
+            translatedText.classList.add('rtl');
+        } else {
+            translatedText.classList.remove('rtl');
+        }
+    });
+</script>
+```
+
+</body>
+</html>
