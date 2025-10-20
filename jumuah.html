@@ -33,7 +33,7 @@
             background: linear-gradient(135deg, #1e5936 0%, #2a7f4e 50%, #3a9960 100%);
             min-height: 100vh;
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
         }
 
         /* Islamic pattern background */
@@ -58,7 +58,7 @@
             padding: 20px;
             position: relative;
             z-index: 2;
-            min-height: 100vh;
+            min-height: auto;
             display: none;
         }
 
@@ -957,31 +957,41 @@
             recognition.interimResults = true;
             recognition.lang = document.getElementById('inputLang').value;
 
-            let pendingTranslation = '';
-            let translationTimeout;
+            let currentTranscript = '';
+            let silenceTimer;
 
             recognition.onresult = (event) => {
+                clearTimeout(silenceTimer);
+                
+                let interim = '';
+                let final = '';
+                
+                // Get only the new results since last event
                 for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    
-                    if (event.results[i].isFinal || settings.instantTranslate) {
-                        // Clear any pending translation
-                        clearTimeout(translationTimeout);
-                        
-                        // Accumulate text for translation
-                        pendingTranslation += ' ' + transcript;
-                        
-                        // Translate immediately or with small delay
-                        if (settings.instantTranslate) {
-                            translateText(pendingTranslation.trim());
-                            pendingTranslation = '';
-                        } else {
-                            translationTimeout = setTimeout(() => {
-                                translateText(pendingTranslation.trim());
-                                pendingTranslation = '';
-                            }, 500);
-                        }
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript + ' ';
+                    } else {
+                        interim = event.results[i][0].transcript;
                     }
+                }
+                
+                // Add final text to accumulated transcript
+                if (final) {
+                    currentTranscript += final;
+                }
+                
+                // Detect sentence completion by pause
+                const fullText = currentTranscript + interim;
+                
+                if (fullText.trim()) {
+                    // Set a timer that fires when speaker pauses
+                    silenceTimer = setTimeout(() => {
+                        if (currentTranscript.trim()) {
+                            // Send accumulated text for translation
+                            translateText(currentTranscript.trim());
+                            currentTranscript = '';
+                        }
+                    }, 1000); // 1 second pause = sentence boundary
                 }
             };
 
@@ -998,6 +1008,12 @@
             };
 
             recognition.onend = () => {
+                // Translate any remaining text
+                if (currentTranscript.trim()) {
+                    translateText(currentTranscript.trim());
+                    currentTranscript = '';
+                }
+                
                 if (isListening) {
                     // Automatically restart recognition
                     setTimeout(() => {
@@ -1019,12 +1035,18 @@
         // Translate text
         async function translateText(text) {
             if (!text || !text.trim()) return;
+            
+            // Check if we already translated this exact text recently
+            const recentText = translations[translations.length - 1];
+            if (recentText && recentText.originalText === text.trim()) {
+                return; // Skip duplicate
+            }
 
             const sourceLang = document.getElementById('inputLang').value.split('-')[0];
             const targetLang = document.getElementById('outputLang').value;
 
             if (sourceLang === targetLang) {
-                addTranslation(text);
+                addTranslation(text, text);
                 return;
             }
 
@@ -1039,26 +1061,35 @@
                 const data = await response.json();
                 
                 if (data.responseStatus === 200 && data.responseData) {
-                    addTranslation(data.responseData.translatedText);
+                    addTranslation(text, data.responseData.translatedText);
                 } else {
-                    addTranslation(text);
+                    addTranslation(text, text);
                 }
             } catch (error) {
                 console.error('Translation error:', error);
-                addTranslation(text);
+                addTranslation(text, text);
             } finally {
                 document.getElementById('loader').classList.remove('active');
             }
         }
 
         // Add translation to display
-        function addTranslation(text) {
-            translations.push({
-                text: text,
-                timestamp: new Date().toLocaleTimeString()
-            });
+        function addTranslation(originalText, translatedText) {
+            // Avoid adding duplicates
+            const isDuplicate = translations.some(t => 
+                t.originalText === originalText.trim() && 
+                t.text === translatedText.trim()
+            );
             
-            displayTranslations();
+            if (!isDuplicate) {
+                translations.push({
+                    originalText: originalText.trim(),
+                    text: translatedText.trim(),
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                
+                displayTranslations();
+            }
         }
 
         // Display translations
