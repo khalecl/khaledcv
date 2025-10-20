@@ -6,82 +6,244 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Khutbah Live Translator</title>
     <style>
-        :root {
-            --spacing-xs: 8px;
-            --spacing-sm: 16px;
-            --spacing-md: 24px;
-            --spacing-lg: 32px;
-            --spacing-xl: 40px;
-            --spacing-2xl: 48px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
 ```
-        --text-sm: 14px;
-        --text-base: 16px;
-        --text-lg: 18px;
-        --text-xl: 20px;
-        --text-2xl: 24px;
-        --text-3xl: 32px;
-        
-        --primary: #0D9488;
-        --primary-hover: #0F766E;
-        --secondary: #14B8A6;
-        --danger: #DC2626;
-        --text-primary: #1F2937;
-        --text-secondary: #4B5563;
-        --text-tertiary: #9CA3AF;
-        --bg-primary: #FFFFFF;
-        --bg-secondary: #F0FDFA;
-        --border: #D1D5DB;
-        
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        --radius-md: 12px;
-        --radius-lg: 16px;
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         background: linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #2DD4BF 100%);
         min-height: 100vh;
-        padding: var(--spacing-md);
-        color: var(--text-primary);
-        line-height: 1.6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
     }
 
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
+    .app-container {
+        width: 100%;
+        max-width: 1000px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
     }
 
     .header {
-        text-align: center;
+        background: linear-gradient(135deg, #0D9488, #14B8A6);
         color: white;
-        margin-bottom: var(--spacing-lg);
-        padding: var(--spacing-md);
+        padding: 24px;
+        text-align: center;
     }
 
     .header h1 {
-        font-size: var(--text-3xl);
+        font-size: 28px;
         font-weight: 700;
-        margin-bottom: var(--spacing-xs);
+        margin-bottom: 4px;
     }
 
-    .card {
-        background: var(--bg-primary);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-xl);
-        padding: var(--spacing-lg);
-        margin-bottom: var(--spacing-md);
+    .header p {
+        font-size: 14px;
+        opacity: 0.95;
     }
 
-    /* Mic Permission Modal */
+    .controls {
+        padding: 24px;
+        background: #F0FDFA;
+        border-bottom: 2px solid #CCFBF1;
+    }
+
+    .lang-row {
+        display: flex;
+        gap: 16px;
+        align-items: flex-end;
+        margin-bottom: 16px;
+    }
+
+    .lang-group {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .lang-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #4B5563;
+    }
+
+    .lang-select {
+        height: 44px;
+        padding: 0 12px;
+        border: 2px solid #D1D5DB;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: white;
+    }
+
+    .lang-select:focus {
+        outline: none;
+        border-color: #0D9488;
+        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    }
+
+    .auto-detect {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #4B5563;
+    }
+
+    .auto-detect input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        background: #D1FAE5;
+        border-radius: 8px;
+    }
+
+    .status-dot {
+        width: 10px;
+        height: 10px;
+        background: #10B981;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .status-text {
+        font-size: 14px;
+        font-weight: 600;
+        color: #065F46;
+    }
+
+    .translation-area {
+        padding: 24px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        min-height: 400px;
+        max-height: 500px;
+    }
+
+    .translation-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border: 2px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 16px;
+        background: #FAFAFA;
+    }
+
+    .panel-header {
+        font-size: 12px;
+        font-weight: 700;
+        color: #6B7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .text-content {
+        flex: 1;
+        overflow-y: auto;
+        font-size: 16px;
+        line-height: 1.8;
+        color: #1F2937;
+    }
+
+    .text-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .text-content::-webkit-scrollbar-thumb {
+        background: #D1D5DB;
+        border-radius: 3px;
+    }
+
+    .sentence {
+        margin-bottom: 16px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #E5E7EB;
+    }
+
+    .sentence:last-child {
+        border-bottom: none;
+    }
+
+    .rtl {
+        direction: rtl;
+        text-align: right;
+    }
+
+    .empty {
+        color: #9CA3AF;
+        font-style: italic;
+    }
+
+    .actions {
+        padding: 24px;
+        background: #F9FAFB;
+        border-top: 2px solid #E5E7EB;
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
+
+    .btn {
+        height: 44px;
+        padding: 0 24px;
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: #0D9488;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0F766E;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #0D9488;
+        border: 2px solid #0D9488;
+    }
+
+    .btn-secondary:hover {
+        background: #F0FDFA;
+    }
+
     .modal {
         position: fixed;
         top: 0;
@@ -93,929 +255,66 @@
         align-items: center;
         justify-content: center;
         z-index: 1000;
-        padding: var(--spacing-md);
     }
 
     .modal-content {
         background: white;
-        padding: var(--spacing-2xl);
-        border-radius: var(--radius-lg);
-        max-width: 500px;
+        padding: 32px;
+        border-radius: 16px;
+        max-width: 400px;
         text-align: center;
     }
 
     .modal-icon {
         font-size: 64px;
-        margin-bottom: var(--spacing-md);
+        margin-bottom: 16px;
     }
 
     .modal h2 {
-        font-size: var(--text-2xl);
-        margin-bottom: var(--spacing-md);
-        color: var(--text-primary);
+        font-size: 24px;
+        margin-bottom: 12px;
     }
 
     .modal p {
-        font-size: var(--text-base);
-        color: var(--text-secondary);
-        margin-bottom: var(--spacing-lg);
+        color: #6B7280;
+        margin-bottom: 24px;
         line-height: 1.6;
     }
 
-    /* Language Selectors - Fixed at Top */
-    .lang-bar {
-        background: white;
-        padding: var(--spacing-md);
-        border-radius: var(--radius-md);
-        margin-bottom: var(--spacing-md);
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: var(--spacing-md);
-        box-shadow: var(--shadow-md);
-    }
-
-    .lang-select-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-
-    .lang-label {
-        font-size: var(--text-sm);
-        font-weight: 600;
-        color: var(--text-secondary);
-    }
-
-    .lang-select {
-        height: 48px;
-        padding: 0 var(--spacing-md);
-        border: 2px solid var(--border);
-        border-radius: var(--radius-md);
-        font-size: var(--text-base);
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .lang-select:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
-    }
-
-    /* Status Indicator */
-    .status {
-        background: var(--bg-secondary);
-        border: 2px solid var(--secondary);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-sm);
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .status-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        background: var(--secondary);
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.6; transform: scale(1.1); }
-    }
-
-    .status-text {
-        font-weight: 600;
-        color: var(--primary);
-    }
-
-    /* Translation Display */
-    .translation-container {
-        display: grid;
-        gap: var(--spacing-lg);
-    }
-
-    .translation-box {
-        background: var(--bg-secondary);
-        padding: var(--spacing-lg);
-        border-radius: var(--radius-md);
-        min-height: 150px;
-        border-left: 4px solid var(--primary);
-    }
-
-    .translation-header {
-        font-size: var(--text-sm);
-        font-weight: 700;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .translation-text {
-        font-size: var(--text-xl);
-        line-height: 1.8;
-        color: var(--text-primary);
-        font-weight: 500;
-    }
-
-    .translation-text.rtl {
-        direction: rtl;
-        text-align: right;
-    }
-
-    .translation-text.empty {
-        color: var(--text-tertiary);
-        font-style: italic;
-        font-size: var(--text-base);
-    }
-
-    .btn {
-        height: 48px;
-        padding: 0 var(--spacing-lg);
-        font-size: var(--text-base);
-        font-weight: 600;
-        border: none;
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-xs);
-    }
-
-    .btn-primary {
-        background: var(--primary);
-        color: white;
-        box-shadow: var(--shadow-md);
-    }
-
-    .btn-primary:hover {
-        background: var(--primary-hover);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .btn-danger {
-        background: var(--danger);
-        color: white;
-    }
-
-    .footer {
-        text-align: center;
-        color: white;
-        margin-top: var(--spacing-xl);
-        padding: var(--spacing-md);
-        opacity: 0.95;
-    }
-
     @media (max-width: 768px) {
-        .lang-bar {
+        .translation-area {
             grid-template-columns: 1fr;
         }
         
-        .translation-text {
-            font-size: var(--text-lg);
-        }
-    }
-</style>
-```
-
-</head>
-<body>
-    <div class="container">
-        <header class="header">
-            <h1>Khutbah Live Translator</h1>
-            <p>Real-Time Translation for Friday Sermons</p>
-        </header>
-
-```
-    <!-- Language Selection Bar -->
-    <div class="lang-bar">
-        <div class="lang-select-wrapper">
-            <label class="lang-label">Sheikh's Language</label>
-            <select id="inputLang" class="lang-select">
-                <option value="ar-SA">Arabic</option>
-                <option value="en-US">English</option>
-                <option value="ur-PK">Urdu</option>
-                <option value="tr-TR">Turkish</option>
-                <option value="id-ID">Indonesian</option>
-                <option value="ms-MY">Malay</option>
-                <option value="bn-BD">Bengali</option>
-                <option value="fa-IR">Persian</option>
-                <option value="ru-RU">Russian</option>
-                <option value="fr-FR">French</option>
-                <option value="es-ES">Spanish</option>
-                <option value="de-DE">German</option>
-                <option value="hi-IN">Hindi</option>
-            </select>
-        </div>
-
-        <div class="lang-select-wrapper">
-            <label class="lang-label">Your Language</label>
-            <select id="outputLang" class="lang-select">
-                <option value="en">English</option>
-                <option value="ar">Arabic</option>
-                <option value="es">Spanish</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="it">Italian</option>
-                <option value="ru">Russian</option>
-                <option value="tr">Turkish</option>
-                <option value="ur">Urdu</option>
-                <option value="id">Indonesian</option>
-                <option value="bn">Bengali</option>
-                <option value="fa">Persian</option>
-                <option value="hi">Hindi</option>
-                <option value="zh">Chinese</option>
-                <option value="pt">Portuguese</option>
-            </select>
-        </div>
-    </div>
-
-    <!-- Status -->
-    <div class="status">
-        <div class="status-dot"></div>
-        <span class="status-text">🎤 Listening...</span>
-    </div>
-
-    <!-- Translation Display -->
-    <div class="card">
-        <div class="translation-container">
-            <div class="translation-box">
-                <div class="translation-header">Original Speech</div>
-                <div class="translation-text empty" id="originalText">
-                    Waiting for speech...
-                </div>
-            </div>
-
-            <div class="translation-box">
-                <div class="translation-header">Translation</div>
-                <div class="translation-text empty" id="translatedText">
-                    Translation will appear here...
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer">
-        <p>Free service for the Muslim community • May Allah accept from us and from you</p>
-    </footer>
-</div>
-
-<!-- Mic Permission Modal -->
-<div class="modal" id="micModal">
-    <div class="modal-content">
-        <div class="modal-icon">🎤</div>
-        <h2>Microphone Access Required</h2>
-        <p>To provide real-time translation, we need access to your microphone. Please click "Allow" when your browser asks for permission.</p>
-        <button class="btn btn-primary" id="enableMicBtn">Enable Microphone</button>
-    </div>
-</div>
-
-<script>
-    let recognition;
-    let isListening = false;
-    const debounceTime = 300; // Instant translation with minimal delay
-
-    const inputLang = document.getElementById('inputLang');
-    const outputLang = document.getElementById('outputLang');
-    const originalText = document.getElementById('originalText');
-    const translatedText = document.getElementById('translatedText');
-    const micModal = document.getElementById('micModal');
-    const enableMicBtn = document.getElementById('enableMicBtn');
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-    // Auto-request microphone on page load
-    window.addEventListener('load', () => {
-        micModal.style.display = 'flex';
-    });
-
-    enableMicBtn.addEventListener('click', async () => {
-        if (!SpeechRecognition) {
-            alert('Speech recognition not supported. Please use Chrome, Edge, or Safari.');
-            return;
-        }
-
-        try {
-            await navigator.mediaDevices.getUserMedia({ audio: true });
-            micModal.style.display = 'none';
-            startListening();
-        } catch (error) {
-            alert('Microphone access denied. Please allow microphone access in your browser settings and refresh the page.');
-        }
-    });
-
-    function startListening() {
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-        recognition.lang = inputLang.value;
-
-        let finalTranscript = '';
-        let lastTranslateTime = 0;
-
-        recognition.onstart = () => {
-            isListening = true;
-            originalText.classList.remove('empty');
-            translatedText.classList.remove('empty');
-        };
-
-        recognition.onresult = (event) => {
-            let interimTranscript = '';
-            
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                const transcript = event.results[i][0].transcript;
-                if (event.results[i].isFinal) {
-                    finalTranscript += transcript + ' ';
-                } else {
-                    interimTranscript = transcript;
-                }
-            }
-
-            const displayText = (finalTranscript + interimTranscript).trim();
-            originalText.textContent = displayText || 'Listening...';
-
-            // Instant translation - translate even interim results for fast speakers
-            const now = Date.now();
-            if (displayText && (now - lastTranslateTime > debounceTime)) {
-                lastTranslateTime = now;
-                translateText(displayText);
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error('Speech error:', event.error);
-            if (event.error === 'no-speech') {
-                // Silently continue for fast speakers
-            } else if (event.error === 'not-allowed') {
-                alert('Microphone access denied');
-                micModal.style.display = 'flex';
-            }
-        };
-
-        recognition.onend = () => {
-            if (isListening) {
-                recognition.start(); // Auto-restart for continuous listening
-            }
-        };
-
-        recognition.start();
-    }
-
-    async function translateText(text) {
-        if (!text.trim()) return;
-
-        const sourceLang = inputLang.value.split('-')[0];
-        const targetLang = outputLang.value;
-
-        if (sourceLang === targetLang) {
-            translatedText.textContent = text;
-            return;
-        }
-
-        try {
-            const response = await fetch(
-                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
-            );
-            
-            const data = await response.json();
-            
-            if (data.responseStatus === 200 && data.responseData) {
-                translatedText.textContent = data.responseData.translatedText;
-            } else {
-                translatedText.textContent = text;
-            }
-        } catch (error) {
-            translatedText.textContent = text;
-        }
-    }
-
-    // Instant language change - restart recognition immediately
-    inputLang.addEventListener('change', () => {
-        const lang = inputLang.value;
-        
-        // Update text direction
-        if (lang.startsWith('ar') || lang.startsWith('ur') || lang.startsWith('fa')) {
-            originalText.classList.add('rtl');
-        } else {
-            originalText.classList.remove('rtl');
-        }
-
-        // Restart with new language
-        if (recognition && isListening) {
-            recognition.lang = lang;
-            recognition.stop();
-            setTimeout(() => recognition.start(), 100);
-        }
-    });
-
-    outputLang.addEventListener('change', () => {
-        const lang = outputLang.value;
-        
-        if (lang === 'ar' || lang === 'ur' || lang === 'fa') {
-            translatedText.classList.add('rtl');
-        } else {
-            translatedText.classList.remove('rtl');
-        }
-
-        // Retranslate current text instantly
-        if (originalText.textContent && originalText.textContent !== 'Waiting for speech...') {
-            translateText(originalText.textContent);
-        }
-    });
-</script>
-```
-
-</body>
-</html>
-        :root {
-            /* 8px Grid System */
-            --spacing-xs: 8px;
-            --spacing-sm: 16px;
-            --spacing-md: 24px;
-            --spacing-lg: 32px;
-            --spacing-xl: 40px;
-            --spacing-2xl: 48px;
-            --spacing-3xl: 64px;
-
-```
-        /* Type Scale */
-        --text-xs: 12px;
-        --text-sm: 14px;
-        --text-base: 16px;
-        --text-lg: 18px;
-        --text-xl: 20px;
-        --text-2xl: 24px;
-        --text-3xl: 32px;
-        --text-4xl: 48px;
-        
-        /* Islamic Teal/Green Colors */
-        --primary: #0D9488;
-        --primary-hover: #0F766E;
-        --primary-active: #115E59;
-        --secondary: #14B8A6;
-        --danger: #DC2626;
-        --danger-hover: #B91C1C;
-        --text-primary: #1F2937;
-        --text-secondary: #4B5563;
-        --text-tertiary: #9CA3AF;
-        --bg-primary: #FFFFFF;
-        --bg-secondary: #F0FDFA;
-        --bg-tertiary: #CCFBF1;
-        --border: #D1D5DB;
-        --border-focus: #0D9488;
-        
-        /* Shadows */
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        
-        /* Border Radius */
-        --radius-sm: 8px;
-        --radius-md: 12px;
-        --radius-lg: 16px;
-        --radius-full: 9999px;
-    }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
-        background: linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #2DD4BF 100%);
-        min-height: 100vh;
-        padding: var(--spacing-md);
-        color: var(--text-primary);
-        line-height: 1.6;
-    }
-
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    /* Header - Following Visual Hierarchy Principles */
-    .header {
-        text-align: center;
-        color: white;
-        margin-bottom: var(--spacing-xl);
-        padding: var(--spacing-lg) var(--spacing-md);
-    }
-
-    .header h1 {
-        font-size: var(--text-3xl);
-        font-weight: 700;
-        margin-bottom: var(--spacing-xs);
-        letter-spacing: -0.02em;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .header p {
-        font-size: var(--text-lg);
-        opacity: 0.95;
-        font-weight: 400;
-    }
-
-    /* Card Component */
-    .card {
-        background: var(--bg-primary);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-xl);
-        padding: var(--spacing-xl);
-        margin-bottom: var(--spacing-md);
-    }
-
-    /* Alert Component */
-    .alert {
-        background: #FEF3C7;
-        border-left: 4px solid #F59E0B;
-        padding: var(--spacing-md);
-        border-radius: var(--radius-sm);
-        margin-bottom: var(--spacing-lg);
-        display: flex;
-        gap: var(--spacing-sm);
-        align-items: flex-start;
-    }
-
-    .alert-icon {
-        font-size: var(--text-xl);
-        flex-shrink: 0;
-    }
-
-    .alert-content h4 {
-        font-size: var(--text-base);
-        font-weight: 600;
-        color: #92400E;
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .alert-content p {
-        font-size: var(--text-sm);
-        color: #78350F;
-        line-height: 1.5;
-    }
-
-    /* Form Controls - 8px Grid Alignment */
-    .form-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: var(--spacing-md);
-        margin-bottom: var(--spacing-lg);
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-
-    .form-label {
-        font-weight: 600;
-        font-size: var(--text-sm);
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-        letter-spacing: 0.01em;
-    }
-
-    .form-label-icon {
-        width: 16px;
-        height: 16px;
-        color: var(--primary);
-    }
-
-    .form-select {
-        /* Button Height: 48px minimum (following Material Design) */
-        height: 48px;
-        padding: 0 var(--spacing-md);
-        border: 2px solid var(--border);
-        border-radius: var(--radius-md);
-        font-size: var(--text-base);
-        background: var(--bg-primary);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-
-    .form-select:hover {
-        border-color: var(--primary);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .form-select:focus {
-        outline: none;
-        border-color: var(--border-focus);
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    /* Status Indicator */
-    .status-card {
-        background: var(--bg-secondary);
-        border: 2px solid var(--border);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-md);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-sm);
-        margin-bottom: var(--spacing-lg);
-        transition: all 0.3s ease;
-    }
-
-    .status-card.listening {
-        background: #ECFDF5;
-        border-color: #10B981;
-    }
-
-    .status-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: var(--radius-full);
-        background: var(--text-tertiary);
-        transition: all 0.3s ease;
-    }
-
-    .status-dot.active {
-        background: var(--secondary);
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.6; transform: scale(1.1); }
-    }
-
-    .status-text {
-        font-size: var(--text-base);
-        font-weight: 600;
-        color: var(--text-secondary);
-    }
-
-    .status-text.active {
-        color: var(--secondary);
-    }
-
-    /* Button Hierarchy - Primary/Secondary/Tertiary */
-    .button-group {
-        display: flex;
-        gap: var(--spacing-md);
-        justify-content: center;
-        margin: var(--spacing-lg) 0;
-    }
-
-    .btn {
-        /* Button sizing: 48px height for mobile, proper padding */
-        height: 48px;
-        padding: 0 var(--spacing-lg);
-        font-size: var(--text-base);
-        font-weight: 600;
-        border: none;
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-xs);
-        letter-spacing: 0.01em;
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Primary Button (CTA) */
-    .btn-primary {
-        background: var(--primary);
-        color: white;
-        box-shadow: var(--shadow-md);
-    }
-
-    .btn-primary:hover {
-        background: var(--primary-hover);
-        box-shadow: var(--shadow-lg);
-        transform: translateY(-2px);
-    }
-
-    .btn-primary:active {
-        background: var(--primary-active);
-        transform: translateY(0);
-    }
-
-    .btn-primary:disabled {
-        background: var(--text-tertiary);
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-
-    /* Secondary Button (Danger) */
-    .btn-danger {
-        background: var(--danger);
-        color: white;
-        box-shadow: var(--shadow-md);
-    }
-
-    .btn-danger:hover {
-        background: var(--danger-hover);
-        box-shadow: var(--shadow-lg);
-        transform: translateY(-2px);
-    }
-
-    .btn-danger:active {
-        background: #B91C1C;
-        transform: translateY(0);
-    }
-
-    .btn-icon {
-        width: 20px;
-        height: 20px;
-    }
-
-    /* Translation Display - Proper Spacing */
-    .translation-container {
-        background: var(--bg-secondary);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-lg);
-        min-height: 400px;
-        margin-top: var(--spacing-md);
-    }
-
-    .translation-section {
-        margin-bottom: var(--spacing-xl);
-    }
-
-    .translation-section:last-child {
-        margin-bottom: 0;
-    }
-
-    .translation-header {
-        font-size: var(--text-sm);
-        font-weight: 700;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: var(--spacing-sm);
-    }
-
-    .translation-box {
-        background: var(--bg-primary);
-        padding: var(--spacing-md);
-        border-radius: var(--radius-sm);
-        font-size: var(--text-lg);
-        line-height: 1.8;
-        color: var(--text-primary);
-        min-height: 120px;
-        border-left: 4px solid var(--primary);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .translation-box.large {
-        font-size: var(--text-xl);
-        font-weight: 500;
-    }
-
-    .translation-box.rtl {
-        direction: rtl;
-        text-align: right;
-        border-left: none;
-        border-right: 4px solid var(--primary);
-    }
-
-    .translation-box.empty {
-        color: var(--text-tertiary);
-        font-style: italic;
-    }
-
-    /* Info Section */
-    .info-section {
-        margin-top: var(--spacing-xl);
-    }
-
-    .info-title {
-        font-size: var(--text-lg);
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: var(--spacing-md);
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-    }
-
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--spacing-sm);
-        font-size: var(--text-sm);
-        color: var(--text-secondary);
-    }
-
-    .info-item {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-xs);
-    }
-
-    /* Footer */
-    .footer {
-        text-align: center;
-        color: white;
-        margin-top: var(--spacing-2xl);
-        padding: var(--spacing-lg);
-    }
-
-    .footer p {
-        opacity: 0.95;
-        margin-bottom: var(--spacing-xs);
-    }
-
-    .footer-secondary {
-        font-size: var(--text-sm);
-        opacity: 0.85;
-    }
-
-    /* Responsive - Mobile First */
-    @media (max-width: 768px) {
-        body {
-            padding: var(--spacing-sm);
-        }
-
-        .header h1 {
-            font-size: var(--text-2xl);
-        }
-
-        .card {
-            padding: var(--spacing-md);
-        }
-
-        .form-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .button-group {
+        .lang-row {
             flex-direction: column;
         }
-
+        
+        .actions {
+            flex-direction: column;
+        }
+        
         .btn {
             width: 100%;
         }
-
-        .translation-box {
-            font-size: var(--text-base);
-        }
-
-        .translation-box.large {
-            font-size: var(--text-lg);
-        }
     }
 </style>
 ```
 
 </head>
 <body>
-    <div class="container">
-        <!-- Header with Clear Hierarchy -->
-        <header class="header">
+    <div class="app-container">
+        <div class="header">
             <h1>Khutbah Live Translator</h1>
-            <p>Free Real-Time Translation for Friday Sermons</p>
-        </header>
-
-```
-    <!-- Main Card -->
-    <main class="card">
-        <!-- Alert Component -->
-        <div class="alert">
-            <span class="alert-icon">⚠️</span>
-            <div class="alert-content">
-                <h4>Microphone Access Required</h4>
-                <p>Click "Allow" when your browser asks for microphone permission. Check the address bar for a microphone icon 🎤 if nothing happens.</p>
-            </div>
+            <p>Real-Time Translation for Friday Sermons</p>
         </div>
 
-        <!-- Form Controls with 8px Grid -->
-        <form class="form-grid">
-            <div class="form-group">
-                <label class="form-label">
-                    <svg class="form-label-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                    </svg>
-                    Sheikh's Language
-                </label>
-                <select id="inputLang" class="form-select">
+```
+    <div class="controls">
+        <div class="lang-row">
+            <div class="lang-group">
+                <label class="lang-label">Sheikh's Language</label>
+                <select id="inputLang" class="lang-select">
                     <option value="ar-SA">Arabic</option>
                     <option value="en-US">English</option>
                     <option value="ur-PK">Urdu</option>
@@ -1023,26 +322,18 @@
                     <option value="id-ID">Indonesian</option>
                     <option value="ms-MY">Malay</option>
                     <option value="bn-BD">Bengali</option>
-                    <option value="fa-IR">Persian (Farsi)</option>
+                    <option value="fa-IR">Persian</option>
                     <option value="ru-RU">Russian</option>
                     <option value="fr-FR">French</option>
                     <option value="es-ES">Spanish</option>
                     <option value="de-DE">German</option>
-                    <option value="it-IT">Italian</option>
-                    <option value="pt-PT">Portuguese</option>
                     <option value="hi-IN">Hindi</option>
-                    <option value="zh-CN">Chinese</option>
                 </select>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">
-                    <svg class="form-label-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/>
-                    </svg>
-                    Your Language
-                </label>
-                <select id="outputLang" class="form-select">
+            <div class="lang-group">
+                <label class="lang-label">Your Language</label>
+                <select id="outputLang" class="lang-select">
                     <option value="en">English</option>
                     <option value="ar">Arabic</option>
                     <option value="es">Spanish</option>
@@ -1055,193 +346,157 @@
                     <option value="id">Indonesian</option>
                     <option value="bn">Bengali</option>
                     <option value="fa">Persian</option>
-                    <option value="pt">Portuguese</option>
-                    <option value="zh">Chinese</option>
                     <option value="hi">Hindi</option>
-                    <option value="nl">Dutch</option>
-                    <option value="pl">Polish</option>
-                    <option value="ja">Japanese</option>
-                    <option value="ko">Korean</option>
+                    <option value="zh">Chinese</option>
+                    <option value="pt">Portuguese</option>
                 </select>
             </div>
-        </form>
 
-        <!-- Status Indicator -->
-        <div class="status-card" id="statusCard">
-            <div class="status-dot" id="statusDot"></div>
-            <span class="status-text" id="statusText">Ready to start</span>
-        </div>
-
-        <!-- Button Group with Proper Hierarchy -->
-        <div class="button-group">
-            <button class="btn btn-primary" id="startBtn">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8 5v14l11-7z"/>
-                </svg>
-                Start Listening
-            </button>
-            <button class="btn btn-danger" id="stopBtn" style="display: none;">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="6" y="6" width="12" height="12"/>
-                </svg>
-                Stop
-            </button>
-        </div>
-
-        <!-- Translation Display with Proper Spacing -->
-        <div class="translation-container">
-            <div class="translation-section">
-                <div class="translation-header">Original Speech</div>
-                <div class="translation-box empty" id="originalText">
-                    Waiting for speech...
-                </div>
-            </div>
-
-            <div class="translation-section">
-                <div class="translation-header">Translation</div>
-                <div class="translation-box large empty" id="translatedText">
-                    Translation will appear here...
-                </div>
+            <div class="lang-group">
+                <label class="lang-label">&nbsp;</label>
+                <label class="auto-detect">
+                    <input type="checkbox" id="autoDetect">
+                    Auto-detect language
+                </label>
             </div>
         </div>
-    </main>
 
-    <!-- Supported Languages Card -->
-    <div class="card">
-        <div class="info-section">
-            <h2 class="info-title">
-                <span>📱</span>
-                Supported Languages
-            </h2>
-            <div class="info-grid">
-                <div class="info-item">✓ Arabic</div>
-                <div class="info-item">✓ English</div>
-                <div class="info-item">✓ Spanish</div>
-                <div class="info-item">✓ French</div>
-                <div class="info-item">✓ German</div>
-                <div class="info-item">✓ Italian</div>
-                <div class="info-item">✓ Russian</div>
-                <div class="info-item">✓ Turkish</div>
-                <div class="info-item">✓ Urdu</div>
-                <div class="info-item">✓ Indonesian</div>
-                <div class="info-item">✓ Malay</div>
-                <div class="info-item">✓ Bengali</div>
-                <div class="info-item">✓ Persian</div>
-                <div class="info-item">✓ Portuguese</div>
-                <div class="info-item">✓ Chinese</div>
-                <div class="info-item">✓ Hindi</div>
-                <div class="info-item">✓ Dutch</div>
-                <div class="info-item">✓ Polish</div>
-                <div class="info-item">+ More</div>
+        <div class="status">
+            <div class="status-dot"></div>
+            <span class="status-text">🎤 Listening...</span>
+        </div>
+    </div>
+
+    <div class="translation-area">
+        <div class="translation-panel">
+            <div class="panel-header">Original Speech</div>
+            <div class="text-content" id="originalText">
+                <div class="empty">Waiting for speech...</div>
+            </div>
+        </div>
+
+        <div class="translation-panel">
+            <div class="panel-header">Translation</div>
+            <div class="text-content" id="translatedText">
+                <div class="empty">Translation will appear here...</div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p>Free service for the Muslim community worldwide • Made with ❤️</p>
-        <p class="footer-secondary">May Allah accept from us and from you</p>
-    </footer>
+    <div class="actions">
+        <button class="btn btn-secondary" id="saveBtn">
+            <span>💾</span>
+            Save Transcript
+        </button>
+        <button class="btn btn-secondary" id="recordBtn">
+            <span>⏺️</span>
+            <span id="recordText">Start Recording</span>
+        </button>
+    </div>
+</div>
+
+<div class="modal" id="micModal">
+    <div class="modal-content">
+        <div class="modal-icon">🎤</div>
+        <h2>Microphone Access</h2>
+        <p>Please allow microphone access to enable real-time translation of the khutbah.</p>
+        <button class="btn btn-primary" id="enableMicBtn">Enable Microphone</button>
+    </div>
 </div>
 
 <script>
     let recognition;
     let isListening = false;
-    let translationTimeout;
+    let isRecording = false;
+    let mediaRecorder;
+    let audioChunks = [];
+    let sentences = [];
+    let translations = [];
+    let currentSentence = '';
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const statusCard = document.getElementById('statusCard');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const originalText = document.getElementById('originalText');
-    const translatedText = document.getElementById('translatedText');
     const inputLang = document.getElementById('inputLang');
     const outputLang = document.getElementById('outputLang');
+    const autoDetect = document.getElementById('autoDetect');
+    const originalText = document.getElementById('originalText');
+    const translatedText = document.getElementById('translatedText');
+    const micModal = document.getElementById('micModal');
+    const enableMicBtn = document.getElementById('enableMicBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const recordBtn = document.getElementById('recordBtn');
+    const recordText = document.getElementById('recordText');
 
-    if (!SpeechRecognition) {
-        statusText.textContent = 'Speech recognition not supported. Please use Chrome, Edge, or Safari.';
-        statusText.classList.add('active');
-        startBtn.disabled = true;
-    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    startBtn.addEventListener('click', startListening);
-    stopBtn.addEventListener('click', stopListening);
+    window.addEventListener('load', () => {
+        micModal.style.display = 'flex';
+    });
 
-    async function startListening() {
+    enableMicBtn.addEventListener('click', async () => {
         if (!SpeechRecognition) {
-            alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+            alert('Speech recognition not supported. Use Chrome, Edge, or Safari.');
             return;
         }
 
         try {
-            statusText.textContent = 'Requesting microphone access...';
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            stream.getTracks().forEach(track => track.stop());
-            
-            statusText.textContent = 'Starting...';
+            micModal.style.display = 'none';
+            setupMediaRecorder(stream);
+            startListening();
         } catch (error) {
-            alert('Microphone access denied or unavailable. Please:\n\n1. Click the lock icon in your browser address bar\n2. Allow microphone access\n3. Refresh the page and try again');
-            statusText.textContent = 'Microphone access denied';
-            return;
+            alert('Microphone access denied. Please allow access and refresh.');
         }
+    });
 
+    function setupMediaRecorder(stream) {
+        mediaRecorder = new MediaRecorder(stream);
+        
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const url = URL.createObjectURL(audioBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `khutbah-${new Date().toISOString().slice(0, 10)}.webm`;
+            a.click();
+            audioChunks = [];
+        };
+    }
+
+    function startListening() {
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = inputLang.value;
 
-        recognition.onstart = () => {
-            isListening = true;
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'inline-flex';
-            statusCard.classList.add('listening');
-            statusDot.classList.add('active');
-            statusText.classList.add('active');
-            statusText.textContent = '🎤 Listening... Speak now!';
-            originalText.textContent = '';
-            originalText.classList.remove('empty');
-            translatedText.textContent = '';
-            translatedText.classList.remove('empty');
-        };
+        let finalTranscript = '';
 
         recognition.onresult = (event) => {
             let interimTranscript = '';
-            let finalTranscript = '';
-
+            
             for (let i = event.resultIndex; i < event.results.length; i++) {
                 const transcript = event.results[i][0].transcript;
                 if (event.results[i].isFinal) {
+                    // Detect sentence end with punctuation or pause
+                    if (transcript.match(/[.!?।。؟]/) || transcript.trim().length > 0) {
+                        sentences.push(transcript.trim());
+                        currentSentence = transcript.trim();
+                        translateSentence(currentSentence);
+                    }
                     finalTranscript += transcript + ' ';
                 } else {
-                    interimTranscript += transcript;
+                    interimTranscript = transcript;
                 }
             }
 
-            const displayText = finalTranscript || interimTranscript;
-            if (displayText) {
-                originalText.textContent = displayText;
-                
-                clearTimeout(translationTimeout);
-                if (finalTranscript) {
-                    translationTimeout = setTimeout(() => {
-                        translateText(finalTranscript.trim());
-                    }, 500);
-                }
-            }
+            displaySentences();
         };
 
         recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            if (event.error === 'no-speech') {
-                statusText.textContent = 'No speech detected. Please speak louder.';
-            } else if (event.error === 'not-allowed') {
-                statusText.textContent = 'Microphone access denied';
-                stopListening();
-            } else {
-                statusText.textContent = `Error: ${event.error}`;
+            if (event.error === 'not-allowed') {
+                micModal.style.display = 'flex';
             }
         };
 
@@ -1251,36 +506,23 @@
             }
         };
 
+        isListening = true;
         recognition.start();
     }
 
-    function stopListening() {
-        isListening = false;
-        if (recognition) {
-            recognition.stop();
-        }
-        startBtn.style.display = 'inline-flex';
-        stopBtn.style.display = 'none';
-        statusCard.classList.remove('listening');
-        statusDot.classList.remove('active');
-        statusText.classList.remove('active');
-        statusText.textContent = 'Stopped';
-    }
-
-    async function translateText(text) {
+    async function translateSentence(text) {
         if (!text.trim()) return;
 
         const sourceLang = inputLang.value.split('-')[0];
         const targetLang = outputLang.value;
 
         if (sourceLang === targetLang) {
-            translatedText.textContent = text;
+            translations.push(text);
+            displaySentences();
             return;
         }
 
         try {
-            translatedText.textContent = 'Translating...';
-            
             const response = await fetch(
                 `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
             );
@@ -1288,31 +530,82 @@
             const data = await response.json();
             
             if (data.responseStatus === 200 && data.responseData) {
-                translatedText.textContent = data.responseData.translatedText;
+                translations.push(data.responseData.translatedText);
             } else {
-                translatedText.textContent = 'Translation unavailable: ' + text;
+                translations.push(text);
             }
+            displaySentences();
         } catch (error) {
-            console.error('Translation error:', error);
-            translatedText.textContent = 'Translation error: ' + text;
+            translations.push(text);
+            displaySentences();
         }
     }
 
+    function displaySentences() {
+        const sourceLang = inputLang.value;
+        const targetLang = outputLang.value;
+        
+        const origRTL = sourceLang.startsWith('ar') || sourceLang.startsWith('ur') || sourceLang.startsWith('fa');
+        const transRTL = targetLang === 'ar' || targetLang === 'ur' || targetLang === 'fa';
+
+        originalText.innerHTML = sentences.map((s, i) => 
+            `<div class="sentence ${origRTL ? 'rtl' : ''}">${s}</div>`
+        ).join('') || '<div class="empty">Waiting for speech...</div>';
+
+        translatedText.innerHTML = translations.map((t, i) => 
+            `<div class="sentence ${transRTL ? 'rtl' : ''}">${t}</div>`
+        ).join('') || '<div class="empty">Translation will appear here...</div>';
+
+        // Auto-scroll to bottom
+        originalText.scrollTop = originalText.scrollHeight;
+        translatedText.scrollTop = translatedText.scrollHeight;
+    }
+
     inputLang.addEventListener('change', () => {
-        const lang = inputLang.value;
-        if (lang.startsWith('ar') || lang.startsWith('ur') || lang.startsWith('fa')) {
-            originalText.classList.add('rtl');
-        } else {
-            originalText.classList.remove('rtl');
+        if (recognition && isListening) {
+            recognition.lang = inputLang.value;
+            recognition.stop();
+            setTimeout(() => recognition.start(), 100);
         }
+        displaySentences();
     });
 
     outputLang.addEventListener('change', () => {
-        const lang = outputLang.value;
-        if (lang === 'ar' || lang === 'ur' || lang === 'fa') {
-            translatedText.classList.add('rtl');
+        // Retranslate all sentences
+        translations = [];
+        sentences.forEach(s => translateSentence(s));
+    });
+
+    autoDetect.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            alert('Auto-detect is enabled. The app will attempt to detect the language automatically.');
+        }
+    });
+
+    saveBtn.addEventListener('click', () => {
+        const content = sentences.map((s, i) => {
+            return `${s}\n→ ${translations[i] || ''}\n`;
+        }).join('\n');
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `khutbah-transcript-${new Date().toISOString().slice(0, 10)}.txt`;
+        a.click();
+    });
+
+    recordBtn.addEventListener('click', () => {
+        if (!isRecording) {
+            mediaRecorder.start();
+            isRecording = true;
+            recordText.textContent = 'Stop Recording';
+            recordBtn.style.background = '#DC2626';
         } else {
-            translatedText.classList.remove('rtl');
+            mediaRecorder.stop();
+            isRecording = false;
+            recordText.textContent = 'Start Recording';
+            recordBtn.style.background = '';
         }
     });
 </script>
