@@ -12,6 +12,7 @@
             box-sizing: border-box;
         }
 
+```
     body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
         background: linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #2DD4BF 100%);
@@ -110,11 +111,17 @@
     .status {
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 10px;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 16px;
         background: #D1FAE5;
         border-radius: 8px;
+    }
+
+    .status-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .status-dot {
@@ -123,6 +130,11 @@
         background: #10B981;
         border-radius: 50%;
         animation: pulse 2s infinite;
+    }
+
+    .status-dot.stopped {
+        background: #EF4444;
+        animation: none;
     }
 
     @keyframes pulse {
@@ -134,6 +146,31 @@
         font-size: 13px;
         font-weight: 600;
         color: #065F46;
+    }
+
+    .btn-control {
+        height: 32px;
+        padding: 0 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #0D9488;
+        color: white;
+    }
+
+    .btn-control:hover {
+        background: #0F766E;
+    }
+
+    .btn-control.stop {
+        background: #EF4444;
+    }
+
+    .btn-control.stop:hover {
+        background: #DC2626;
     }
 
     .translation-area {
@@ -345,6 +382,7 @@
         }
     }
 </style>
+```
 
 </head>
 <body>
@@ -354,6 +392,7 @@
             <p>Real-Time Translation for Friday Sermons</p>
         </div>
 
+```
     <div class="controls">
         <div class="lang-row">
             <div class="lang-group">
@@ -406,8 +445,11 @@
         </div>
 
         <div class="status">
-            <div class="status-dot"></div>
-            <span class="status-text">🎤 Listening...</span>
+            <div class="status-info">
+                <div class="status-dot" id="statusDot"></div>
+                <span class="status-text" id="statusText">Ready to listen</span>
+            </div>
+            <button class="btn-control" id="controlBtn">Start Listening</button>
         </div>
     </div>
 
@@ -468,6 +510,9 @@
     const saveBtn = document.getElementById('saveBtn');
     const recordBtn = document.getElementById('recordBtn');
     const recordText = document.getElementById('recordText');
+    const controlBtn = document.getElementById('controlBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -485,11 +530,34 @@
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             micModal.style.display = 'none';
             setupMediaRecorder(stream);
-            startListening();
+            statusText.textContent = 'Ready to listen';
         } catch (error) {
             alert('Microphone access denied. Please allow access and refresh.');
         }
     });
+
+    controlBtn.addEventListener('click', () => {
+        if (!isListening) {
+            startListening();
+            controlBtn.textContent = 'Stop';
+            controlBtn.classList.add('stop');
+            statusDot.classList.remove('stopped');
+            statusText.textContent = '🎤 Listening...';
+        } else {
+            stopListening();
+            controlBtn.textContent = 'Start Listening';
+            controlBtn.classList.remove('stop');
+            statusDot.classList.add('stopped');
+            statusText.textContent = 'Stopped';
+        }
+    });
+
+    function stopListening() {
+        if (recognition) {
+            isListening = false;
+            recognition.stop();
+        }
+    }
 
     function setupMediaRecorder(stream) {
         mediaRecorder = new MediaRecorder(stream);
@@ -652,6 +720,7 @@
         }
     });
 </script>
+```
 
 </body>
 </html>
