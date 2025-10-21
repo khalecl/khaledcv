@@ -618,6 +618,7 @@
             <button class="nav-tab active" onclick="switchTab('translator')">Translator</button>
             <button class="nav-tab" onclick="switchTab('settings')">Settings</button>
             <button class="nav-tab" onclick="switchTab('about')">About</button>
+            <button class="nav-tab" onclick="switchTab('contact')">Contact</button>
         </div>
 
         <div class="content-area">
@@ -797,6 +798,110 @@
                     </p>
                 </div>
             </div>
+
+            <!-- Contact Tab -->
+            <div class="tab-content" id="contactTab">
+                <div class="contact-content" style="max-width: 700px; margin: 0 auto; padding: 30px;">
+                    <h2 style="font-family: 'Amiri', serif; font-size: 32px; color: var(--primary-green); text-align: center; margin-bottom: 30px;">
+                        Contact Developer
+                    </h2>
+                    
+                    <div style="background: var(--cream); padding: 30px; border-radius: 15px; border: 2px solid var(--light-gold); margin-bottom: 30px;">
+                        <h3 style="font-size: 24px; color: var(--primary-green); margin-bottom: 20px; text-align: center;">
+                            Khaled Diab
+                        </h3>
+                        
+                        <div style="display: grid; gap: 20px;">
+                            <!-- Email -->
+                            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: white; border-radius: 10px;">
+                                <span style="font-size: 24px;">📧</span>
+                                <div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Email</div>
+                                    <a href="mailto:khaled.mohamed.rady@outlook.com" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">
+                                        khaled.mohamed.rady@outlook.com
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- WhatsApp -->
+                            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: white; border-radius: 10px;">
+                                <span style="font-size: 24px;">💬</span>
+                                <div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">WhatsApp</div>
+                                    <a href="https://wa.me/966540015033" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">
+                                        +955 5400 15 033
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- LinkedIn -->
+                            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: white; border-radius: 10px;">
+                                <span style="font-size: 24px;">💼</span>
+                                <div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">LinkedIn</div>
+                                    <a href="https://www.linkedin.com/in/dr-khaled-diab/" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">
+                                        linkedin.com/in/dr-khaled-diab
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- GitHub -->
+                            <div style="display: flex; align-items: center; gap: 15px; padding: 15px; background: white; border-radius: 10px;">
+                                <span style="font-size: 24px;">🔧</span>
+                                <div>
+                                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">GitHub</div>
+                                    <a href="https://github.com/khalecl" style="color: var(--primary-green); text-decoration: none; font-weight: 600;">
+                                        github.com/khalecl
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Feedback Section -->
+                    <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05)); padding: 30px; border-radius: 15px; border: 2px solid var(--light-gold);">
+                        <h3 style="font-size: 20px; color: var(--primary-green); margin-bottom: 20px; text-align: center;">
+                            Send Feedback
+                        </h3>
+                        
+                        <div style="display: grid; gap: 15px;">
+                            <input type="text" id="feedbackName" placeholder="Your Name" 
+                                style="padding: 12px; border: 2px solid var(--light-gold); border-radius: 8px; font-size: 15px;">
+                            
+                            <input type="email" id="feedbackEmail" placeholder="Your Email" 
+                                style="padding: 12px; border: 2px solid var(--light-gold); border-radius: 8px; font-size: 15px;">
+                            
+                            <select id="feedbackType" 
+                                style="padding: 12px; border: 2px solid var(--light-gold); border-radius: 8px; font-size: 15px; background: white;">
+                                <option value="">Select Feedback Type</option>
+                                <option value="bug">Bug Report</option>
+                                <option value="feature">Feature Request</option>
+                                <option value="translation">Translation Issue</option>
+                                <option value="general">General Feedback</option>
+                                <option value="collaboration">Collaboration</option>
+                            </select>
+                            
+                            <textarea id="feedbackMessage" placeholder="Your message..." rows="5"
+                                style="padding: 12px; border: 2px solid var(--light-gold); border-radius: 8px; font-size: 15px; resize: vertical;">
+                            </textarea>
+                            
+                            <button onclick="sendFeedback()" class="btn btn-primary" style="width: 100%;">
+                                Send Message
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 30px; padding: 20px; background: white; border-radius: 10px;">
+                        <p style="color: #666; margin-bottom: 10px;">
+                            "The believers are but brothers"<br>
+                            - Quran 49:10
+                        </p>
+                        <p style="font-size: 14px; color: #999;">
+                            Feel free to reach out with any suggestions, bug reports, or if you'd like to contribute to making this app better for the Muslim community worldwide.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -812,7 +917,7 @@
         let settings = {
             interfaceLanguage: 'en',
             autoDetectDialects: true,
-            instantTranslate: true,
+            instantTranslate: true,  // Enabled by default
             autoScroll: true,
             highlightLatest: true
         };
@@ -955,10 +1060,12 @@
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
             recognition.lang = document.getElementById('inputLang').value;
 
             let currentTranscript = '';
             let silenceTimer;
+            let lastTranslatedLength = 0;
 
             recognition.onresult = (event) => {
                 clearTimeout(silenceTimer);
@@ -980,18 +1087,38 @@
                     currentTranscript += final;
                 }
                 
-                // Detect sentence completion by pause
+                // Full text including interim
                 const fullText = currentTranscript + interim;
                 
-                if (fullText.trim()) {
-                    // Set a timer that fires when speaker pauses
+                if (settings.instantTranslate && fullText.trim()) {
+                    // Instant translation mode - translate as soon as we have meaningful text
+                    const wordsCount = fullText.trim().split(' ').length;
+                    const newTextLength = fullText.length;
+                    
+                    // Translate when we have new complete words (not just partial)
+                    if (final && currentTranscript.trim()) {
+                        // Immediately translate final results
+                        translateText(currentTranscript.trim());
+                        currentTranscript = '';
+                        lastTranslatedLength = 0;
+                    } else if (wordsCount >= 3 && newTextLength > lastTranslatedLength + 20) {
+                        // Also translate interim results if we have enough new content
+                        silenceTimer = setTimeout(() => {
+                            if (fullText.trim()) {
+                                translateText(fullText.trim());
+                                currentTranscript = '';
+                                lastTranslatedLength = 0;
+                            }
+                        }, 200); // Very short delay for interim
+                    }
+                } else if (!settings.instantTranslate && fullText.trim()) {
+                    // Standard mode - wait for pause
                     silenceTimer = setTimeout(() => {
                         if (currentTranscript.trim()) {
-                            // Send accumulated text for translation
                             translateText(currentTranscript.trim());
                             currentTranscript = '';
                         }
-                    }, 1000); // 1 second pause = sentence boundary
+                    }, 1000); // Wait for 1 second pause
                 }
             };
 
@@ -1163,12 +1290,42 @@
             displayTranslations();
         });
 
+        // Send feedback function
+        function sendFeedback() {
+            const name = document.getElementById('feedbackName').value;
+            const email = document.getElementById('feedbackEmail').value;
+            const type = document.getElementById('feedbackType').value;
+            const message = document.getElementById('feedbackMessage').value;
+            
+            if (!name || !email || !type || !message) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Create mailto link
+            const subject = `Khutbah Translator - ${type}: Feedback from ${name}`;
+            const body = `Name: ${name}\nEmail: ${email}\nType: ${type}\n\nMessage:\n${message}`;
+            const mailtoLink = `mailto:khaleddiab@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            
+            window.location.href = mailtoLink;
+            
+            // Clear form
+            document.getElementById('feedbackName').value = '';
+            document.getElementById('feedbackEmail').value = '';
+            document.getElementById('feedbackType').value = '';
+            document.getElementById('feedbackMessage').value = '';
+            
+            alert('Thank you for your feedback! Your default email client will open to send the message.');
+        }
+
         // Initialize on page load
         window.addEventListener('load', () => {
             loadSettings();
+            // Start listening immediately with instant translation on by default
+            settings.instantTranslate = true;
             setTimeout(() => {
                 initializeSpeechRecognition();
-            }, 1000);
+            }, 500);
         });
 
         // Handle page visibility for mobile
