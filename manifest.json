@@ -1,0 +1,29 @@
+{
+    "name": "Khutbah Live Translator",
+    "short_name": "Khutbah Translator",
+    "description": "Live translation of khutbahs for Muslims worldwide",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#1e5936",
+    "theme_color": "#1e5936",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "scope": "/",
+    "orientation": "portrait"
+}
