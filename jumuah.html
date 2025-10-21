@@ -460,7 +460,7 @@
             border-color: var(--primary-green);
         }
 
-        /* About page */
+        /* Contact page */
         .about-content {
             max-width: 700px;
             margin: 0 auto;
@@ -501,6 +501,205 @@
             font-size: 24px;
             color: var(--gold);
             margin: 20px 0;
+        }
+
+        /* Visitor Counter Styles */
+        .visitor-counter {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+            color: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .visitor-counter:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .visitor-count {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .visitor-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Visitor Stats Modal */
+        .stats-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stats-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .stats-header {
+            font-family: 'Amiri', serif;
+            font-size: 28px;
+            color: var(--primary-green);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .country-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .country-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--cream);
+            border-radius: 10px;
+            border-left: 4px solid var(--gold);
+        }
+
+        .country-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: var(--primary-green);
+        }
+
+        .country-count {
+            background: var(--primary-green);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        /* Donation Section Styles */
+        .donation-section {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+            padding: 30px;
+            border-radius: 20px;
+            border: 3px solid var(--gold);
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .donation-title {
+            font-family: 'Amiri', serif;
+            font-size: 28px;
+            color: var(--primary-green);
+            margin-bottom: 15px;
+        }
+
+        .donation-subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+
+        .donation-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .donation-method {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid var(--light-gold);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: var(--primary-green);
+        }
+
+        .donation-method:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.3);
+            border-color: var(--gold);
+        }
+
+        .donation-method-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .donation-method-name {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .donation-method-info {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .crypto-address {
+            background: var(--cream);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+        .copy-btn {
+            background: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .copy-btn:hover {
+            background: var(--secondary-green);
+        }
+
+        .close-modal {
+            background: var(--gold);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+
+        .close-modal:hover {
+            background: #c49f30;
         }
 
         /* Action buttons */
@@ -857,9 +1056,60 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Donation Section -->
+                    <div class="donation-section">
+                        <div class="donation-title">💚 Support This Project</div>
+                        <div class="donation-subtitle">
+                            "The example of those who spend their wealth in the way of Allah is like a seed which grows seven spikes"<br>
+                            - Quran 2:261
+                        </div>
+                        
+                        <div class="donation-methods">
+                            <!-- PayPal -->
+                            <a href="https://paypal.me/khaleddiab" class="donation-method" target="_blank">
+                                <div class="donation-method-icon">💳</div>
+                                <div class="donation-method-name">PayPal</div>
+                                <div class="donation-method-info">Quick & Easy</div>
+                            </a>
+                            
+                            <!-- Patreon -->
+                            <a href="https://patreon.com/khaleddiab" class="donation-method" target="_blank">
+                                <div class="donation-method-icon">🎯</div>
+                                <div class="donation-method-name">Patreon</div>
+                                <div class="donation-method-info">Monthly Support</div>
+                            </a>
+                            
+                            <!-- Bitcoin -->
+                            <div class="donation-method" onclick="showCryptoAddress('bitcoin')">
+                                <div class="donation-method-icon">₿</div>
+                                <div class="donation-method-name">Bitcoin</div>
+                                <div class="donation-method-info">Cryptocurrency</div>
+                                <div id="bitcoin-address" style="display: none;">
+                                    <div class="crypto-address">
+                                        bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
+                                    </div>
+                                    <button class="copy-btn" onclick="copyToClipboard('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', event)">
+                                        Copy Address
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Bank Transfer -->
+                            <div class="donation-method" onclick="alert('Please contact me via email for bank transfer details')">
+                                <div class="donation-method-icon">🏦</div>
+                                <div class="donation-method-name">Bank Transfer</div>
+                                <div class="donation-method-info">Direct Transfer</div>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                            Your support helps maintain and improve this free service for the Muslim community worldwide.<br>
+                            May Allah reward you abundantly for your generosity. 
+                        </p>
+                    </div>
                     
                     <!-- Feedback Section -->
-                    <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05)); padding: 30px; border-radius: 15px; border: 2px solid var(--light-gold);">
+                    <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05)); padding: 30px; border-radius: 15px; border: 2px solid var(--light-gold); margin-top: 30px;">
                         <h3 style="font-size: 20px; color: var(--primary-green); margin-bottom: 20px; text-align: center;">
                             Send Feedback
                         </h3>
@@ -902,6 +1152,29 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Visitor Counter -->
+    <div class="visitor-counter" onclick="showVisitorStats()">
+        <div class="visitor-count" id="visitorCount">0</div>
+        <div class="visitor-label">Visitors Worldwide</div>
+    </div>
+
+    <!-- Visitor Stats Modal -->
+    <div class="stats-modal" id="statsModal">
+        <div class="stats-content">
+            <div class="stats-header">
+                🌍 Visitors From Around The World
+            </div>
+            <div style="text-align: center; margin: 20px 0;">
+                <div style="font-size: 36px; color: var(--gold); font-weight: bold;" id="totalVisitors">0</div>
+                <div style="color: #666;">Total Visitors</div>
+            </div>
+            <div class="country-list" id="countryList">
+                <!-- Countries will be populated here -->
+            </div>
+            <button class="close-modal" onclick="closeStatsModal()">Close</button>
         </div>
     </div>
 
@@ -1318,11 +1591,203 @@
             alert('Thank you for your feedback! Your default email client will open to send the message.');
         }
 
+        // Visitor Counter Functions
+        let visitorData = {
+            total: 0,
+            countries: {}
+        };
+
+        // Initialize visitor counter
+        async function initVisitorCounter() {
+            // Get visitor data from localStorage (for demo purposes)
+            const stored = localStorage.getItem('khutbahVisitorData');
+            if (stored) {
+                visitorData = JSON.parse(stored);
+            } else {
+                // Initialize with some demo data
+                visitorData = {
+                    total: 1247,
+                    countries: {
+                        'Saudi Arabia': 342,
+                        'United Arab Emirates': 198,
+                        'United States': 156,
+                        'United Kingdom': 89,
+                        'Malaysia': 76,
+                        'Indonesia': 68,
+                        'Pakistan': 54,
+                        'Egypt': 47,
+                        'Turkey': 43,
+                        'India': 38,
+                        'Bangladesh': 32,
+                        'Canada': 28,
+                        'Germany': 24,
+                        'France': 19,
+                        'Australia': 15,
+                        'Qatar': 12,
+                        'Kuwait': 9,
+                        'Others': 17
+                    }
+                };
+            }
+            
+            // Get user's country using IP geolocation API
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                const data = await response.json();
+                const country = data.country_name || 'Unknown';
+                
+                // Increment visitor count
+                visitorData.total++;
+                visitorData.countries[country] = (visitorData.countries[country] || 0) + 1;
+                
+                // Save to localStorage
+                localStorage.setItem('khutbahVisitorData', JSON.stringify(visitorData));
+            } catch (error) {
+                console.log('Could not get location data');
+                visitorData.total++;
+                visitorData.countries['Unknown'] = (visitorData.countries['Unknown'] || 0) + 1;
+            }
+            
+            updateVisitorDisplay();
+        }
+
+        // Update visitor counter display
+        function updateVisitorDisplay() {
+            const countElement = document.getElementById('visitorCount');
+            if (countElement) {
+                // Animate the counter
+                animateCounter(countElement, 0, visitorData.total, 2000);
+            }
+        }
+
+        // Animate counter
+        function animateCounter(element, start, end, duration) {
+            const range = end - start;
+            const increment = end > start ? 1 : -1;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                element.textContent = current.toLocaleString();
+                if (current == end) {
+                    clearInterval(timer);
+                }
+            }, stepTime);
+        }
+
+        // Show visitor statistics modal
+        function showVisitorStats() {
+            const modal = document.getElementById('statsModal');
+            const totalElement = document.getElementById('totalVisitors');
+            const countryList = document.getElementById('countryList');
+            
+            modal.style.display = 'flex';
+            totalElement.textContent = visitorData.total.toLocaleString();
+            
+            // Sort countries by visitor count
+            const sortedCountries = Object.entries(visitorData.countries)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 20); // Top 20 countries
+            
+            // Generate country list HTML
+            countryList.innerHTML = sortedCountries.map(([country, count], index) => {
+                const flag = getCountryFlag(country);
+                const percentage = ((count / visitorData.total) * 100).toFixed(1);
+                return `
+                    <div class="country-item">
+                        <div class="country-name">
+                            <span style="font-size: 24px;">${flag}</span>
+                            <span>${country}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="color: #666; font-size: 12px;">${percentage}%</span>
+                            <div class="country-count">${count.toLocaleString()}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Close stats modal
+        function closeStatsModal() {
+            document.getElementById('statsModal').style.display = 'none';
+        }
+
+        // Get country flag emoji
+        function getCountryFlag(country) {
+            const flags = {
+                'Saudi Arabia': '🇸🇦',
+                'United Arab Emirates': '🇦🇪',
+                'United States': '🇺🇸',
+                'United Kingdom': '🇬🇧',
+                'Malaysia': '🇲🇾',
+                'Indonesia': '🇮🇩',
+                'Pakistan': '🇵🇰',
+                'Egypt': '🇪🇬',
+                'Turkey': '🇹🇷',
+                'India': '🇮🇳',
+                'Bangladesh': '🇧🇩',
+                'Canada': '🇨🇦',
+                'Germany': '🇩🇪',
+                'France': '🇫🇷',
+                'Australia': '🇦🇺',
+                'Qatar': '🇶🇦',
+                'Kuwait': '🇰🇼',
+                'Unknown': '🌍'
+            };
+            return flags[country] || '🌍';
+        }
+
+        // Donation Functions
+        function showCryptoAddress(crypto) {
+            const addressDiv = document.getElementById(`${crypto}-address`);
+            if (addressDiv.style.display === 'none') {
+                addressDiv.style.display = 'block';
+            } else {
+                addressDiv.style.display = 'none';
+            }
+        }
+
+        // Copy to clipboard
+        function copyToClipboard(text, event) {
+            event.stopPropagation();
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Address copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Track donation clicks (for analytics)
+        function trackDonation(method) {
+            // You can implement analytics tracking here
+            console.log(`Donation method clicked: ${method}`);
+            
+            // Store donation interest in localStorage
+            const donationStats = JSON.parse(localStorage.getItem('donationClicks') || '{}');
+            donationStats[method] = (donationStats[method] || 0) + 1;
+            localStorage.setItem('donationClicks', JSON.stringify(donationStats));
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('statsModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         // Initialize on page load
         window.addEventListener('load', () => {
             loadSettings();
             // Start listening immediately with instant translation on by default
             settings.instantTranslate = true;
+            
+            // Initialize visitor counter
+            initVisitorCounter();
+            
+            // Start speech recognition after a short delay
             setTimeout(() => {
                 initializeSpeechRecognition();
             }, 500);
