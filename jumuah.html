@@ -611,35 +611,18 @@
             margin: 20px 0;
         }
 
-        .visitor-counter {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
-            color: white;
+             .visitor-info {
             padding: 15px 20px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-            z-index: 100;
-            cursor: pointer;
-            transition: all 0.3s;
+            text-align: center;
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.1));
+            border-top: 1px solid var(--light-gold);
         }
 
-        .visitor-counter:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        .visitor-info img {
+            display: inline-block;
+            vertical-align: middle;
         }
 
-        .visitor-count {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .visitor-label {
-            font-size: 12px;
-            opacity: 0.9;
-        }
 
         .loader {
             display: none;
@@ -1074,10 +1057,11 @@
         </div>
     </div>
 
-    <div class="visitor-counter">
-        <div class="visitor-count" id="visitorCount">1,247</div>
-        <div class="visitor-label">Visitors Worldwide</div>
-    </div>
+                <!-- Visitor Counter -->
+                <div class="visitor-info">
+                    <img src="https://hitscounter.dev/api/hit?url=https%3A%2F%2Fkhalecl.github.io%2Fkhaledcv%2Fjumuah.html&label=Visitor+worldwide&icon=graph-up&color=%23198754&message=&style=flat&tz=ROK" alt="Visitor Counter">
+                </div>
+            </div>
 
     <script>
         // Global variables
