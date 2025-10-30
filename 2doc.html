@@ -45,6 +45,25 @@
             opacity: 0.95;
         }
 
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background-color: #e0e0e0;
+            position: relative;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -86,6 +105,31 @@
             color: #999;
         }
 
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .upload-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .upload-btn:hover {
+            background-color: #e0e0e0;
+        }
+
         textarea {
             flex: 1;
             padding: 20px;
@@ -107,30 +151,30 @@
         }
 
         .preview h1 {
-            font-size: 28px;
-            margin: 24px 0 16px;
+            font-size: 26px;
+            margin: 20px 0 12px;
             font-weight: 700;
-            border-bottom: 3px solid #667eea;
+            border-bottom: 2px solid #667eea;
             padding-bottom: 8px;
             color: #1a1a1a;
         }
 
         .preview h2 {
-            font-size: 24px;
-            margin: 20px 0 12px;
+            font-size: 20px;
+            margin: 18px 0 10px;
             font-weight: 600;
             color: #333;
         }
 
         .preview h3 {
-            font-size: 20px;
-            margin: 16px 0 10px;
+            font-size: 17px;
+            margin: 14px 0 8px;
             font-weight: 600;
             color: #555;
         }
 
         .preview h4, .preview h5, .preview h6 {
-            margin: 12px 0 8px;
+            margin: 12px 0 6px;
             font-weight: 600;
             color: #666;
         }
@@ -285,6 +329,10 @@
     </style>
 </head>
 <body>
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
     <div class="container">
         <header class="header">
             <h1>📝 Markdown to DOCX Converter</h1>
@@ -295,6 +343,10 @@
             <div class="panel">
                 <div class="panel-header">
                     <h2>Markdown Editor</h2>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="mdFile" accept=".md,.markdown,.txt" />
+                        <label for="mdFile" class="upload-btn">📂 Load .md File</label>
+                    </div>
                 </div>
                 <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Document Title
 
@@ -356,8 +408,8 @@ End of document.</textarea>
         </div>
 
         <footer class="footer">
-            <p>💡 All markdown is converted to proper Word styles (Title, Heading 1, Heading 2, Normal, Quote, etc)</p>
-            <p class="subtext">Built with Marked.js + JSZip | Proper Word Styles Applied</p>
+            <p>💡 All markdown is converted to proper Word styles with harmonized typography</p>
+            <p class="subtext">Built with Marked.js + JSZip | Professional Document Formatting</p>
         </footer>
     </div>
 
@@ -367,6 +419,41 @@ End of document.</textarea>
         const convertBtn = document.getElementById('convertBtn');
         const clearBtn = document.getElementById('clearBtn');
         const messageEl = document.getElementById('message');
+        const mdFile = document.getElementById('mdFile');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+
+        function setProgress(percent) {
+            progressBar.style.width = percent + '%';
+        }
+
+        function showProgress() {
+            progressContainer.classList.add('active');
+            setProgress(0);
+        }
+
+        function hideProgress() {
+            progressContainer.classList.remove('active');
+        }
+
+        // Handle file upload
+        mdFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target.result;
+                editor.value = content;
+                preview.innerHTML = marked.parse(content);
+                showMessage('✓ File loaded successfully!', 'success');
+                mdFile.value = '';
+            };
+            reader.onerror = () => {
+                showMessage('Error reading file', 'error');
+            };
+            reader.readAsText(file);
+        });
 
         // Update preview
         editor.addEventListener('input', () => {
@@ -403,14 +490,20 @@ End of document.</textarea>
 
             convertBtn.disabled = true;
             convertBtn.textContent = '⏳ Converting...';
+            showProgress();
 
             try {
+                setProgress(25);
                 const docxBlob = await markdownToDocx(markdown);
+                setProgress(75);
                 saveAs(docxBlob, 'document.docx');
+                setProgress(100);
                 showMessage('✓ Downloaded successfully!', 'success');
+                setTimeout(hideProgress, 500);
             } catch (error) {
                 console.error('Error:', error);
                 showMessage('Error: ' + error.message, 'error');
+                hideProgress();
             } finally {
                 convertBtn.disabled = false;
                 convertBtn.textContent = '⬇️ Download as DOCX';
@@ -426,6 +519,7 @@ End of document.</textarea>
             zip.file('_rels/.rels', getRels());
             zip.file('word/_rels/document.xml.rels', getDocumentRels());
             zip.file('word/styles.xml', getStyles());
+            zip.file('word/numbering.xml', getNumbering());
             zip.file('word/document.xml', getWordDocument(markdown));
 
             return await zip.generateAsync({ type: 'blob' });
@@ -440,57 +534,184 @@ End of document.</textarea>
                 .replace(/'/g, '&apos;');
         }
 
+        function parseTextFormatting(text) {
+            let result = [];
+            let i = 0;
+            
+            while (i < text.length) {
+                // Bold (**text**)
+                if (text.substring(i, i + 2) === '**') {
+                    const endIdx = text.indexOf('**', i + 2);
+                    if (endIdx !== -1) {
+                        const boldText = text.substring(i + 2, endIdx);
+                        result.push({ type: 'bold', text: boldText });
+                        i = endIdx + 2;
+                        continue;
+                    }
+                }
+                // Italic (*text*) - but not ** which is bold
+                if (text[i] === '*' && i + 1 < text.length && text[i + 1] !== '*') {
+                    const endIdx = text.indexOf('*', i + 1);
+                    if (endIdx !== -1 && text[endIdx + 1] !== '*') {
+                        const italicText = text.substring(i + 1, endIdx);
+                        result.push({ type: 'italic', text: italicText });
+                        i = endIdx + 1;
+                        continue;
+                    }
+                }
+                // Italic (_text_)
+                if (text[i] === '_' && i + 1 < text.length && text[i + 1] !== '_') {
+                    const endIdx = text.indexOf('_', i + 1);
+                    if (endIdx !== -1 && text[endIdx + 1] !== '_') {
+                        const italicText = text.substring(i + 1, endIdx);
+                        result.push({ type: 'italic', text: italicText });
+                        i = endIdx + 1;
+                        continue;
+                    }
+                }
+                // Inline code (`text`)
+                if (text[i] === '`') {
+                    const endIdx = text.indexOf('`', i + 1);
+                    if (endIdx !== -1) {
+                        const codeText = text.substring(i + 1, endIdx);
+                        result.push({ type: 'code', text: codeText });
+                        i = endIdx + 1;
+                        continue;
+                    }
+                }
+                // Regular text (up to next formatting marker)
+                let regularText = '';
+                while (i < text.length && 
+                       !(text[i] === '*' && (text[i + 1] === '*' || (i + 1 < text.length && text[i + 1] !== '*'))) &&
+                       !(text[i] === '_' && (text[i + 1] === '_' || (i + 1 < text.length && text[i + 1] !== '_'))) &&
+                       text[i] !== '`') {
+                    regularText += text[i];
+                    i++;
+                }
+                if (regularText) {
+                    result.push({ type: 'text', text: regularText });
+                }
+            }
+            return result;
+        }
+
+        function formatTextToXml(text) {
+            const parts = parseTextFormatting(text);
+            let xml = '';
+            
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                let textContent = part.text;
+                
+                // Add leading space if previous part was formatting and this is text
+                if (i > 0 && part.type === 'text' && 
+                    (parts[i-1].type === 'bold' || parts[i-1].type === 'italic' || parts[i-1].type === 'code') &&
+                    !textContent.startsWith(' ')) {
+                    // Space is preserved in the text
+                }
+                
+                // Add trailing space preservation for formatted text
+                if (part.type === 'bold') {
+                    xml += '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (part.type === 'italic') {
+                    xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (part.type === 'code') {
+                    xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else {
+                    xml += '<w:r><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                }
+            }
+            return xml;
+        }
+
         function getContentTypes() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
-                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
-                '<Default Extension="xml" ContentType="application/xml"/>' +
-                '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
-                '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
-                '</Types>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
         }
 
         function getRels() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
-                '</Relationships>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
         }
 
         function getDocumentRels() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
-                '</Relationships>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>';
+        }
+
+        function getNumbering() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="1"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>';
         }
 
         function getStyles() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">' +
-                '<w:docDefaults>' +
-                '<w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault>' +
-                '<w:pPrDefault/>' +
-                '</w:docDefaults>' +
-                '<w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="56"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="240"/><w:jc w:val="center"/></w:pPr></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="0"/></w:pPr></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="200" w:after="100"/><w:outlineLvl w:val="1"/></w:pPr></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="150" w:after="80"/><w:outlineLvl w:val="2"/></w:pPr></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="100" w:after="100"/><w:left w:val="720"/><w:bdr w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pPr></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="100"/><w:shd w:fill="F2F2F2"/><w:bdr w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pPr></w:style>' +
-                '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/></w:style>' +
-                '</w:styles>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="F2F2F2"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:left w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:right w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style></w:styles>';
+        }
+
+        function buildTable(rows) {
+            if (rows.length === 0) return '';
+
+            let xml = '<w:tbl><w:tblPr>';
+            xml += '<w:tblW w:w="5000" w:type="auto"/>';
+            xml += '<w:tblInd w:w="0" w:type="dxa"/>';
+            xml += '<w:tblBorders>';
+            xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:left w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:right w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:insideH w:val="single" w:sz="12" w:space="0" w:color="D9E1F2"/>';
+            xml += '<w:insideV w:val="single" w:sz="12" w:space="0" w:color="D9E1F2"/>';
+            xml += '</w:tblBorders>';
+            xml += '<w:tblCellMar>';
+            xml += '<w:top w:w="100" w:type="dxa"/>';
+            xml += '<w:left w:w="100" w:type="dxa"/>';
+            xml += '<w:bottom w:w="100" w:type="dxa"/>';
+            xml += '<w:right w:w="100" w:type="dxa"/>';
+            xml += '</w:tblCellMar>';
+            xml += '</w:tblPr>';
+
+            rows.forEach((row, rowIdx) => {
+                xml += '<w:tr>';
+                xml += '<w:trPr>';
+                xml += '<w:trHeight w:val="400" w:type="auto"/>';
+                xml += '</w:trPr>';
+                
+                row.forEach(cell => {
+                    const isHeader = rowIdx === 0;
+                    const shading = isHeader ? '<w:shd w:fill="4472C4"/>' : '<w:shd w:fill="FFFFFF"/>';
+                    const textColor = isHeader ? '<w:color w:val="FFFFFF"/>' : '';
+                    
+                    xml += '<w:tc>';
+                    xml += '<w:tcPr>';
+                    xml += '<w:tcW w:w="1000" w:type="auto"/>';
+                    xml += shading;
+                    xml += '<w:vAlign w:val="center"/>';
+                    xml += '</w:tcPr>';
+                    xml += '<w:p>';
+                    xml += '<w:pPr>';
+                    xml += '<w:jc w:val="center"/>';
+                    xml += '<w:spacing w:line="240" w:lineRule="auto"/>';
+                    xml += '</w:pPr>';
+                    xml += '<w:r>';
+                    xml += '<w:rPr>';
+                    if (isHeader) {
+                        xml += '<w:b/>';
+                        xml += '<w:sz w:val="22"/>';
+                    }
+                    xml += textColor;
+                    xml += '</w:rPr>';
+                    xml += '<w:t xml:space="preserve">' + escapeXml(cell) + '</w:t>';
+                    xml += '</w:r>';
+                    xml += '</w:p>';
+                    xml += '</w:tc>';
+                });
+                xml += '</w:tr>';
+            });
+
+            xml += '</w:tbl>';
+            return xml;
         }
 
         function getWordDocument(markdown) {
-            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
-                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
-                'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">' +
-                '<w:body>';
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>';
 
             const lines = markdown.split('\n');
-            let listType = null;
             let inTable = false;
             let tableRows = [];
 
@@ -504,40 +725,40 @@ End of document.</textarea>
                     inTable = false;
                 }
 
-                // Title (# followed by space)
-                if (line.match(/^#\s/) && i === 0) {
-                    const text = escapeXml(line.replace(/^#\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="56"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                // Title (#)
+                if (line.match(/^#\s/)) {
+                    const text = line.replace(/^#\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
                 // Heading 1 (##)
                 else if (line.match(/^##\s/)) {
-                    const text = escapeXml(line.replace(/^##\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="48"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                    const text = line.replace(/^##\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
                 // Heading 2 (###)
                 else if (line.match(/^###\s/)) {
-                    const text = escapeXml(line.replace(/^###\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="40"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                    const text = line.replace(/^###\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
                 // Heading 3 (####)
                 else if (line.match(/^####\s/)) {
-                    const text = escapeXml(line.replace(/^####\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                    const text = line.replace(/^####\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
                 // Ordered lists
                 else if (line.match(/^\d+\.\s/)) {
-                    const text = escapeXml(line.replace(/^\d+\.\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:spacing w:after="100"/></w:pPr><w:r><w:t>' + text + '</w:t></w:r></w:p>';
+                    const text = line.replace(/^\d+\.\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
-                // Unordered lists (bullets)
+                // Unordered lists
                 else if (line.match(/^[\*\-\+]\s/)) {
-                    const text = escapeXml(line.replace(/^[\*\-\+]\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr><w:spacing w:after="100"/></w:pPr><w:r><w:t>' + text + '</w:t></w:r></w:p>';
+                    const text = line.replace(/^[\*\-\+]\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
                 // Blockquotes
                 else if (line.match(/^>\s/)) {
-                    const text = escapeXml(line.replace(/^>\s/, ''));
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr><w:r><w:rPr><w:i/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                    const text = line.replace(/^>\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
                 }
                 // Code blocks
                 else if (line.trim().startsWith('```')) {
@@ -559,11 +780,11 @@ End of document.</textarea>
                 }
                 // Horizontal rule
                 else if (line.match(/^---+$/)) {
-                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr><w:r></w:r></w:p>';
+                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
                 }
                 // Normal paragraph
                 else if (line.trim()) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:t>' + escapeXml(line) + '</w:t></w:r></w:p>';
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextToXml(line) + '</w:p>';
                 }
             }
 
@@ -573,31 +794,6 @@ End of document.</textarea>
             }
 
             xml += '</w:body></w:document>';
-            return xml;
-        }
-
-        function buildTable(rows) {
-            if (rows.length === 0) return '';
-
-            let xml = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="auto"/><w:tblBorders>' +
-                '<w:top w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
-                '<w:left w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
-                '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
-                '<w:right w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
-                '<w:insideH w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
-                '<w:insideV w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
-                '</w:tblBorders></w:tblPr>';
-
-            rows.forEach((row, rowIndex) => {
-                xml += '<w:tr>';
-                row.forEach(cell => {
-                    const shading = rowIndex === 0 ? ' <w:shd w:fill="D9E1F2"/>' : '';
-                    xml += '<w:tc><w:tcPr>' + shading + '</w:tcPr><w:p><w:r><w:t>' + escapeXml(cell) + '</w:t></w:r></w:p></w:tc>';
-                });
-                xml += '</w:tr>';
-            });
-
-            xml += '</w:tbl>';
             return xml;
         }
     </script>
