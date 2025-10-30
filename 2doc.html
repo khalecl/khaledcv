@@ -288,7 +288,7 @@
     <div class="container">
         <header class="header">
             <h1>📝 Markdown to DOCX Converter</h1>
-            <p>Convert your markdown to Word documents with perfect formatting</p>
+            <p>Convert your markdown to Word documents with proper styles</p>
         </header>
 
         <div class="main-content">
@@ -296,46 +296,47 @@
                 <div class="panel-header">
                     <h2>Markdown Editor</h2>
                 </div>
-                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Markdown to DOCX Converter
+                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Document Title
 
-## Welcome!
-This tool converts your markdown to beautifully formatted Word documents.
+## Heading 1
 
-### Features
-- ✨ Real-time Preview
-- 📝 Full Markdown Support
-- 🎨 Style Preservation
-- ⚡ One-Click Download
+### Heading 2
 
-### Text Formatting
-**Bold text** and *italic text* and ***bold italic***
+This is normal paragraph text with some **bold** and *italic* formatting.
 
-### Lists
-1. First item
-2. Second item
-   - Nested bullet
-   - Another nested
+#### Code Example
 
-### Code
-```javascript
-function hello() {
-  console.log("Hello World!");
-}
+```python
+def hello_world():
+    print("Hello World!")
 ```
 
-### Tables
-| Feature | Status |
-|---------|--------|
-| Headings | ✓ |
-| Lists | ✓ |
-| Tables | ✓ |
-| Code | ✓ |
+#### Lists
 
-### Blockquotes
-> This is a blockquote
-> It can span multiple lines
+1. First numbered item
+2. Second numbered item
+3. Third numbered item
 
-Ready to convert!</textarea>
+Bullet points:
+- First bullet
+- Second bullet
+- Third bullet
+
+#### Table Example
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Data 1   | Data 2   | Data 3   |
+| Data 4   | Data 5   | Data 6   |
+
+#### Blockquote
+
+> This is a quote from someone important.
+> It can span multiple lines.
+
+---
+
+End of document.</textarea>
             </div>
 
             <div class="panel">
@@ -355,8 +356,8 @@ Ready to convert!</textarea>
         </div>
 
         <footer class="footer">
-            <p>💡 All formatting is preserved in your DOCX file</p>
-            <p class="subtext">Built with Marked.js + JSZip</p>
+            <p>💡 All markdown is converted to proper Word styles (Title, Heading 1, Heading 2, Normal, Quote, etc)</p>
+            <p class="subtext">Built with Marked.js + JSZip | Proper Word Styles Applied</p>
         </footer>
     </div>
 
@@ -416,7 +417,7 @@ Ready to convert!</textarea>
             }
         });
 
-        // Create valid DOCX (ZIP + XML)
+        // Create valid DOCX with proper styles
         async function markdownToDocx(markdown) {
             const zip = new JSZip();
 
@@ -424,6 +425,7 @@ Ready to convert!</textarea>
             zip.file('[Content_Types].xml', getContentTypes());
             zip.file('_rels/.rels', getRels());
             zip.file('word/_rels/document.xml.rels', getDocumentRels());
+            zip.file('word/styles.xml', getStyles());
             zip.file('word/document.xml', getWordDocument(markdown));
 
             return await zip.generateAsync({ type: 'blob' });
@@ -444,6 +446,7 @@ Ready to convert!</textarea>
                 '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
                 '<Default Extension="xml" ContentType="application/xml"/>' +
                 '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+                '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
                 '</Types>';
         }
 
@@ -456,56 +459,145 @@ Ready to convert!</textarea>
 
         function getDocumentRels() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>';
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+                '</Relationships>';
+        }
+
+        function getStyles() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml">' +
+                '<w:docDefaults>' +
+                '<w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault>' +
+                '<w:pPrDefault/>' +
+                '</w:docDefaults>' +
+                '<w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="56"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="240"/><w:jc w:val="center"/></w:pPr></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="240" w:after="120"/><w:outlineLvl w:val="0"/></w:pPr></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="200" w:after="100"/><w:outlineLvl w:val="1"/></w:pPr></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="150" w:after="80"/><w:outlineLvl w:val="2"/></w:pPr></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="100" w:after="100"/><w:left w:val="720"/><w:bdr w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pPr></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="100"/><w:shd w:fill="F2F2F2"/><w:bdr w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pPr></w:style>' +
+                '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/></w:style>' +
+                '</w:styles>';
         }
 
         function getWordDocument(markdown) {
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
                 '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' +
-                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+                'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">' +
                 '<w:body>';
 
             const lines = markdown.split('\n');
+            let listType = null;
+            let inTable = false;
+            let tableRows = [];
+
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
 
-                if (line.match(/^#{1,6}\s/)) {
-                    const level = line.match(/^#+/)[0].length;
-                    const text = escapeXml(line.replace(/^#+\s/, ''));
-                    const sizes = [56, 48, 40, 32, 28, 24];
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading' + level + '"/><w:sz w:val="' + sizes[level-1]*2 + '"/><w:b/><w:spacing w:before="200" w:after="200"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="' + sizes[level-1]*2 + '"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
-                } else if (line.match(/^\d+\.\s/)) {
+                // Flush table if we were building one
+                if (inTable && !line.includes('|')) {
+                    xml += buildTable(tableRows);
+                    tableRows = [];
+                    inTable = false;
+                }
+
+                // Title (# followed by space)
+                if (line.match(/^#\s/) && i === 0) {
+                    const text = escapeXml(line.replace(/^#\s/, ''));
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="56"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Heading 1 (##)
+                else if (line.match(/^##\s/)) {
+                    const text = escapeXml(line.replace(/^##\s/, ''));
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="48"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Heading 2 (###)
+                else if (line.match(/^###\s/)) {
+                    const text = escapeXml(line.replace(/^###\s/, ''));
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="40"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Heading 3 (####)
+                else if (line.match(/^####\s/)) {
+                    const text = escapeXml(line.replace(/^####\s/, ''));
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Ordered lists
+                else if (line.match(/^\d+\.\s/)) {
                     const text = escapeXml(line.replace(/^\d+\.\s/, ''));
-                    xml += '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:spacing w:after="100"/></w:pPr><w:r><w:t>' + text + '</w:t></w:r></w:p>';
-                } else if (line.match(/^[\*\-\+]\s/)) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr><w:spacing w:after="100"/></w:pPr><w:r><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Unordered lists (bullets)
+                else if (line.match(/^[\*\-\+]\s/)) {
                     const text = escapeXml(line.replace(/^[\*\-\+]\s/, ''));
-                    xml += '<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr><w:spacing w:after="100"/></w:pPr><w:r><w:t>' + text + '</w:t></w:r></w:p>';
-                } else if (line.match(/^>\s/)) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr><w:spacing w:after="100"/></w:pPr><w:r><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Blockquotes
+                else if (line.match(/^>\s/)) {
                     const text = escapeXml(line.replace(/^>\s/, ''));
-                    xml += '<w:p><w:pPr><w:left w:val="720"/><w:ind w:left="720"/><w:pStyle w:val="BlockText"/><w:i/><w:spacing w:before="200" w:after="200"/></w:pPr><w:r><w:rPr><w:i/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
-                } else if (line.trim().startsWith('```')) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr><w:r><w:rPr><w:i/></w:rPr><w:t>' + text + '</w:t></w:r></w:p>';
+                }
+                // Code blocks
+                else if (line.trim().startsWith('```')) {
                     i++;
                     const code = [];
                     while (i < lines.length && !lines[i].trim().startsWith('```')) {
                         code.push(escapeXml(lines[i]));
                         i++;
                     }
-                    xml += '<w:p><w:pPr><w:pStyle w:val="IntenseQuote"/><w:bdr w:val="single" w:sz="12" w:space="1" w:color="cccccc"/><w:spacing w:before="200" w:after="200"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
-                } else if (line.includes('|')) {
-                    const cells = line.split('|').filter(c => c.trim());
-                    if (cells.length > 0 && !cells[0].match(/^-+$/)) {
-                        xml += '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="auto"/></w:tblPr><w:tr>';
-                        cells.forEach(cell => {
-                            xml += '<w:tc><w:tcPr><w:shd w:fill="f0f0f0"/></w:tcPr><w:p><w:r><w:t>' + escapeXml(cell.trim()) + '</w:t></w:r></w:p></w:tc>';
-                        });
-                        xml += '</w:tr></w:tbl>';
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
+                }
+                // Tables
+                else if (line.includes('|')) {
+                    inTable = true;
+                    const cells = line.split('|').filter(c => c.trim() && !c.match(/^-+$/));
+                    if (cells.length > 0) {
+                        tableRows.push(cells.map(c => c.trim()));
                     }
-                } else if (line.trim()) {
-                    xml += '<w:p><w:r><w:t>' + escapeXml(line) + '</w:t></w:r></w:p>';
+                }
+                // Horizontal rule
+                else if (line.match(/^---+$/)) {
+                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr><w:r></w:r></w:p>';
+                }
+                // Normal paragraph
+                else if (line.trim()) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr><w:r><w:t>' + escapeXml(line) + '</w:t></w:r></w:p>';
                 }
             }
 
+            // Flush remaining table
+            if (inTable && tableRows.length > 0) {
+                xml += buildTable(tableRows);
+            }
+
             xml += '</w:body></w:document>';
+            return xml;
+        }
+
+        function buildTable(rows) {
+            if (rows.length === 0) return '';
+
+            let xml = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="auto"/><w:tblBorders>' +
+                '<w:top w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
+                '<w:left w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
+                '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
+                '<w:right w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
+                '<w:insideH w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
+                '<w:insideV w:val="single" w:sz="12" w:space="0" w:color="auto"/>' +
+                '</w:tblBorders></w:tblPr>';
+
+            rows.forEach((row, rowIndex) => {
+                xml += '<w:tr>';
+                row.forEach(cell => {
+                    const shading = rowIndex === 0 ? ' <w:shd w:fill="D9E1F2"/>' : '';
+                    xml += '<w:tc><w:tcPr>' + shading + '</w:tcPr><w:p><w:r><w:t>' + escapeXml(cell) + '</w:t></w:r></w:p></w:tc>';
+                });
+                xml += '</w:tr>';
+            });
+
+            xml += '</w:tbl>';
             return xml;
         }
     </script>
