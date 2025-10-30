@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to DOCX Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 50px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 40px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8eef7;
+            background-color: #fafbfc;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .panel-header .info {
+            font-size: 12px;
+            color: #999;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: none;
+            outline: none;
+            resize: none;
+            background-color: #fafbfc;
+        }
+
+        .preview {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .preview h1 {
+            font-size: 28px;
+            margin: 24px 0 16px;
+            font-weight: 700;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .preview h2 {
+            font-size: 24px;
+            margin: 20px 0 12px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .preview h3 {
+            font-size: 20px;
+            margin: 16px 0 10px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .preview h4, .preview h5, .preview h6 {
+            margin: 12px 0 8px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .preview code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #c7254e;
+        }
+
+        .preview pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .preview pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 16px;
+            margin-left: 0;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            border: 1px solid #ddd;
+        }
+
+        .preview th {
+            background-color: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .preview td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .preview ul, .preview ol {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding-left: 24px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px;
+            justify-content: center;
+            background: white;
+            border-top: 1px solid #e8eef7;
+        }
+
+        button {
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .convert-btn {
+            background-color: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            background-color: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clear-btn {
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .clear-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .message {
+            padding: 12px 20px;
+            margin: 0 20px 20px;
+            border-radius: 6px;
+            text-align: center;
+            max-width: calc(100% - 40px);
+            margin: 0 auto 20px;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c00;
+        }
+
+        .success {
+            background-color: #efe;
+            color: #0c0;
+        }
+
+        .footer {
+            background-color: #e8eef7;
+            padding: 30px 20px;
+            border-top: 1px solid #d0d8e8;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .footer .subtext {
+            font-size: 12px;
+            color: #999;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📝 Markdown to DOCX Converter</h1>
+            <p>Convert your markdown to Word documents with perfect formatting</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Markdown Editor</h2>
+                </div>
+                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Markdown to DOCX Converter
+
+## Welcome!
+This tool converts your markdown content to a beautifully formatted Word document (.docx).
+
+### Features
+- ✨ **Real-time Preview** - See how your document looks instantly
+- 📝 **Full Markdown Support** - Tables, code, lists, and more
+- 🎨 **Style Preservation** - All formatting transfers to Word
+- ⚡ **One-Click Download** - Get your DOCX in seconds
+
+### Supported Elements
+
+#### Text Formatting
+**Bold text** and *italic text* and ***bold italic***
+
+#### Lists
+1. First item
+2. Second item
+   - Nested bullet
+   - Another nested
+
+#### Code
+```javascript
+function hello() {
+  console.log("Beautiful Word document!");
+}
+```
+
+#### Tables
+| Feature | Status |
+|---------|--------|
+| Headings | ✓ |
+| Lists | ✓ |
+| Tables | ✓ |
+| Code | ✓ |
+
+#### Blockquotes
+> This is a blockquote
+> It can span multiple lines
+
+#### Links
+[Learn more](https://example.com)
+
+---
+
+Ready to convert? Edit your content on the left!</textarea>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Live Preview</h2>
+                    <span class="info">Preview how it will look in Word</span>
+                </div>
+                <div class="preview" id="preview"></div>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="actions">
+            <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
+            <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
+        </div>
+
+        <footer class="footer">
+            <p>💡 Tip: Your markdown preserves all formatting when converted to DOCX</p>
+            <p class="subtext">Built with Docx.js + Marked | Supports GitHub-flavored Markdown</p>
+        </footer>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const messageEl = document.getElementById('message');
+
+        // Update preview on input
+        editor.addEventListener('input', () => {
+            preview.innerHTML = marked.parse(editor.value);
+        });
+
+        // Initial preview
+        preview.innerHTML = marked.parse(editor.value);
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all content?')) {
+                editor.value = '';
+                preview.innerHTML = '';
+            }
+        });
+
+        // Show message
+        function showMessage(text, type) {
+            messageEl.innerHTML = '';
+            messageEl.className = 'message ' + type;
+            messageEl.textContent = text;
+            setTimeout(() => {
+                messageEl.innerHTML = '';
+                messageEl.className = '';
+            }, 3000);
+        }
+
+        // Wait for docx library to load
+        function waitForDocx() {
+            return new Promise((resolve) => {
+                if (typeof window.docx !== 'undefined') {
+                    resolve();
+                } else {
+                    setTimeout(() => waitForDocx().then(resolve), 100);
+                }
+            });
+        }
+
+        // Convert to DOCX
+        convertBtn.addEventListener('click', async () => {
+            const markdown = editor.value.trim();
+            if (!markdown) {
+                showMessage('Please enter some markdown content', 'error');
+                return;
+            }
+
+            convertBtn.disabled = true;
+            convertBtn.textContent = '⏳ Converting...';
+
+            try {
+                // Wait for docx to load
+                await waitForDocx();
+
+                const { Document, Packer, Paragraph, Table, TableRow, TableCell, AlignmentType, BorderStyle, UnorderedList, ListItem } = window.docx;
+
+                // Parse markdown and convert to DOCX
+                const sections = parseMarkdown(markdown);
+                
+                const doc = new Document({
+                    sections: [{
+                        children: sections
+                    }]
+                });
+
+                // Generate and download
+                Packer.toBlob(doc).then(blob => {
+                    saveAs(blob, 'document.docx');
+                    showMessage('✓ Document downloaded successfully!', 'success');
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error converting document. Please try again.', 'error');
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = '⬇️ Download as DOCX';
+            }
+        });
+
+        // Parse markdown into docx elements
+        function parseMarkdown(markdown) {
+            const { Paragraph, Table, TableRow, TableCell, UnorderedList, ListItem, AlignmentType, BorderStyle } = window.docx;
+            
+            const lines = markdown.split('\n');
+            const children = [];
+            let i = 0;
+
+            while (i < lines.length) {
+                const line = lines[i];
+
+                // Headings
+                if (line.match(/^#{1,6}\s/)) {
+                    const level = line.match(/^#+/)[0].length;
+                    const text = line.replace(/^#+\s/, '');
+                    const sizes = [56, 48, 40, 32, 28, 24];
+                    
+                    children.push(new Paragraph({
+                        text: text,
+                        heading: 'heading' + level,
+                        size: sizes[level - 1] * 2,
+                        bold: true,
+                        spacing: { before: 200, after: 200 }
+                    }));
+                    i++;
+                }
+                // Unordered lists
+                else if (line.match(/^[\*\-\+]\s/)) {
+                    const items = [];
+                    while (i < lines.length && lines[i].match(/^[\*\-\+]\s/)) {
+                        const itemText = lines[i].replace(/^[\*\-\+]\s/, '');
+                        items.push(new ListItem({
+                            children: [new Paragraph(itemText)]
+                        }));
+                        i++;
+                    }
+                    children.push(new UnorderedList({ children: items }));
+                }
+                // Ordered lists
+                else if (line.match(/^\d+\.\s/)) {
+                    const items = [];
+                    while (i < lines.length && lines[i].match(/^\d+\.\s/)) {
+                        const itemText = lines[i].replace(/^\d+\.\s/, '');
+                        items.push(new ListItem({
+                            children: [new Paragraph(itemText)]
+                        }));
+                        i++;
+                    }
+                    children.push(new UnorderedList({ children: items }));
+                }
+                // Code blocks
+                else if (line.trim().startsWith('```')) {
+                    i++; // skip opening ```
+                    const code = [];
+                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                        code.push(lines[i]);
+                        i++;
+                    }
+                    i++; // skip closing ```
+                    
+                    children.push(new Paragraph({
+                        text: code.join('\n'),
+                        style: 'intense_quote',
+                        border: {
+                            top: { color: '#cccccc', space: 1, style: BorderStyle.single, size: 6 },
+                            bottom: { color: '#cccccc', space: 1, style: BorderStyle.single, size: 6 },
+                            left: { color: '#cccccc', space: 1, style: BorderStyle.single, size: 6 },
+                            right: { color: '#cccccc', space: 1, style: BorderStyle.single, size: 6 }
+                        },
+                        spacing: { before: 200, after: 200 }
+                    }));
+                }
+                // Tables
+                else if (line.includes('|')) {
+                    const tableRows = [];
+                    let rowCount = 0;
+                    while (i < lines.length && lines[i].includes('|')) {
+                        const cells = lines[i].split('|').filter(c => c.trim() && !c.match(/^-+$/));
+                        
+                        if (cells.length > 0) {
+                            tableRows.push(new TableRow({
+                                children: cells.map(cell => 
+                                    new TableCell({
+                                        children: [new Paragraph(cell.trim())],
+                                        shading: { fill: rowCount === 0 ? 'e8eef7' : 'ffffff' }
+                                    })
+                                )
+                            }));
+                            rowCount++;
+                        }
+                        i++;
+                    }
+                    
+                    if (tableRows.length > 0) {
+                        children.push(new Table({
+                            rows: tableRows,
+                            width: { size: 100, type: 'pct' }
+                        }));
+                    }
+                }
+                // Blockquotes
+                else if (line.match(/^>\s/)) {
+                    const quote = line.replace(/^>\s/, '');
+                    children.push(new Paragraph({
+                        text: quote,
+                        italics: true,
+                        border: {
+                            left: { color: '#667eea', space: 1, style: BorderStyle.single, size: 24 }
+                        },
+                        indent: { left: 720 },
+                        spacing: { before: 200, after: 200 }
+                    }));
+                    i++;
+                }
+                // Horizontal rules
+                else if (line.match(/^---+$/)) {
+                    children.push(new Paragraph({
+                        text: '',
+                        border: {
+                            bottom: { color: '#cccccc', space: 1, style: BorderStyle.single, size: 6 }
+                        },
+                        spacing: { before: 200, after: 200 }
+                    }));
+                    i++;
+                }
+                // Regular paragraphs
+                else if (line.trim()) {
+                    children.push(new Paragraph({
+                        text: line,
+                        spacing: { after: 200 }
+                    }));
+                    i++;
+                } else {
+                    i++;
+                }
+            }
+
+            return children;
+        }
+    </script>
+</body>
+</html>
