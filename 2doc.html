@@ -16,9 +16,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+            background: linear-gradient(135deg, #f5f7fa 0%, #eef2f8 100%);
             min-height: 100vh;
-            color: #e0e0e0;
         }
 
         .container {
@@ -28,78 +27,83 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #00d9ff 0%, #00f7eb 50%, #00ffb3 100%);
-            background-attachment: fixed;
-            color: #0f0f1e;
-            padding: 60px 20px;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: white;
+            padding: 50px 20px;
             text-align: center;
-            box-shadow: 0 10px 40px rgba(0, 217, 255, 0.3);
             position: relative;
             overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
         }
 
         .header::before {
             content: '';
             position: absolute;
             top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 255, 179, 0.2), transparent);
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -50%;
-            left: -10%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 217, 255, 0.2), transparent);
-            border-radius: 50%;
-            animation: float 8s ease-in-out infinite reverse;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: float 20s linear infinite;
+            pointer-events: none;
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(50px, 50px);
+            }
         }
 
         .header h1 {
             margin: 0 0 10px 0;
-            font-size: 48px;
-            font-weight: 800;
+            font-size: 40px;
+            font-weight: 700;
             position: relative;
-            z-index: 1;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            letter-spacing: -1px;
+            z-index: 2;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            letter-spacing: 1px;
         }
 
         .header p {
             margin: 0;
             font-size: 18px;
+            opacity: 0.95;
             position: relative;
-            z-index: 1;
-            opacity: 0.9;
-            font-weight: 500;
+            z-index: 2;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.15);
         }
 
         .progress-container {
             width: 100%;
             height: 4px;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: #e0e0e0;
             position: relative;
             display: none;
         }
 
         .progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #00d9ff 0%, #00f7eb 50%, #00ffb3 100%);
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             width: 0%;
             transition: width 0.3s ease;
-            box-shadow: 0 0 20px rgba(0, 217, 255, 0.8);
         }
 
         .progress-container.active {
@@ -109,9 +113,9 @@
         .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            padding: 30px;
-            max-width: 1800px;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
             margin: 0 auto;
             width: 100%;
             flex: 1;
@@ -120,44 +124,31 @@
         .panel {
             display: flex;
             flex-direction: column;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.06);
             overflow: hidden;
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .panel:hover {
-            box-shadow: 0 12px 48px rgba(0, 217, 255, 0.2);
-            border-color: rgba(0, 217, 255, 0.4);
-            transform: translateY(-2px);
         }
 
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 24px;
-            border-bottom: 1px solid rgba(0, 217, 255, 0.2);
-            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(0, 255, 179, 0.1));
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8eef7;
+            background-color: #fafbfc;
         }
 
         .panel-header h2 {
             margin: 0;
-            font-size: 20px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #00d9ff, #00ffb3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
         }
 
         .panel-header .info {
             font-size: 12px;
-            color: #00f7eb;
-            opacity: 0.8;
+            color: #999;
         }
 
         .file-input-wrapper {
@@ -172,192 +163,158 @@
         }
 
         .upload-btn {
-            padding: 8px 16px;
-            font-size: 13px;
-            background: linear-gradient(135deg, #00d9ff, #00f7eb);
-            color: #0f0f1e;
-            border: none;
-            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
             cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
         }
 
         .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 217, 255, 0.5);
+            background-color: #e0e0e0;
         }
 
         textarea {
             flex: 1;
-            padding: 24px;
-            font-family: 'Courier New', 'Monaco', monospace;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
             font-size: 14px;
             line-height: 1.6;
             border: none;
             outline: none;
             resize: none;
-            background-color: rgba(15, 15, 30, 0.5);
-            color: #e0e0e0;
-            caret-color: #00d9ff;
-        }
-
-        textarea::placeholder {
-            color: rgba(224, 224, 224, 0.4);
+            background-color: #fafbfc;
         }
 
         .preview {
             flex: 1;
-            padding: 24px;
+            padding: 20px;
             overflow: auto;
             font-size: 15px;
-            line-height: 1.8;
-            background-color: rgba(15, 15, 30, 0.5);
-            color: #e0e0e0;
+            line-height: 1.7;
         }
 
         .preview h1 {
-            font-size: 28px;
-            margin: 24px 0 16px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #00d9ff, #00ffb3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            border-bottom: 2px solid rgba(0, 217, 255, 0.3);
-            padding-bottom: 12px;
+            font-size: 26px;
+            margin: 20px 0 12px;
+            font-weight: 700;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            color: #1a1a1a;
         }
 
         .preview h2 {
-            font-size: 22px;
-            margin: 20px 0 12px;
-            font-weight: 700;
-            color: #00f7eb;
+            font-size: 20px;
+            margin: 18px 0 10px;
+            font-weight: 600;
+            color: #333;
         }
 
         .preview h3 {
-            font-size: 18px;
-            margin: 16px 0 10px;
+            font-size: 17px;
+            margin: 14px 0 8px;
             font-weight: 600;
-            color: #00d9ff;
+            color: #555;
         }
 
         .preview h4, .preview h5, .preview h6 {
-            margin: 14px 0 8px;
+            margin: 12px 0 6px;
             font-weight: 600;
-            color: #00ffb3;
+            color: #666;
         }
 
         .preview code {
-            background-color: rgba(0, 217, 255, 0.1);
-            padding: 3px 8px;
-            border-radius: 4px;
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
             font-family: monospace;
             font-size: 13px;
-            color: #00ffb3;
-            border: 1px solid rgba(0, 217, 255, 0.2);
+            color: #c7254e;
         }
 
         .preview pre {
-            background-color: rgba(0, 0, 0, 0.4);
-            color: #00f7eb;
+            background-color: #2d2d2d;
+            color: #f8f8f2;
             padding: 16px;
-            border-radius: 8px;
+            border-radius: 6px;
             overflow-x: auto;
-            margin: 14px 0;
+            margin: 12px 0;
             font-size: 12px;
-            line-height: 1.5;
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+            line-height: 1.4;
         }
 
         .preview pre code {
             background: none;
             color: inherit;
             padding: 0;
-            border: none;
         }
 
         .preview blockquote {
-            border-left: 4px solid #00ffb3;
-            padding-left: 20px;
+            border-left: 4px solid #667eea;
+            padding-left: 16px;
             margin-left: 0;
-            margin-top: 14px;
-            margin-bottom: 14px;
-            color: #00f7eb;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            color: #666;
             font-style: italic;
-            opacity: 0.9;
         }
 
         .preview table {
             width: 100%;
             border-collapse: collapse;
-            margin: 18px 0;
-            border: 1px solid rgba(0, 217, 255, 0.2);
-            border-radius: 8px;
-            overflow: hidden;
+            margin: 16px 0;
+            border: 1px solid #ddd;
         }
 
         .preview th {
-            background: linear-gradient(135deg, rgba(0, 217, 255, 0.3), rgba(0, 255, 179, 0.3));
-            padding: 14px;
+            background-color: #f5f5f5;
+            padding: 12px;
             text-align: left;
-            font-weight: 700;
-            border-bottom: 2px solid rgba(0, 217, 255, 0.3);
-            color: #00ffb3;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
         }
 
         .preview td {
-            padding: 12px 14px;
-            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
-            color: #e0e0e0;
-        }
-
-        .preview tr:hover {
-            background-color: rgba(0, 217, 255, 0.08);
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
         }
 
         .preview ul, .preview ol {
-            margin-top: 10px;
-            margin-bottom: 10px;
-            padding-left: 28px;
-        }
-
-        .preview li {
-            margin: 6px 0;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding-left: 24px;
         }
 
         .actions {
             display: flex;
-            gap: 16px;
-            padding: 24px;
+            gap: 12px;
+            padding: 20px;
             justify-content: center;
-            background: rgba(255, 255, 255, 0.05);
-            border-top: 1px solid rgba(0, 217, 255, 0.2);
-            backdrop-filter: blur(10px);
+            background: white;
+            border-top: 1px solid #e8eef7;
         }
 
         button {
-            padding: 14px 40px;
+            padding: 12px 32px;
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 600;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-            letter-spacing: 0.5px;
         }
 
         .convert-btn {
-            background: linear-gradient(135deg, #00d9ff, #00ffb3);
-            color: #0f0f1e;
-            box-shadow: 0 8px 24px rgba(0, 217, 255, 0.4);
+            background-color: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
 
         .convert-btn:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 32px rgba(0, 217, 255, 0.6);
+            background-color: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
 
         .convert-btn:disabled {
@@ -366,87 +323,53 @@
         }
 
         .clear-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: #00f7eb;
-            border: 1px solid rgba(0, 217, 255, 0.3);
-            box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
         }
 
         .clear-btn:hover {
-            background: rgba(0, 217, 255, 0.1);
-            border-color: rgba(0, 217, 255, 0.5);
+            background-color: #f5f5f5;
         }
 
         .message {
-            padding: 14px 24px;
+            padding: 12px 20px;
             margin: 0 20px 20px;
-            border-radius: 10px;
+            border-radius: 6px;
             text-align: center;
-            font-weight: 600;
-            backdrop-filter: blur(10px);
-            border: 1px solid;
         }
 
         .error {
-            background: rgba(255, 71, 87, 0.15);
-            color: #ff6b82;
-            border-color: rgba(255, 71, 87, 0.3);
+            background-color: #fee;
+            color: #c00;
         }
 
         .success {
-            background: rgba(0, 255, 179, 0.15);
-            color: #00ffb3;
-            border-color: rgba(0, 255, 179, 0.3);
+            background-color: #efe;
+            color: #0c0;
         }
 
         .footer {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 40px 20px;
-            border-top: 1px solid rgba(0, 217, 255, 0.2);
+            background: linear-gradient(to bottom, #e8eef7, #dfe6f3);
+            padding: 30px 20px;
+            border-top: 1px solid #d0d8e8;
             text-align: center;
-            backdrop-filter: blur(10px);
         }
 
         .footer p {
-            margin: 0 0 10px;
+            margin: 0 0 8px;
             font-size: 14px;
-            background: linear-gradient(135deg, #00d9ff, #00ffb3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 600;
+            color: #555;
         }
 
         .footer .subtext {
             font-size: 12px;
-            color: rgba(224, 224, 224, 0.6);
-        }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 217, 255, 0.05);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #00d9ff, #00ffb3);
-            border-radius: 5px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, #00f7eb, #00ffb3);
+            color: #999;
         }
 
         @media (max-width: 1024px) {
             .main-content {
                 grid-template-columns: 1fr;
-            }
-
-            .header h1 {
-                font-size: 36px;
             }
         }
     </style>
@@ -459,7 +382,7 @@
     <div class="container">
         <header class="header">
             <h1>📝 Markdown to DOCX Converter</h1>
-            <p>Transform your markdown into stunning Word documents with professional styling</p>
+            <p>Convert your markdown to Word documents with proper styles</p>
         </header>
 
         <div class="main-content">
@@ -531,8 +454,8 @@ End of document.</textarea>
         </div>
 
         <footer class="footer">
-            <p>✨ Professional document conversion with harmonized typography and styling</p>
-            <p class="subtext">Built with Marked.js + JSZip | Beautiful modern design</p>
+            <p>💡 All markdown is converted to proper Word styles with harmonized typography</p>
+            <p class="subtext">Built with Marked.js + JSZip | Professional Document Formatting</p>
         </footer>
     </div>
 
@@ -726,12 +649,20 @@ End of document.</textarea>
                 const part = parts[i];
                 let textContent = part.text;
                 
+                // Add leading space if previous part was formatting and this is text
+                if (i > 0 && part.type === 'text' && 
+                    (parts[i-1].type === 'bold' || parts[i-1].type === 'italic' || parts[i-1].type === 'code') &&
+                    !textContent.startsWith(' ')) {
+                    // Space is preserved in the text
+                }
+                
+                // Add trailing space preservation for formatted text
                 if (part.type === 'bold') {
                     xml += '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (part.type === 'italic') {
                     xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (part.type === 'code') {
-                    xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="00FFB3"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                    xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 } else {
                     xml += '<w:r><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 }
@@ -756,7 +687,7 @@ End of document.</textarea>
         }
 
         function getStyles() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="00D9FF"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="00F7EB"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="00FFB3"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="00D9FF"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="00F7EB"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="00D9FF"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="00FFB3"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="1A1A2E"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="00D9FF"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="00D9FF"/><w:left w:val="single" w:sz="6" w:space="1" w:color="00D9FF"/><w:right w:val="single" w:sz="6" w:space="1" w:color="00D9FF"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style></w:styles>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="F2F2F2"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:left w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:right w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style></w:styles>';
         }
 
         function buildTable(rows) {
@@ -766,12 +697,12 @@ End of document.</textarea>
             xml += '<w:tblW w:w="5000" w:type="auto"/>';
             xml += '<w:tblInd w:w="0" w:type="dxa"/>';
             xml += '<w:tblBorders>';
-            xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="00D9FF"/>';
-            xml += '<w:left w:val="single" w:sz="12" w:space="0" w:color="00D9FF"/>';
-            xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="00D9FF"/>';
-            xml += '<w:right w:val="single" w:sz="12" w:space="0" w:color="00D9FF"/>';
-            xml += '<w:insideH w:val="single" w:sz="12" w:space="0" w:color="00F7EB"/>';
-            xml += '<w:insideV w:val="single" w:sz="12" w:space="0" w:color="00F7EB"/>';
+            xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:left w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:right w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:insideH w:val="single" w:sz="12" w:space="0" w:color="D9E1F2"/>';
+            xml += '<w:insideV w:val="single" w:sz="12" w:space="0" w:color="D9E1F2"/>';
             xml += '</w:tblBorders>';
             xml += '<w:tblCellMar>';
             xml += '<w:top w:w="100" w:type="dxa"/>';
@@ -789,8 +720,8 @@ End of document.</textarea>
                 
                 row.forEach(cell => {
                     const isHeader = rowIdx === 0;
-                    const shading = isHeader ? '<w:shd w:fill="00D9FF"/>' : '<w:shd w:fill="FFFFFF"/>';
-                    const textColor = isHeader ? '<w:color w:val="0F0F1E"/>' : '';
+                    const shading = isHeader ? '<w:shd w:fill="4472C4"/>' : '<w:shd w:fill="FFFFFF"/>';
+                    const textColor = isHeader ? '<w:color w:val="FFFFFF"/>' : '';
                     
                     xml += '<w:tc>';
                     xml += '<w:tcPr>';
@@ -895,7 +826,7 @@ End of document.</textarea>
                 }
                 // Horizontal rule
                 else if (line.match(/^---+$/)) {
-                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="00D9FF"/></w:pBdr></w:pPr></w:p>';
+                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
                 }
                 // Normal paragraph
                 else if (line.trim()) {
