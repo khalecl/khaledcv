@@ -248,6 +248,7 @@
             justify-content: center;
             background: white;
             border-top: 1px solid #e8eef7;
+            flex-wrap: wrap;
         }
 
         button {
@@ -272,6 +273,22 @@
         }
 
         .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .copy-btn {
+            background-color: #52C755;
+            color: white;
+            box-shadow: 0 2px 8px rgba(82, 199, 85, 0.3);
+        }
+
+        .copy-btn:hover:not(:disabled) {
+            background-color: #3FA040;
+            box-shadow: 0 4px 12px rgba(82, 199, 85, 0.4);
+        }
+
+        .copy-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
@@ -404,6 +421,7 @@ End of document.</textarea>
 
         <div class="actions">
             <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
+            <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
             <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
         </div>
 
@@ -417,6 +435,7 @@ End of document.</textarea>
         const editor = document.getElementById('editor');
         const preview = document.getElementById('preview');
         const convertBtn = document.getElementById('convertBtn');
+        const copyBtn = document.getElementById('copyBtn');
         const clearBtn = document.getElementById('clearBtn');
         const messageEl = document.getElementById('message');
         const mdFile = document.getElementById('mdFile');
@@ -479,6 +498,35 @@ End of document.</textarea>
                 messageEl.textContent = '';
             }, 3000);
         }
+
+        // Copy formatted content
+        copyBtn.addEventListener('click', async () => {
+            try {
+                const html = preview.innerHTML;
+                
+                // Create a blob with HTML content
+                const blob = new Blob([html], { type: 'text/html' });
+                
+                // Create a ClipboardItem with the HTML blob
+                const item = new ClipboardItem({
+                    'text/html': blob,
+                    'text/plain': new Blob([editor.value], { type: 'text/plain' })
+                });
+                
+                // Copy to clipboard
+                await navigator.clipboard.write([item]);
+                showMessage('✓ Formatted content copied to clipboard!', 'success');
+            } catch (error) {
+                // Fallback: Try copying as plain text
+                try {
+                    await navigator.clipboard.writeText(editor.value);
+                    showMessage('✓ Content copied as text!', 'success');
+                } catch (err) {
+                    console.error('Copy error:', err);
+                    showMessage('Error copying to clipboard', 'error');
+                }
+            }
+        });
 
         // Convert
         convertBtn.addEventListener('click', async () => {
