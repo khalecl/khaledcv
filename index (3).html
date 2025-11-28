@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Ebook to Knowledge Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.95em;
+        }
+
+        .content {
+            padding: 30px 20px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            background: #f8f9ff;
+            border: 2px dashed #4facfe;
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-section:hover {
+            border-color: #00f2fe;
+            background: #f0f4ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #00f2fe;
+            background: #e6f3ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+        }
+
+        .metadata-panel, .options-panel {
+            background: #f8f9ff;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .options-panel {
+            margin-top: 20px;
+        }
+
+        .metadata-panel h3, .options-panel h3 {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .metadata-input {
+            margin-bottom: 12px;
+        }
+
+        .metadata-input label {
+            display: block;
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .metadata-input input,
+        .metadata-input textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9em;
+        }
+
+        .metadata-input textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .file-list {
+            background: #f8f9ff;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-list.show {
+            display: block;
+        }
+
+        .file-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .file-item-remove {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .file-item-remove:hover {
+            background: #ff5252;
+        }
+
+        .batch-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e7ff;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            box-shadow: 0 3px 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .text-output {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 300px;
+            max-height: 600px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .stats {
+            background: #e6f3ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4facfe;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .alert.error {
+            background: #ffe6e6;
+            color: #d63384;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert.info {
+            background: #cfe2ff;
+            color: #084298;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .result-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .action-buttons {
+                justify-content: center;
+            }
+
+            .stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Advanced Ebook to Knowledge Converter</h1>
+            <p>Convert PDFs, EPUBs & MOBIs with AI-friendly metadata markers</p>
+        </div>
+        
+        <div class="content">
+            <div class="two-column">
+                <div>
+                    <div class="upload-section" id="uploadSection">
+                        <div class="upload-icon">📁</div>
+                        <h3>Drop files or click to browse</h3>
+                        <p style="margin: 10px 0; color: #666; font-size: 0.9em;">PDF, EPUB, MOBI</p>
+                        <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.epub,.mobi">
+                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                            Choose Files
+                        </button>
+                    </div>
+
+                    <div class="file-list" id="fileList">
+                        <h3>Selected Files</h3>
+                        <div class="file-items" id="fileItems"></div>
+                        <div class="batch-controls">
+                            <button class="btn btn-primary" id="processBtn" onclick="processBatch()">Process All</button>
+                            <button class="btn btn-secondary" onclick="clearFiles()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="metadata-panel">
+                        <h3>📋 Metadata</h3>
+                        <div class="metadata-input">
+                            <label for="docTitle">Title</label>
+                            <input type="text" id="docTitle" placeholder="Auto-detected or manual">
+                        </div>
+                        <div class="metadata-input">
+                            <label for="docAuthor">Author</label>
+                            <input type="text" id="docAuthor" placeholder="Auto-detected or manual">
+                        </div>
+                        <div class="metadata-input">
+                            <label for="docContext">Context/Subject</label>
+                            <textarea id="docContext" placeholder="e.g., ESG Training, Carbon Management"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="options-panel">
+                        <h3>⚙️ Options</h3>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="addMetadata" checked>
+                                <label for="addMetadata">Add metadata markers</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="addImageMarkers" checked>
+                                <label for="addImageMarkers">Mark image locations</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="preserveStructure" checked>
+                                <label for="preserveStructure">Preserve section structure</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="alertContainer"></div>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">Processing...</div>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <div class="stats" id="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="fileCount">0</div>
+                        <div class="stat-label">Files</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="wordCount">0</div>
+                        <div class="stat-label">Words</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="markerCount">0</div>
+                        <div class="stat-label">Markers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="imageCount">0</div>
+                        <div class="stat-label">Images</div>
+                    </div>
+                </div>
+
+                <div class="result-header">
+                    <h3 class="result-title">Extracted Knowledge</h3>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="downloadText()">Download .txt</button>
+                        <button class="btn btn-secondary" onclick="copyText()">Copy</button>
+                        <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
+                    </div>
+                </div>
+                
+                <div class="text-output" id="textOutput"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        let selectedFiles = [];
+        let combinedText = '';
+        let totalMarkers = 0;
+        let totalImages = 0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeApp();
+            checkServerStatus();
+        });
+
+        function initializeApp() {
+            const uploadSection = document.getElementById('uploadSection');
+            const fileInput = document.getElementById('fileInput');
+
+            fileInput.addEventListener('change', (e) => {
+                selectedFiles = Array.from(e.target.files);
+                updateFileList();
+            });
+
+            uploadSection.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadSection.classList.add('dragover');
+            });
+
+            uploadSection.addEventListener('dragleave', () => {
+                uploadSection.classList.remove('dragover');
+            });
+
+            uploadSection.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadSection.classList.remove('dragover');
+                selectedFiles = Array.from(e.dataTransfer.files);
+                updateFileList();
+            });
+        }
+
+        function checkServerStatus() {
+            fetch(`${API_BASE}/health`)
+                .catch(() => {
+                    showAlert('Flask server not running. Start with: python server.py', 'error');
+                });
+        }
+
+        function updateFileList() {
+            const fileList = document.getElementById('fileList');
+            const fileItems = document.getElementById('fileItems');
+            
+            if (selectedFiles.length === 0) {
+                fileList.classList.remove('show');
+                return;
+            }
+
+            fileItems.innerHTML = '';
+            selectedFiles.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span>${file.name}</span>
+                    <button class="file-item-remove" onclick="removeFile(${idx})">Remove</button>
+                `;
+                fileItems.appendChild(item);
+            });
+
+            fileList.classList.add('show');
+        }
+
+        function removeFile(idx) {
+            selectedFiles.splice(idx, 1);
+            updateFileList();
+        }
+
+        function clearFiles() {
+            selectedFiles = [];
+            document.getElementById('fileInput').value = '';
+            updateFileList();
+        }
+
+        async function processBatch() {
+            if (selectedFiles.length === 0) {
+                showAlert('Select files first', 'error');
+                return;
+            }
+
+            combinedText = '';
+            totalMarkers = 0;
+            totalImages = 0;
+
+            showProgress();
+            document.getElementById('processBtn').disabled = true;
+
+            const results = [];
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                updateProgress((i / selectedFiles.length) * 100, `Processing: ${file.name}`);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const response = await fetch(`${API_BASE}/extract`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        showAlert(`Error processing ${file.name}`, 'error');
+                        continue;
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.error) {
+                        showAlert(`${file.name}: ${result.error}`, 'error');
+                        continue;
+                    }
+
+                    results.push({
+                        filename: file.name,
+                        ...result
+                    });
+
+                } catch (error) {
+                    showAlert(`Network error: ${error.message}`, 'error');
+                }
+
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            compileResults(results);
+        }
+
+        function compileResults(results) {
+            if (results.length === 0) {
+                hideProgress();
+                showAlert('No files processed successfully', 'error');
+                return;
+            }
+
+            combinedText = '';
+
+            if (document.getElementById('addMetadata').checked) {
+                const title = document.getElementById('docTitle').value || 
+                             (results[0].metadata?.title || 'Untitled');
+                const author = document.getElementById('docAuthor').value || 
+                              (results[0].metadata?.author || 'Unknown');
+                const context = document.getElementById('docContext').value || 'General';
+
+                combinedText += `[TITLE]: ${title}\n`;
+                combinedText += `[AUTHOR]: ${author}\n`;
+                combinedText += `[CONTEXT]: ${context}\n`;
+                combinedText += `[SOURCE_FILES]: ${results.length}\n`;
+                combinedText += `${'='.repeat(60)}\n\n`;
+                totalMarkers += 5;
+            }
+
+            results.forEach(result => {
+                combinedText += `[SOURCE]: ${result.filename}\n`;
+                combinedText += result.text + '\n\n';
+                combinedText += `${'-'.repeat(60)}\n\n`;
+                
+                totalMarkers += result.markers || 0;
+                totalImages += result.images_found || 0;
+            });
+
+            displayResults();
+        }
+
+        function displayResults() {
+            hideProgress();
+            document.getElementById('processBtn').disabled = false;
+
+            const words = combinedText.split(/\s+/).filter(w => w.length > 0).length;
+            const sections = (combinedText.match(/\[SECTION\]/g) || []).length;
+
+            document.getElementById('fileCount').textContent = selectedFiles.length;
+            document.getElementById('wordCount').textContent = words.toLocaleString();
+            document.getElementById('markerCount').textContent = totalMarkers;
+            document.getElementById('imageCount').textContent = totalImages;
+            
+            document.getElementById('textOutput').textContent = combinedText;
+            document.getElementById('resultSection').style.display = 'block';
+            
+            showAlert('Files processed successfully!', 'success');
+        }
+
+        function showProgress() {
+            document.getElementById('progressContainer').style.display = 'block';
+        }
+
+        function hideProgress() {
+            document.getElementById('progressContainer').style.display = 'none';
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function downloadText() {
+            if (!combinedText) {
+                showAlert('No text to download', 'error');
+                return;
+            }
+
+            const blob = new Blob([combinedText], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `knowledge-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showAlert('Downloaded!', 'success');
+        }
+
+        async function copyText() {
+            if (!combinedText) {
+                showAlert('No text to copy', 'error');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(combinedText);
+                showAlert('Copied to clipboard!', 'success');
+            } catch {
+                showAlert('Copy failed', 'error');
+            }
+        }
+
+        function clearResults() {
+            combinedText = '';
+            selectedFiles = [];
+            totalMarkers = 0;
+            totalImages = 0;
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            updateFileList();
+        }
+
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+
+            container.appendChild(alert);
+
+            if (type === 'success') {
+                setTimeout(() => alert.remove(), 3000);
+            }
+        }
+    </script>
+</body>
+</html>
