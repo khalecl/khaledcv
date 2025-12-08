@@ -3,70 +3,346 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Markdown to DOCX Converter</title>
+    <title>Markdown to DOCX Converter</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fa; min-height: 100vh; }
-        .container { display: flex; flex-direction: column; min-height: 100vh; }
-        .header { background: linear-gradient(135deg, #056608 0%, #33A036 50%, #52C755 100%); color: white; padding: 40px 20px; text-align: center; }
-        .header h1 { margin: 0 0 10px 0; font-size: 36px; font-weight: 700; }
-        .header p { margin: 0; font-size: 16px; opacity: 0.95; }
-        .progress-container { width: 100%; height: 4px; background-color: #e0e0e0; position: relative; display: none; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); width: 0%; transition: width 0.3s ease; }
-        .progress-container.active { display: block; }
-        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; max-width: 1600px; margin: 0 auto; width: 100%; flex: 1; }
-        .panel { display: flex; flex-direction: column; background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; }
-        .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e8eef7; background-color: #fafbfc; }
-        .panel-header h2 { margin: 0; font-size: 18px; font-weight: 600; color: #333; }
-        .upload-btn { padding: 6px 12px; font-size: 12px; background-color: #f0f0f0; color: #333; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; }
-        .upload-btn:hover { background-color: #e0e0e0; }
-        textarea { flex: 1; padding: 20px; font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; line-height: 1.6; border: none; outline: none; resize: none; background-color: #fafbfc; }
-        .preview { flex: 1; padding: 20px; overflow: auto; font-size: 15px; line-height: 1.7; }
-        .preview h1 { font-size: 26px; margin: 20px 0 12px; font-weight: 700; border-bottom: 2px solid #667eea; padding-bottom: 8px; color: #1a1a1a; }
-        .preview h2 { font-size: 20px; margin: 18px 0 10px; font-weight: 600; color: #333; }
-        .preview h3 { font-size: 17px; margin: 14px 0 8px; font-weight: 600; color: #555; }
-        .preview h4, .preview h5, .preview h6 { margin: 12px 0 6px; font-weight: 600; color: #666; }
-        .preview code { background-color: #f0f0f0; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 13px; color: #c7254e; }
-        .preview pre { background-color: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 6px; overflow-x: auto; margin: 12px 0; font-size: 12px; line-height: 1.4; }
-        .preview pre code { background: none; color: inherit; padding: 0; }
-        .preview blockquote { border-left: 4px solid #667eea; padding-left: 16px; margin: 12px 0; color: #666; font-style: italic; }
-        .preview table { width: 100%; border-collapse: collapse; margin: 16px 0; border: 1px solid #ddd; }
-        .preview th { background-color: #f5f5f5; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; }
-        .preview td { padding: 10px 12px; border-bottom: 1px solid #eee; }
-        .preview ul, .preview ol { margin: 8px 0; padding-left: 24px; }
-        .preview a { color: #667eea; text-decoration: none; }
-        .preview a:hover { text-decoration: underline; }
-        .preview u { text-decoration: underline; }
-        .preview s { text-decoration: line-through; }
-        .settings-panel { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin: 20px; overflow: hidden; }
-        .settings-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background-color: #fafbfc; border-bottom: 1px solid #e8eef7; cursor: pointer; }
-        .settings-header h3 { margin: 0; font-size: 16px; font-weight: 600; color: #333; }
-        .toggle-settings { background: none; border: none; font-size: 20px; cursor: pointer; color: #667eea; }
-        .settings-content { padding: 20px; max-height: 600px; overflow-y: auto; }
-        .settings-group { margin-bottom: 20px; }
-        .settings-group h4 { margin: 15px 0 10px 0; font-size: 14px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
-        .settings-group label { display: flex; align-items: center; padding: 8px 0; font-size: 14px; color: #333; cursor: pointer; }
-        .settings-group input[type="checkbox"] { margin-right: 10px; cursor: pointer; width: 16px; height: 16px; }
-        .settings-group input[type="text"] { flex: 1; padding: 6px 10px; font-size: 13px; border: 1px solid #ddd; border-radius: 4px; margin-left: 10px; }
-        .actions { display: flex; gap: 12px; padding: 20px; justify-content: center; background: white; border-top: 1px solid #e8eef7; flex-wrap: wrap; }
-        button { padding: 12px 32px; font-size: 16px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; }
-        .convert-btn { background-color: #667eea; color: white; }
-        .convert-btn:hover:not(:disabled) { background-color: #5568d3; }
-        .convert-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .copy-btn { background-color: #52C755; color: white; }
-        .copy-btn:hover:not(:disabled) { background-color: #3FA040; }
-        .clear-btn { background-color: white; color: #333; border: 1px solid #ddd; }
-        .clear-btn:hover { background-color: #f5f5f5; }
-        .message { padding: 12px 20px; margin: 0 20px 20px; border-radius: 6px; text-align: center; }
-        .error { background-color: #fee; color: #c00; }
-        .success { background-color: #efe; color: #0c0; }
-        .footer { background-color: #e8eef7; padding: 30px 20px; border-top: 1px solid #d0d8e8; text-align: center; }
-        .footer p { margin: 0 0 8px; font-size: 14px; color: #555; }
-        .footer .subtext { font-size: 12px; color: #999; }
-        @media (max-width: 1024px) { .main-content { grid-template-columns: 1fr; } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #056608 0%, #33A036 50%, #52C755 100%);
+            color: white;
+            padding: 50px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 40px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background-color: #e0e0e0;
+            position: relative;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8eef7;
+            background-color: #fafbfc;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .panel-header .info {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .upload-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .upload-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: none;
+            outline: none;
+            resize: none;
+            background-color: #fafbfc;
+        }
+
+        .preview {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .preview h1 {
+            font-size: 26px;
+            margin: 20px 0 12px;
+            font-weight: 700;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .preview h2 {
+            font-size: 20px;
+            margin: 18px 0 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .preview h3 {
+            font-size: 17px;
+            margin: 14px 0 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .preview h4, .preview h5, .preview h6 {
+            margin: 12px 0 6px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .preview code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #c7254e;
+        }
+
+        .preview pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .preview pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 16px;
+            margin-left: 0;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            border: 1px solid #ddd;
+        }
+
+        .preview th {
+            background-color: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .preview td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .preview ul, .preview ol {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding-left: 24px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px;
+            justify-content: center;
+            background: white;
+            border-top: 1px solid #e8eef7;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .convert-btn {
+            background-color: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            background-color: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .copy-btn {
+            background-color: #52C755;
+            color: white;
+            box-shadow: 0 2px 8px rgba(82, 199, 85, 0.3);
+        }
+
+        .copy-btn:hover:not(:disabled) {
+            background-color: #3FA040;
+            box-shadow: 0 4px 12px rgba(82, 199, 85, 0.4);
+        }
+
+        .copy-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clear-btn {
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .clear-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .message {
+            padding: 12px 20px;
+            margin: 0 20px 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c00;
+        }
+
+        .success {
+            background-color: #efe;
+            color: #0c0;
+        }
+
+        .footer {
+            background-color: #e8eef7;
+            padding: 30px 20px;
+            border-top: 1px solid #d0d8e8;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .footer .subtext {
+            font-size: 12px;
+            color: #999;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -76,92 +352,92 @@
 
     <div class="container">
         <header class="header">
-            <h1>📝 Advanced Markdown to DOCX</h1>
-            <p>Professional features with custom styling</p>
+            <h1>📝 Markdown to DOCX Converter</h1>
+            <p>Convert your markdown to Word documents with proper styles</p>
         </header>
 
         <div class="main-content">
             <div class="panel">
                 <div class="panel-header">
                     <h2>Markdown Editor</h2>
-                    <input type="file" id="mdFile" accept=".md,.markdown,.txt" style="display:none">
-                    <button class="upload-btn" onclick="document.getElementById('mdFile').click()">📂 Load .md</button>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="mdFile" accept=".md,.markdown,.txt" />
+                        <label for="mdFile" class="upload-btn">📂 Load .md File</label>
+                    </div>
                 </div>
-                <textarea id="editor" spellcheck="false"># Advanced Demo
+                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Document Title
 
-## Formatting
-**bold** *italic* ~~strikethrough~~ <u>underline</u>
+## Heading 1
 
-## Links
-[Google](https://google.com)
+### Heading 2
 
-## Lists
-1. Item 1
-2. Item 2
+This is normal paragraph text with some **bold** and *italic* formatting.
 
-- Bullet A
-- Bullet B
+#### Code Example
 
-## Code
-`inline code`
-
-```js
-const x = 42;
+```python
+def hello_world():
+    print("Hello World!")
 ```
 
-## Colors
-<color:FF0000>Red Text</color>
+#### Lists with Indentation
 
-## Footnotes[^1]
-[^1]: This is a footnote
-</textarea>
+1. First numbered item
+    1. Nested level 2
+        1. Nested level 3
+2. Second numbered item
+
+Bullet points:
+- First bullet
+    - Nested bullet level 2
+        - Nested bullet level 3
+- Second bullet
+
+#### Paragraph with Custom Indentation
+
+Normal paragraph.
+
+::indent:1:: This paragraph has 1 level of indentation
+
+::indent:2:: This paragraph has 2 levels of indentation
+
+#### Table Example with Bold
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| **Bold** text | Data 2 | Data 3 |
+| Data 4 | *Italic* text | Data 6 |
+
+#### Blockquote
+
+> This is a quote from someone important.
+> It can span multiple lines.
+
+---
+
+End of document.</textarea>
             </div>
 
             <div class="panel">
                 <div class="panel-header">
                     <h2>Live Preview</h2>
+                    <span class="info">How it will look in Word</span>
                 </div>
                 <div class="preview" id="preview"></div>
-            </div>
-        </div>
-
-        <div class="settings-panel">
-            <div class="settings-header" onclick="toggleSettings()">
-                <h3>⚙️ Conversion Settings</h3>
-                <button class="toggle-settings" id="toggleBtn">−</button>
-            </div>
-            <div class="settings-content" id="settingsContent">
-                <div class="settings-group">
-                    <label><input type="checkbox" id="makeHyperlinks" checked> Hyperlinks</label>
-                    <label><input type="checkbox" id="strikethrough" checked> Strikethrough</label>
-                    <label><input type="checkbox" id="underline" checked> Underline</label>
-                    <label><input type="checkbox" id="pageBreaks" checked> Page Breaks</label>
-                </div>
-                <div class="settings-group">
-                    <h4>Professional Features</h4>
-                    <label><input type="checkbox" id="smartQuotes"> Smart Quotes</label>
-                    <label><input type="checkbox" id="footnotes"> Footnotes</label>
-                    <label><input type="checkbox" id="customColors"> Custom Colors</label>
-                    <label><input type="checkbox" id="metadata"> Document Metadata</label>
-                </div>
-                <div class="settings-group">
-                    <label><span>Title:</span> <input type="text" id="docTitle" placeholder="Title"></label>
-                    <label><span>Author:</span> <input type="text" id="docAuthor" placeholder="Author"></label>
-                </div>
             </div>
         </div>
 
         <div id="message"></div>
 
         <div class="actions">
-            <button class="convert-btn" id="convertBtn">⬇️ Download DOCX</button>
-            <button class="copy-btn" id="copyBtn">📋 Copy</button>
+            <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
+            <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
             <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
         </div>
 
         <footer class="footer">
-            <p>💡 Professional markdown conversion with advanced features</p>
-            <p class="subtext">Hyperlinks • Smart Quotes • Footnotes • Custom Colors • Metadata</p>
+            <p>💡 All markdown is converted to proper Word styles with harmonized typography</p>
+            <p class="subtext">Built with Marked.js + JSZip | Professional Document Formatting</p>
         </footer>
     </div>
 
@@ -173,60 +449,52 @@ const x = 42;
         const clearBtn = document.getElementById('clearBtn');
         const messageEl = document.getElementById('message');
         const mdFile = document.getElementById('mdFile');
-        const progressBar = document.getElementById('progressBar');
         const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
 
-        const settings = {};
-
-        ['makeHyperlinks', 'strikethrough', 'underline', 'pageBreaks', 'smartQuotes', 'footnotes', 'customColors', 'metadata'].forEach(key => {
-            const el = document.getElementById(key);
-            if (el) {
-                settings[key] = el.checked;
-                el.addEventListener('change', (e) => {
-                    settings[key] = e.target.checked;
-                    updatePreview();
-                });
-            }
-        });
-
-        function toggleSettings() {
-            const content = document.getElementById('settingsContent');
-            const btn = document.getElementById('toggleBtn');
-            if (content.style.display === 'none') {
-                content.style.display = 'block';
-                btn.textContent = '−';
-            } else {
-                content.style.display = 'none';
-                btn.textContent = '+';
-            }
+        function setProgress(percent) {
+            progressBar.style.width = percent + '%';
         }
 
-        function updatePreview() {
-            let html = marked.parse(editor.value);
-            if (settings.strikethrough) html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
-            if (settings.underline) html = html.replace(/<u>(.+?)<\/u>/g, '<u>$1</u>');
-            if (settings.customColors) html = html.replace(/<color:([A-Fa-f0-9]{6})>(.+?)<\/color>/g, '<span style="color:#$1;">$2</span>');
-            preview.innerHTML = html;
+        function showProgress() {
+            progressContainer.classList.add('active');
+            setProgress(0);
         }
 
+        function hideProgress() {
+            progressContainer.classList.remove('active');
+        }
+
+        // Handle file upload
         mdFile.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
+
             const reader = new FileReader();
             reader.onload = (event) => {
-                editor.value = event.target.result;
-                updatePreview();
-                showMessage('✓ File loaded!', 'success');
+                const content = event.target.result;
+                editor.value = content;
+                preview.innerHTML = marked.parse(content);
+                showMessage('✓ File loaded successfully!', 'success');
                 mdFile.value = '';
+            };
+            reader.onerror = () => {
+                showMessage('Error reading file', 'error');
             };
             reader.readAsText(file);
         });
 
-        editor.addEventListener('input', updatePreview);
-        updatePreview();
+        // Update preview
+        editor.addEventListener('input', () => {
+            preview.innerHTML = marked.parse(editor.value);
+        });
 
+        // Initial preview
+        preview.innerHTML = marked.parse(editor.value);
+
+        // Clear
         clearBtn.addEventListener('click', () => {
-            if (confirm('Clear all?')) {
+            if (confirm('Clear all content?')) {
                 editor.value = '';
                 preview.innerHTML = '';
             }
@@ -235,115 +503,170 @@ const x = 42;
         function showMessage(text, type) {
             messageEl.className = 'message ' + type;
             messageEl.textContent = text;
-            setTimeout(() => { messageEl.className = ''; messageEl.textContent = ''; }, 3000);
+            setTimeout(() => {
+                messageEl.className = '';
+                messageEl.textContent = '';
+            }, 3000);
         }
 
+        // Copy formatted content
         copyBtn.addEventListener('click', async () => {
             try {
-                const blob = new Blob([preview.innerHTML], { type: 'text/html' });
-                const item = new ClipboardItem({ 'text/html': blob, 'text/plain': new Blob([editor.value], { type: 'text/plain' }) });
+                const html = preview.innerHTML;
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const item = new ClipboardItem({
+                    'text/html': blob,
+                    'text/plain': new Blob([editor.value], { type: 'text/plain' })
+                });
+                
                 await navigator.clipboard.write([item]);
-                showMessage('✓ Copied!', 'success');
-            } catch {
-                await navigator.clipboard.writeText(editor.value);
-                showMessage('✓ Copied as text!', 'success');
+                showMessage('✓ Formatted content copied to clipboard!', 'success');
+            } catch (error) {
+                try {
+                    await navigator.clipboard.writeText(editor.value);
+                    showMessage('✓ Content copied as text!', 'success');
+                } catch (err) {
+                    console.error('Copy error:', err);
+                    showMessage('Error copying to clipboard', 'error');
+                }
             }
         });
 
+        // Convert
         convertBtn.addEventListener('click', async () => {
-            const md = editor.value.trim();
-            if (!md) { showMessage('Enter markdown!', 'error'); return; }
+            const markdown = editor.value.trim();
+            if (!markdown) {
+                showMessage('Please enter markdown content', 'error');
+                return;
+            }
+
             convertBtn.disabled = true;
-            convertBtn.textContent = '⏳...';
-            progressContainer.classList.add('active');
-            progressBar.style.width = '25%';
+            convertBtn.textContent = '⏳ Converting...';
+            showProgress();
+
             try {
-                progressBar.style.width = '50%';
-                const docx = await markdownToDocx(md);
-                progressBar.style.width = '100%';
-                saveAs(docx, 'document.docx');
-                showMessage('✓ Downloaded!', 'success');
-                setTimeout(() => { progressContainer.classList.remove('active'); }, 500);
-            } catch (err) {
-                showMessage('Error: ' + err.message, 'error');
-                progressContainer.classList.remove('active');
+                setProgress(25);
+                const docxBlob = await markdownToDocx(markdown);
+                setProgress(75);
+                saveAs(docxBlob, 'document.docx');
+                setProgress(100);
+                showMessage('✓ Downloaded successfully!', 'success');
+                setTimeout(hideProgress, 500);
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error: ' + error.message, 'error');
+                hideProgress();
             } finally {
                 convertBtn.disabled = false;
-                convertBtn.textContent = '⬇️ Download DOCX';
+                convertBtn.textContent = '⬇️ Download as DOCX';
             }
         });
 
+        // Create valid DOCX with proper styles
         async function markdownToDocx(markdown) {
             const zip = new JSZip();
+
             zip.file('[Content_Types].xml', getContentTypes());
             zip.file('_rels/.rels', getRels());
-            zip.file('word/_rels/document.xml.rels', getDocRels());
+            zip.file('word/_rels/document.xml.rels', getDocumentRels());
             zip.file('word/styles.xml', getStyles());
             zip.file('word/numbering.xml', getNumbering());
-            zip.file('word/document.xml', getWordDoc(markdown));
+            zip.file('word/document.xml', getWordDocument(markdown));
+
             return await zip.generateAsync({ type: 'blob' });
         }
 
         function escapeXml(str) {
-            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
         }
 
-        function parseFormatting(text) {
+        function parseTextFormatting(text) {
             let result = [];
             let i = 0;
+            
             while (i < text.length) {
-                if (settings.strikethrough && text.substring(i, i + 2) === '~~') {
-                    const end = text.indexOf('~~', i + 2);
-                    if (end !== -1) { result.push({ type: 'strike', text: text.substring(i + 2, end) }); i = end + 2; continue; }
-                }
+                // Bold (**text**)
                 if (text.substring(i, i + 2) === '**') {
-                    const end = text.indexOf('**', i + 2);
-                    if (end !== -1) { result.push({ type: 'bold', text: text.substring(i + 2, end) }); i = end + 2; continue; }
+                    const endIdx = text.indexOf('**', i + 2);
+                    if (endIdx !== -1) {
+                        const boldText = text.substring(i + 2, endIdx);
+                        result.push({ type: 'bold', text: boldText });
+                        i = endIdx + 2;
+                        continue;
+                    }
                 }
-                if (text[i] === '*' && text[i + 1] !== '*') {
-                    const end = text.indexOf('*', i + 1);
-                    if (end !== -1 && text[end + 1] !== '*') { result.push({ type: 'italic', text: text.substring(i + 1, end) }); i = end + 1; continue; }
+                // Italic (*text*) - but not ** which is bold
+                if (text[i] === '*' && i + 1 < text.length && text[i + 1] !== '*') {
+                    const endIdx = text.indexOf('*', i + 1);
+                    if (endIdx !== -1 && text[endIdx + 1] !== '*') {
+                        const italicText = text.substring(i + 1, endIdx);
+                        result.push({ type: 'italic', text: italicText });
+                        i = endIdx + 1;
+                        continue;
+                    }
                 }
-                if (settings.underline && text[i] === '<' && text.substring(i, i + 2) === '<u') {
-                    const end = text.indexOf('</u>', i);
-                    if (end !== -1) { result.push({ type: 'underline', text: text.substring(i + 3, end).replace(/^>/, '') }); i = end + 4; continue; }
+                // Italic (_text_)
+                if (text[i] === '_' && i + 1 < text.length && text[i + 1] !== '_') {
+                    const endIdx = text.indexOf('_', i + 1);
+                    if (endIdx !== -1 && text[endIdx + 1] !== '_') {
+                        const italicText = text.substring(i + 1, endIdx);
+                        result.push({ type: 'italic', text: italicText });
+                        i = endIdx + 1;
+                        continue;
+                    }
                 }
-                if (settings.customColors && text[i] === '<' && text.substring(i, i + 6) === '<color') {
-                    const match = text.substring(i).match(/<color:([A-Fa-f0-9]{6})>/);
-                    if (match) { const end = text.indexOf('</color>', i); if (end !== -1) { result.push({ type: 'color', text: text.substring(i + match[0].length, end), color: match[1] }); i = end + 8; continue; } }
-                }
+                // Inline code (`text`)
                 if (text[i] === '`') {
-                    const end = text.indexOf('`', i + 1);
-                    if (end !== -1) { result.push({ type: 'code', text: text.substring(i + 1, end) }); i = end + 1; continue; }
+                    const endIdx = text.indexOf('`', i + 1);
+                    if (endIdx !== -1) {
+                        const codeText = text.substring(i + 1, endIdx);
+                        result.push({ type: 'code', text: codeText });
+                        i = endIdx + 1;
+                        continue;
+                    }
                 }
-                if (settings.makeHyperlinks && text[i] === '[') {
-                    const close = text.indexOf(']', i);
-                    if (close !== -1 && text[close + 1] === '(') { const urlEnd = text.indexOf(')', close); if (urlEnd !== -1) { result.push({ type: 'hyperlink', text: text.substring(i + 1, close), url: text.substring(close + 2, urlEnd) }); i = urlEnd + 1; continue; } }
+                // Regular text (up to next formatting marker)
+                let regularText = '';
+                while (i < text.length && 
+                       !(text[i] === '*' && (text[i + 1] === '*' || (i + 1 < text.length && text[i + 1] !== '*'))) &&
+                       !(text[i] === '_' && (text[i + 1] === '_' || (i + 1 < text.length && text[i + 1] !== '_'))) &&
+                       text[i] !== '`') {
+                    regularText += text[i];
+                    i++;
                 }
-                let regular = '';
-                while (i < text.length && text[i] !== '*' && text[i] !== '[' && text[i] !== '`' && !(text[i] === '<')) { regular += text[i]; i++; }
-                if (regular) result.push({ type: 'text', text: regular });
+                if (regularText) {
+                    result.push({ type: 'text', text: regularText });
+                }
             }
             return result;
         }
 
-        function formatToXml(text) {
-            const parts = parseFormatting(text);
+        function formatTextToXml(text) {
+            const parts = parseTextFormatting(text);
             let xml = '';
-            for (const p of parts) {
-                if (p.type === 'bold') xml += '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                else if (p.type === 'italic') xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                else if (p.type === 'strike') xml += '<w:r><w:rPr><w:strike/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                else if (p.type === 'underline') xml += '<w:r><w:rPr><w:u/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                else if (p.type === 'code') xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                else if (p.type === 'color') xml += '<w:r><w:rPr><w:color w:val="' + p.color + '"/></w:rPr><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                else if (p.type === 'hyperlink') xml += '<w:r><w:rPr><w:rStyle w:val="Hyperlink"/><w:color w:val="0563C1"/><w:u/></w:rPr><w:t>' + escapeXml(p.text) + '</w:t></w:r>';
-                else xml += '<w:r><w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
+            
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                let textContent = part.text;
+                
+                if (part.type === 'bold') {
+                    xml += '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (part.type === 'italic') {
+                    xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (part.type === 'code') {
+                    xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else {
+                    xml += '<w:r><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                }
             }
             return xml;
         }
-
-        function getIndent(line) { return Math.floor((line.match(/^(\s*)/)[1].length) / 4); }
 
         function getContentTypes() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
@@ -353,83 +676,196 @@ const x = 42;
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
         }
 
-        function getDocRels() {
+        function getDocumentRels() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>';
         }
 
         function getNumbering() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%2."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="lowerRoman"/><w:lvlText w:val="%3."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="1"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="◦"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="▪"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="2"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="lowerLetter"/><w:lvlText w:val="%2."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="lowerRoman"/><w:lvlText w:val="%3."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2880" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="3"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="◦"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="▪"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2880" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num><w:num w:numId="3"><w:abstractNumId w:val="2"/></w:num><w:num w:numId="4"><w:abstractNumId w:val="3"/></w:num></w:numbering>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%2."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%3."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="1"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="◦"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="▪"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>';
         }
 
         function getStyles() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="F2F2F2"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:left w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:right w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="character" w:styleId="Hyperlink"><w:name w:val="Hyperlink"/><w:rPr><w:color w:val="0563C1"/><w:u/></w:rPr></w:style></w:styles>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="F2F2F2"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:left w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:right w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style></w:styles>';
         }
 
-        function getWordDoc(md) {
+        function buildTable(rows) {
+            if (rows.length === 0) return '';
+
+            let xml = '<w:tbl><w:tblPr>';
+            xml += '<w:tblW w:w="5000" w:type="auto"/>';
+            xml += '<w:tblInd w:w="0" w:type="dxa"/>';
+            xml += '<w:tblBorders>';
+            xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:left w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:right w:val="single" w:sz="12" w:space="0" w:color="4472C4"/>';
+            xml += '<w:insideH w:val="single" w:sz="12" w:space="0" w:color="D9E1F2"/>';
+            xml += '<w:insideV w:val="single" w:sz="12" w:space="0" w:color="D9E1F2"/>';
+            xml += '</w:tblBorders>';
+            xml += '<w:tblCellMar>';
+            xml += '<w:top w:w="100" w:type="dxa"/>';
+            xml += '<w:left w:w="100" w:type="dxa"/>';
+            xml += '<w:bottom w:w="100" w:type="dxa"/>';
+            xml += '<w:right w:w="100" w:type="dxa"/>';
+            xml += '</w:tblCellMar>';
+            xml += '</w:tblPr>';
+
+            rows.forEach((row, rowIdx) => {
+                xml += '<w:tr>';
+                xml += '<w:trPr>';
+                xml += '<w:trHeight w:val="400" w:type="auto"/>';
+                xml += '</w:trPr>';
+                
+                row.forEach(cell => {
+                    const isHeader = rowIdx === 0;
+                    const shading = isHeader ? '<w:shd w:fill="4472C4"/>' : '<w:shd w:fill="FFFFFF"/>';
+                    const textColor = isHeader ? '<w:color w:val="FFFFFF"/>' : '';
+                    
+                    xml += '<w:tc>';
+                    xml += '<w:tcPr>';
+                    xml += '<w:tcW w:w="1000" w:type="auto"/>';
+                    xml += shading;
+                    xml += '<w:vAlign w:val="center"/>';
+                    xml += '</w:tcPr>';
+                    xml += '<w:p>';
+                    xml += '<w:pPr>';
+                    xml += '<w:jc w:val="center"/>';
+                    xml += '<w:spacing w:line="240" w:lineRule="auto"/>';
+                    xml += '</w:pPr>';
+                    // Format cell content with text formatting support
+                    xml += formatTextToXml(cell.trim());
+                    xml += '</w:p>';
+                    xml += '</w:tc>';
+                });
+                xml += '</w:tr>';
+            });
+
+            xml += '</w:tbl>';
+            return xml;
+        }
+
+        function detectListLevel(line) {
+            let level = 0;
+            let i = 0;
+            while (i < line.length) {
+                if (line[i] === '\t') {
+                    level++;
+                    i++;
+                } else if (line.substring(i, i + 4) === '    ') {
+                    level++;
+                    i += 4;
+                } else {
+                    break;
+                }
+            }
+            return { level, trimmedLine: line.substring(i) };
+        }
+
+        function getIndentValue(level) {
+            return level * 720;
+        }
+
+        function getParagraphIndent(line) {
+            const match = line.match(/^::indent:(\d+)::/);
+            if (match) {
+                return { indent: parseInt(match[1]), text: line.replace(/^::indent:\d+::/, '').trim() };
+            }
+            return null;
+        }
+
+        function getWordDocument(markdown) {
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>';
-            const lines = md.split('\n');
-            let inTable = false, tableRows = [];
+
+            const lines = markdown.split('\n');
+            let inTable = false;
+            let tableRows = [];
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                const trim = line.trim();
-                const indent = getIndent(line);
 
-                if (inTable && !trim.includes('|')) {
-                    if (tableRows.length > 0) {
-                        let tbl = '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="auto"/></w:tblPr>';
-                        tableRows.forEach((row, ridx) => {
-                            tbl += '<w:tr>';
-                            row.forEach(cell => {
-                                const isHeader = ridx === 0;
-                                tbl += '<w:tc><w:tcPr><w:tcW w:w="1000" w:type="auto"/><w:shd w:fill="' + (isHeader ? '4472C4' : 'FFFFFF') + '"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr>';
-                                const parts = parseFormatting(cell);
-                                parts.forEach(p => {
-                                    let rpr = '<w:rPr>' + (isHeader ? '<w:b/><w:color w:val="FFFFFF"/>' : '') + '<w:sz w:val="22"/></w:rPr>';
-                                    if (p.type === 'bold') rpr = '<w:rPr><w:b/>' + (isHeader ? '<w:color w:val="FFFFFF"/>' : '') + '<w:sz w:val="22"/></w:rPr>';
-                                    tbl += '<w:r>' + rpr + '<w:t xml:space="preserve">' + escapeXml(p.text) + '</w:t></w:r>';
-                                });
-                                tbl += '</w:p></w:tc>';
-                            });
-                            tbl += '</w:tr>';
-                        });
-                        tbl += '</w:tbl>';
-                        xml += tbl;
-                    }
+                // Flush table if we were building one
+                if (inTable && !line.includes('|')) {
+                    xml += buildTable(tableRows);
                     tableRows = [];
                     inTable = false;
                 }
 
-                if (settings.pageBreaks && trim === '<!-- pagebreak -->') {
-                    xml += '<w:p><w:pPr><w:pageBreakBefore/></w:pPr></w:p>';
-                } else if (trim.match(/^#\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatToXml(trim.replace(/^#\s/, '')) + '</w:p>';
-                } else if (trim.match(/^##\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatToXml(trim.replace(/^##\s/, '')) + '</w:p>';
-                } else if (trim.match(/^###\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatToXml(trim.replace(/^###\s/, '')) + '</w:p>';
-                } else if (trim.match(/^####\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatToXml(trim.replace(/^####\s/, '')) + '</w:p>';
-                } else if (trim.match(/^\d+\.\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + indent + '"/><w:numId w:val="' + (indent > 0 ? '3' : '1') + '"/></w:numPr><w:ind w:left="' + (indent * 720) + '" w:hanging="360"/></w:pPr>' + formatToXml(trim.replace(/^\d+\.\s/, '')) + '</w:p>';
-                } else if (trim.match(/^[\*\-\+]\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + indent + '"/><w:numId w:val="' + (indent > 0 ? '4' : '2') + '"/></w:numPr><w:ind w:left="' + (indent * 720) + '" w:hanging="360"/></w:pPr>' + formatToXml(trim.replace(/^[\*\-\+]\s/, '')) + '</w:p>';
-                } else if (trim.match(/^>\s/)) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatToXml(trim.replace(/^>\s/, '')) + '</w:p>';
-                } else if (trim.startsWith('```')) {
+                // Check for custom indent syntax
+                const customIndent = getParagraphIndent(line);
+                if (customIndent) {
+                    const indentValue = getIndentValue(customIndent.indent);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:ind w:left="' + indentValue + '"/></w:pPr>' + formatTextToXml(customIndent.text) + '</w:p>';
+                }
+                // Title (#)
+                else if (line.match(/^#\s/)) {
+                    const text = line.replace(/^#\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Heading 1 (##)
+                else if (line.match(/^##\s/)) {
+                    const text = line.replace(/^##\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Heading 2 (###)
+                else if (line.match(/^###\s/)) {
+                    const text = line.replace(/^###\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Heading 3 (####)
+                else if (line.match(/^####\s/)) {
+                    const text = line.replace(/^####\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Ordered lists with multi-level support
+                else if (line.match(/^\s*\d+\.\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^\d+\.\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Unordered lists with multi-level support
+                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Blockquotes
+                else if (line.match(/^>\s/)) {
+                    const text = line.replace(/^>\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Code blocks
+                else if (line.trim().startsWith('```')) {
                     i++;
                     const code = [];
-                    while (i < lines.length && !lines[i].trim().startsWith('```')) { code.push(escapeXml(lines[i])); i++; }
+                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                        code.push(escapeXml(lines[i]));
+                        i++;
+                    }
                     xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
-                } else if (trim.includes('|')) {
-                    inTable = true;
-                    const cells = trim.split('|').filter(c => c.trim() && !c.match(/^-+$/));
-                    if (cells.length > 0) tableRows.push(cells.map(c => c.trim()));
-                } else if (trim.match(/^---+$/)) {
-                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
-                } else if (trim) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/>' + (indent > 0 ? '<w:ind w:left="' + (indent * 720) + '"/>' : '') + '</w:pPr>' + formatToXml(trim) + '</w:p>';
                 }
+                // Tables
+                else if (line.includes('|')) {
+                    inTable = true;
+                    const cells = line.split('|').filter(c => c.trim());
+                    if (cells.length > 0) {
+                        tableRows.push(cells.map(c => c.trim()));
+                    }
+                }
+                // Horizontal rule
+                else if (line.match(/^---+$/)) {
+                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
+                }
+                // Normal paragraph
+                else if (line.trim()) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextToXml(line) + '</w:p>';
+                }
+            }
+
+            // Flush remaining table
+            if (inTable && tableRows.length > 0) {
+                xml += buildTable(tableRows);
             }
 
             xml += '</w:body></w:document>';
