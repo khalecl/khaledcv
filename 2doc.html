@@ -688,8 +688,45 @@ End of document.</textarea>
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="F2F2F2"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:left w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:right w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style></w:styles>';
         }
 
-        function buildTable(rows) {
-            if (rows.length === 0) return '';
+        function parseTableRows(tableLines) {
+            const dataRows = [];
+            let headerFound = false;
+            
+            for (let i = 0; i < tableLines.length; i++) {
+                const line = tableLines[i];
+                
+                // Check if this is a separator row (only pipes and dashes)
+                if (line.match(/^\s*\|\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/)) {
+                    // If we just added a row and now we see a separator, mark the previous row as header
+                    if (dataRows.length === 1 && !headerFound) {
+                        dataRows[0].isHeader = true;
+                        headerFound = true;
+                    }
+                    continue;
+                }
+                
+                // Parse cells from line
+                let cells = line.split('|');
+                // Remove empty strings from edges if they exist
+                cells = cells.filter(c => c.trim().length > 0);
+                cells = cells.map(c => c.trim());
+                
+                if (cells.length > 0) {
+                    dataRows.push({ cells: cells, isHeader: false });
+                }
+            }
+            
+            // If no separator was found, treat the first row as header
+            if (!headerFound && dataRows.length > 0) {
+                dataRows[0].isHeader = true;
+            }
+            
+            return dataRows;
+        }
+
+        function buildTable(tableLines) {
+            const rowData = parseTableRows(tableLines);
+            if (rowData.length === 0) return '';
 
             let xml = '<w:tbl><w:tblPr>';
             xml += '<w:tblW w:w="5000" w:type="auto"/>';
@@ -710,29 +747,38 @@ End of document.</textarea>
             xml += '</w:tblCellMar>';
             xml += '</w:tblPr>';
 
-            rows.forEach((row, rowIdx) => {
+            // Get max column count from all rows
+            const colCount = Math.max(...rowData.map(r => r.cells.length));
+            
+            rowData.forEach((row) => {
                 xml += '<w:tr>';
                 xml += '<w:trPr>';
                 xml += '<w:trHeight w:val="400" w:type="auto"/>';
                 xml += '</w:trPr>';
                 
-                row.forEach(cell => {
-                    const isHeader = rowIdx === 0;
+                const cells = row.cells;
+                // Pad row to match column count
+                while (cells.length < colCount) {
+                    cells.push('');
+                }
+                
+                cells.forEach(cell => {
+                    const isHeader = row.isHeader;
                     const shading = isHeader ? '<w:shd w:fill="4472C4"/>' : '<w:shd w:fill="FFFFFF"/>';
                     const textColor = isHeader ? '<w:color w:val="FFFFFF"/>' : '';
+                    const cellWidth = Math.round(5000 / colCount);
                     
                     xml += '<w:tc>';
                     xml += '<w:tcPr>';
-                    xml += '<w:tcW w:w="1000" w:type="auto"/>';
+                    xml += '<w:tcW w:w="' + cellWidth + '" w:type="auto"/>';
                     xml += shading;
                     xml += '<w:vAlign w:val="center"/>';
                     xml += '</w:tcPr>';
                     xml += '<w:p>';
                     xml += '<w:pPr>';
-                    xml += '<w:jc w:val="center"/>';
+                    xml += '<w:jc w:val="' + (isHeader ? 'center' : 'left') + '"/>';
                     xml += '<w:spacing w:line="240" w:lineRule="auto"/>';
                     xml += '</w:pPr>';
-                    // Format cell content with text formatting support
                     xml += formatTextToXml(cell.trim());
                     xml += '</w:p>';
                     xml += '</w:tc>';
@@ -778,15 +824,15 @@ End of document.</textarea>
 
             const lines = markdown.split('\n');
             let inTable = false;
-            let tableRows = [];
+            let tableLines = [];
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
 
-                // Flush table if we were building one
+                // Flush table if we were building one and hit non-table line
                 if (inTable && !line.includes('|')) {
-                    xml += buildTable(tableRows);
-                    tableRows = [];
+                    xml += buildTable(tableLines);
+                    tableLines = [];
                     inTable = false;
                 }
 
@@ -845,13 +891,10 @@ End of document.</textarea>
                     }
                     xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
                 }
-                // Tables
+                // Tables - collect all table lines
                 else if (line.includes('|')) {
                     inTable = true;
-                    const cells = line.split('|').filter(c => c.trim());
-                    if (cells.length > 0) {
-                        tableRows.push(cells.map(c => c.trim()));
-                    }
+                    tableLines.push(line);
                 }
                 // Horizontal rule
                 else if (line.match(/^---+$/)) {
@@ -864,8 +907,8 @@ End of document.</textarea>
             }
 
             // Flush remaining table
-            if (inTable && tableRows.length > 0) {
-                xml += buildTable(tableRows);
+            if (inTable && tableLines.length > 0) {
+                xml += buildTable(tableLines);
             }
 
             xml += '</w:body></w:document>';
