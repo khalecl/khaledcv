@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Ebook to Knowledge Converter</title>
+    <title>Advanced Ebook to Knowledge Converter (v2 - Claude Optimized)</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
@@ -43,6 +43,15 @@
         .header p {
             opacity: 0.9;
             font-size: 0.95em;
+        }
+
+        .version-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            margin-top: 10px;
         }
 
         .content {
@@ -148,30 +157,6 @@
             resize: vertical;
         }
 
-        .checkbox-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .checkbox-item input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .checkbox-item label {
-            cursor: pointer;
-            font-size: 0.9em;
-            color: #333;
-        }
-
         .file-list {
             background: #f8f9ff;
             border: 1px solid #e9ecef;
@@ -270,10 +255,47 @@
             color: #333;
         }
 
+        .format-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+
+        .format-tab {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .format-tab.active {
+            color: #4facfe;
+            border-bottom-color: #4facfe;
+        }
+
+        .format-tab:hover {
+            color: #4facfe;
+        }
+
+        .format-content {
+            display: none;
+        }
+
+        .format-content.active {
+            display: block;
+        }
+
         .action-buttons {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            margin-bottom: 15px;
         }
 
         .btn {
@@ -371,6 +393,15 @@
             color: #084298;
         }
 
+        .format-info {
+            background: #e6f3ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
         @media (max-width: 768px) {
             .two-column {
                 grid-template-columns: 1fr;
@@ -388,6 +419,15 @@
             .stats {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .format-tabs {
+                gap: 5px;
+            }
+
+            .format-tab {
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
@@ -395,7 +435,8 @@
     <div class="container">
         <div class="header">
             <h1>📚 Advanced Ebook to Knowledge Converter</h1>
-            <p>Convert PDFs, EPUBs & MOBIs with AI-friendly metadata markers</p>
+            <p>Convert PDFs with AI-optimized multi-format output</p>
+            <div class="version-badge">✨ v2 - Claude Optimized with Concept Extraction</div>
         </div>
         
         <div class="content">
@@ -404,8 +445,8 @@
                     <div class="upload-section" id="uploadSection">
                         <div class="upload-icon">📁</div>
                         <h3>Drop files or click to browse</h3>
-                        <p style="margin: 10px 0; color: #666; font-size: 0.9em;">PDF, EPUB, MOBI</p>
-                        <input type="file" id="fileInput" class="file-input" multiple accept=".pdf,.epub,.mobi">
+                        <p style="margin: 10px 0; color: #666; font-size: 0.9em;">PDF files</p>
+                        <input type="file" id="fileInput" class="file-input" multiple accept=".pdf">
                         <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
                             Choose Files
                         </button>
@@ -434,27 +475,9 @@
                         </div>
                         <div class="metadata-input">
                             <label for="docContext">Context/Subject</label>
-                            <textarea id="docContext" placeholder="e.g., ESG Training, Carbon Management"></textarea>
+                            <textarea id="docContext" placeholder="e.g., Assembly Language, Performance Optimization"></textarea>
                         </div>
-                    </div>
-
-                    <div class="options-panel">
-                        <h3>⚙️ Options</h3>
-                        <div class="checkbox-group">
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="addMetadata" checked>
-                                <label for="addMetadata">Add metadata markers</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="addImageMarkers" checked>
-                                <label for="addImageMarkers">Mark image locations</label>
-                            </div>
-                            <div class="checkbox-item">
-                                <input type="checkbox" id="preserveStructure" checked>
-                                <label for="preserveStructure">Preserve section structure</label>
-                            </div>
-                            <script type="text/javascript" id="mapmyvisitors" src="//mapmyvisitors.com/map.js?d=4ZvHHwuoR_IRMQg5YfStYBXhWFO0W5lc6-yTkWpTzCs&cl=ffffff&w=a"></script>
-                        </div>
+                        <script type="text/javascript" id="mapmyvisitors" src="//mapmyvisitors.com/map.js?d=4ZvHHwuoR_IRMQg5YfStYBXhWFO0W5lc6-yTkWpTzCs&cl=ffffff&w=a"></script>
                     </div>
                 </div>
             </div>
@@ -479,25 +502,62 @@
                         <div class="stat-label">Words</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="markerCount">0</div>
-                        <div class="stat-label">Markers</div>
+                        <div class="stat-value" id="sectionCount">0</div>
+                        <div class="stat-label">Sections</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value" id="imageCount">0</div>
-                        <div class="stat-label">Images</div>
+                        <div class="stat-value" id="conceptCount">0</div>
+                        <div class="stat-label">Concepts</div>
                     </div>
                 </div>
 
                 <div class="result-header">
-                    <h3 class="result-title">Extracted Knowledge</h3>
+                    <h3 class="result-title">Generated Outputs</h3>
                     <div class="action-buttons">
-                        <button class="btn btn-primary" onclick="downloadText()">Download .txt</button>
+                        <button class="btn btn-primary" onclick="downloadAllFormats()">📦 Download All</button>
                         <button class="btn btn-secondary" onclick="copyText()">Copy</button>
                         <button class="btn btn-secondary" onclick="clearResults()">Clear</button>
                     </div>
                 </div>
                 
-                <div class="text-output" id="textOutput"></div>
+                <div class="format-tabs">
+                    <button class="format-tab active" onclick="switchFormat('enhanced_txt')">
+                        📄 Enhanced TXT
+                    </button>
+                    <button class="format-tab" onclick="switchFormat('structured_json')">
+                        🔗 JSON (Structured)
+                    </button>
+                    <button class="format-tab" onclick="switchFormat('jsonl')">
+                        ⚙️ JSONL (Training)
+                    </button>
+                </div>
+
+                <div id="format-enhanced_txt" class="format-content active">
+                    <div class="format-info">
+                        ✅ Enhanced TXT - Best for project knowledge upload to Claude
+                        <br>Includes: Chapter structure, concepts, importance levels, key quotes
+                        <button class="btn btn-secondary" style="float: right; margin-top: -5px;" onclick="downloadFormat('enhanced_txt')">Download</button>
+                    </div>
+                    <div class="text-output" id="output-enhanced_txt"></div>
+                </div>
+
+                <div id="format-structured_json" class="format-content">
+                    <div class="format-info">
+                        🔍 Structured JSON - Best for semantic search and RAG systems
+                        <br>Includes: Section hierarchy, metadata, concepts, importance
+                        <button class="btn btn-secondary" style="float: right; margin-top: -5px;" onclick="downloadFormat('structured_json')">Download</button>
+                    </div>
+                    <div class="text-output" id="output-structured_json"></div>
+                </div>
+
+                <div id="format-jsonl" class="format-content">
+                    <div class="format-info">
+                        🎓 JSONL - Best for fine-tuning language models on Colab
+                        <br>Includes: Instruction-output pairs ready for training
+                        <button class="btn btn-secondary" style="float: right; margin-top: -5px;" onclick="downloadFormat('jsonl')">Download</button>
+                    </div>
+                    <div class="text-output" id="output-jsonl"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -505,9 +565,12 @@
     <script>
         const API_BASE = 'http://localhost:5000';
         let selectedFiles = [];
-        let combinedText = '';
-        let totalMarkers = 0;
-        let totalImages = 0;
+        let results = {
+            enhanced_txt: '',
+            structured_json: '',
+            jsonl: ''
+        };
+        let stats = {};
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeApp();
@@ -543,7 +606,7 @@
         function checkServerStatus() {
             fetch(`${API_BASE}/health`)
                 .catch(() => {
-                    showAlert('Flask server not running. Start with: python server.py', 'error');
+                    showAlert('Flask server not running. Start with: python server_enhanced.py', 'error');
                 });
         }
 
@@ -587,14 +650,8 @@
                 return;
             }
 
-            combinedText = '';
-            totalMarkers = 0;
-            totalImages = 0;
-
             showProgress();
             document.getElementById('processBtn').disabled = true;
-
-            const results = [];
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
@@ -621,10 +678,13 @@
                         continue;
                     }
 
-                    results.push({
-                        filename: file.name,
-                        ...result
-                    });
+                    // Store results
+                    if (result.formats) {
+                        results.enhanced_txt = result.formats.enhanced_txt;
+                        results.structured_json = JSON.stringify(result.formats.structured_json, null, 2);
+                        results.jsonl = result.formats.jsonl;
+                        stats = result.stats;
+                    }
 
                 } catch (error) {
                     showAlert(`Network error: ${error.message}`, 'error');
@@ -633,42 +693,6 @@
                 await new Promise(r => setTimeout(r, 100));
             }
 
-            compileResults(results);
-        }
-
-        function compileResults(results) {
-            if (results.length === 0) {
-                hideProgress();
-                showAlert('No files processed successfully', 'error');
-                return;
-            }
-
-            combinedText = '';
-
-            if (document.getElementById('addMetadata').checked) {
-                const title = document.getElementById('docTitle').value || 
-                             (results[0].metadata?.title || 'Untitled');
-                const author = document.getElementById('docAuthor').value || 
-                              (results[0].metadata?.author || 'Unknown');
-                const context = document.getElementById('docContext').value || 'General';
-
-                combinedText += `[TITLE]: ${title}\n`;
-                combinedText += `[AUTHOR]: ${author}\n`;
-                combinedText += `[CONTEXT]: ${context}\n`;
-                combinedText += `[SOURCE_FILES]: ${results.length}\n`;
-                combinedText += `${'='.repeat(60)}\n\n`;
-                totalMarkers += 5;
-            }
-
-            results.forEach(result => {
-                combinedText += `[SOURCE]: ${result.filename}\n`;
-                combinedText += result.text + '\n\n';
-                combinedText += `${'-'.repeat(60)}\n\n`;
-                
-                totalMarkers += result.markers || 0;
-                totalImages += result.images_found || 0;
-            });
-
             displayResults();
         }
 
@@ -676,18 +700,79 @@
             hideProgress();
             document.getElementById('processBtn').disabled = false;
 
-            const words = combinedText.split(/\s+/).filter(w => w.length > 0).length;
-            const sections = (combinedText.match(/\[SECTION\]/g) || []).length;
-
+            // Update stats
             document.getElementById('fileCount').textContent = selectedFiles.length;
-            document.getElementById('wordCount').textContent = words.toLocaleString();
-            document.getElementById('markerCount').textContent = totalMarkers;
-            document.getElementById('imageCount').textContent = totalImages;
-            
-            document.getElementById('textOutput').textContent = combinedText;
+            document.getElementById('wordCount').textContent = stats.words ? stats.words.toLocaleString() : '0';
+            document.getElementById('sectionCount').textContent = stats.total_sections || '0';
+            document.getElementById('conceptCount').textContent = stats.concepts_found || '0';
+
+            // Display formats
+            document.getElementById('output-enhanced_txt').textContent = results.enhanced_txt;
+            document.getElementById('output-structured_json').textContent = results.structured_json;
+            document.getElementById('output-jsonl').textContent = results.jsonl;
+
             document.getElementById('resultSection').style.display = 'block';
             
-            showAlert('Files processed successfully!', 'success');
+            showAlert('Files processed successfully! All formats generated.', 'success');
+        }
+
+        function switchFormat(format) {
+            // Hide all
+            document.querySelectorAll('.format-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.format-tab').forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            document.getElementById(`format-${format}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function downloadFormat(format) {
+            let content = results[format];
+            let filename = `knowledge-${format}-${new Date().toISOString().split('T')[0]}`;
+            let ext = format === 'structured_json' ? '.json' : format === 'jsonl' ? '.jsonl' : '.txt';
+            
+            downloadBlob(content, filename + ext);
+        }
+
+        function downloadAllFormats() {
+            downloadBlob(results.enhanced_txt, `knowledge-enhanced-${new Date().toISOString().split('T')[0]}.txt`);
+            setTimeout(() => downloadBlob(results.structured_json, `knowledge-structured-${new Date().toISOString().split('T')[0]}.json`), 500);
+            setTimeout(() => downloadBlob(results.jsonl, `knowledge-training-${new Date().toISOString().split('T')[0]}.jsonl`), 1000);
+        }
+
+        function downloadBlob(content, filename) {
+            const blob = new Blob([content], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function copyText() {
+            const activeTab = document.querySelector('.format-tab.active').textContent;
+            let format = 'enhanced_txt';
+            if (activeTab.includes('JSON')) format = 'structured_json';
+            if (activeTab.includes('JSONL')) format = 'jsonl';
+
+            try {
+                await navigator.clipboard.writeText(results[format]);
+                showAlert('Copied to clipboard!', 'success');
+            } catch {
+                showAlert('Copy failed', 'error');
+            }
+        }
+
+        function clearResults() {
+            results = {enhanced_txt: '', structured_json: '', jsonl: ''};
+            selectedFiles = [];
+            stats = {};
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            updateFileList();
         }
 
         function showProgress() {
@@ -701,49 +786,6 @@
         function updateProgress(percent, text) {
             document.getElementById('progressFill').style.width = percent + '%';
             document.getElementById('progressText').textContent = text;
-        }
-
-        function downloadText() {
-            if (!combinedText) {
-                showAlert('No text to download', 'error');
-                return;
-            }
-
-            const blob = new Blob([combinedText], {type: 'text/plain'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `knowledge-${new Date().toISOString().split('T')[0]}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            showAlert('Downloaded!', 'success');
-        }
-
-        async function copyText() {
-            if (!combinedText) {
-                showAlert('No text to copy', 'error');
-                return;
-            }
-
-            try {
-                await navigator.clipboard.writeText(combinedText);
-                showAlert('Copied to clipboard!', 'success');
-            } catch {
-                showAlert('Copy failed', 'error');
-            }
-        }
-
-        function clearResults() {
-            combinedText = '';
-            selectedFiles = [];
-            totalMarkers = 0;
-            totalImages = 0;
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('fileInput').value = '';
-            updateFileList();
         }
 
         function showAlert(message, type = 'info') {
@@ -760,4 +802,4 @@
         }
     </script>
 </body>
-</html>
+</html>    
