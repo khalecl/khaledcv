@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book → Training Data</title>
+
+<!-- PDF.js for PDF parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<!-- Mammoth for DOCX parsing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<!-- JSZip for EPUB parsing (EPUB = zipped HTML) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #12121a;
+  --surface2: #1a1a26;
+  --border: #2a2a3a;
+  --text: #e4e4ef;
+  --text2: #8888a0;
+  --accent: #4ade80;
+  --accent2: #22c55e;
+  --warn: #f59e0b;
+  --err: #ef4444;
+  --blue: #60a5fa;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', system-ui, sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(74,222,128,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,222,128,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+header h1 {
+  font-family: var(--mono);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), var(--blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
+
+/* Connection status */
+#status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .6rem 1rem;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-bottom: 2rem;
+  font-family: var(--mono);
+  font-size: .8rem;
+}
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--err);
+  transition: background .3s;
+}
+.dot.ok { background: var(--accent); box-shadow: 0 0 8px rgba(74,222,128,.5); }
+.dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+@keyframes pulse { 50% { opacity: .4; } }
+
+/* Settings panel */
+.settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.setting-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+}
+.setting-card label {
+  display: block;
+  font-size: .75rem;
+  font-family: var(--mono);
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .5rem;
+}
+.setting-card select, .setting-card input[type=number], .setting-card textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: .55rem .7rem;
+  border-radius: 6px;
+  font-family: var(--sans);
+  font-size: .9rem;
+}
+.setting-card select:focus, .setting-card input:focus, .setting-card textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.setting-card.wide { grid-column: 1 / -1; }
+.setting-card textarea {
+  font-family: var(--mono);
+  font-size: .78rem;
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Drop zone */
+#drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all .25s;
+  margin-bottom: 2rem;
+  background: var(--surface);
+}
+#drop-zone:hover, #drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(74,222,128,.04);
+}
+#drop-zone .icon { font-size: 2.5rem; margin-bottom: .8rem; }
+#drop-zone h3 { font-size: 1.1rem; margin-bottom: .3rem; }
+#drop-zone p { color: var(--text2); font-size: .85rem; }
+#file-input { display: none; }
+
+/* File info */
+#file-info {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--mono);
+  font-size: .85rem;
+}
+#file-info .name { color: var(--accent); font-weight: 600; }
+#file-info .meta { color: var(--text2); margin-top: .3rem; }
+
+/* Buttons */
+.btn-row { display: flex; gap: .8rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.btn {
+  padding: .7rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: .9rem;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--accent);
+  color: #0a0a0f;
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+.btn-secondary {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover:not(:disabled) { border-color: var(--text2); }
+.btn-stop { background: var(--err); color: #fff; }
+.btn-stop:hover:not(:disabled) { background: #dc2626; }
+
+/* Progress area */
+#progress-area {
+  display: none;
+  margin-bottom: 2rem;
+}
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .5rem;
+  font-family: var(--mono);
+  font-size: .8rem;
+}
+.progress-bar {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: .8rem;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+  border-radius: 3px;
+  transition: width .3s;
+  width: 0%;
+}
+#progress-log {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: .8rem 1rem;
+  max-height: 160px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: .75rem;
+  color: var(--text2);
+  line-height: 1.6;
+}
+#progress-log .ok { color: var(--accent); }
+#progress-log .err { color: var(--err); }
+#progress-log .info { color: var(--blue); }
+
+/* Results */
+#results {
+  display: none;
+  margin-bottom: 2rem;
+}
+#results h2 {
+  font-family: var(--mono);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+.pair-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem 1.2rem;
+  margin-bottom: .6rem;
+  transition: border-color .2s;
+}
+.pair-card:hover { border-color: var(--accent); }
+.pair-label {
+  font-family: var(--mono);
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text2);
+  margin-bottom: .3rem;
+}
+.pair-text {
+  font-size: .88rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.pair-text.instruction { color: var(--blue); }
+.pair-text.output { color: var(--text); }
+.pair-divider { border-top: 1px solid var(--border); margin: .6rem 0; }
+#results-count {
+  font-family: var(--mono);
+  font-size: .8rem;
+  color: var(--text2);
+  margin-bottom: .8rem;
+}
+
+/* Download area */
+#download-area {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+}
+#download-area h3 { color: var(--accent); margin-bottom: .8rem; font-family: var(--mono); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .settings { grid-template-columns: 1fr; }
+  .setting-card.wide { grid-column: 1; }
+  header h1 { font-size: 1.3rem; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <h1>Book → Training Data</h1>
+    <p>Upload a book, get AI-ready instruction-output pairs via local Ollama</p>
+  </header>
+
+  <div id="status-bar">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Checking Ollama...</span>
+  </div>
+
+  <!-- Settings -->
+  <div class="settings">
+    <div class="setting-card">
+      <label>Ollama Model</label>
+      <select id="model-select"><option value="">Loading...</option></select>
+    </div>
+    <div class="setting-card">
+      <label>Chunk Size (chars)</label>
+      <input type="number" id="chunk-size" value="500" min="200" max="2000" step="100">
+    </div>
+    <div class="setting-card wide">
+      <label>System Prompt (how to generate pairs)</label>
+      <textarea id="system-prompt">Given this text from a technical book, create ONE instruction-output training pair.
+
+Rules:
+- Instruction: A clear, specific question or task (1-2 sentences)
+- Output: A complete, accurate answer based on the text
+
+Format EXACTLY as:
+INSTRUCTION: [your instruction here]
+OUTPUT: [your output here]</textarea>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div id="drop-zone">
+    <div class="icon">📚</div>
+    <h3>Drop your book here</h3>
+    <p>PDF · EPUB · DOCX · TXT — or click to browse</p>
+    <input type="file" id="file-input" accept=".pdf,.epub,.docx,.txt,.text">
+  </div>
+
+  <div id="file-info">
+    <div class="name" id="file-name"></div>
+    <div class="meta" id="file-meta"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="btn-row">
+    <button class="btn btn-primary" id="btn-start" disabled>▶ Generate Training Data</button>
+    <button class="btn btn-stop" id="btn-stop" disabled style="display:none">■ Stop</button>
+    <button class="btn btn-secondary" id="btn-download-jsonl" disabled style="display:none">⬇ Download JSONL</button>
+    <button class="btn btn-secondary" id="btn-download-json" disabled style="display:none">⬇ Download JSON</button>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-area">
+    <div class="progress-header">
+      <span id="progress-label">Processing...</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div id="progress-log"></div>
+  </div>
+
+  <!-- Results Preview -->
+  <div id="results">
+    <h2>Generated Pairs</h2>
+    <div id="results-count"></div>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- Setup instructions (shown when Ollama not found) -->
+  <div id="setup-guide" style="display:none">
+    <div class="setting-card wide" style="border-color: var(--warn);">
+      <label style="color: var(--warn);">⚠ Setup Required</label>
+      <div style="font-size:.88rem; line-height:1.7; color: var(--text2);">
+        <strong style="color:var(--text)">Step 1:</strong> Install Ollama →
+        <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com/download</a><br>
+        <strong style="color:var(--text)">Step 2:</strong> Open terminal, run:
+        <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">ollama pull llama3.2:3b</code><br>
+        <strong style="color:var(--text)">Step 3:</strong> Set CORS (one time):<br>
+        &nbsp;&nbsp;• <strong>Mac:</strong> <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">launchctl setenv OLLAMA_ORIGINS "*"</code> then restart Ollama<br>
+        &nbsp;&nbsp;• <strong>Windows:</strong> Set environment variable <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS=*</code> in System Properties → Env Variables<br>
+        &nbsp;&nbsp;• <strong>Linux:</strong> <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS="*" ollama serve</code><br>
+        <strong style="color:var(--text)">Step 4:</strong> Refresh this page
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+// ============================================================================
+// PDF.js setup
+// ============================================================================
+let pdfjsLib = null;
+try {
+  pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+} catch(e) {
+  console.warn('PDF.js import failed, trying fallback...', e);
+}
+
+// ============================================================================
+// STATE
+// ============================================================================
+const OLLAMA = 'http://localhost:11434';
+let extractedText = '';
+let fileName = '';
+let pairs = [];
+let running = false;
+let abortCtrl = null;
+
+// ============================================================================
+// DOM
+// ============================================================================
+const $ = id => document.getElementById(id);
+const statusDot = $('status-dot');
+const statusText = $('status-text');
+const modelSelect = $('model-select');
+const dropZone = $('drop-zone');
+const fileInput = $('file-input');
+const fileInfo = $('file-info');
+const btnStart = $('btn-start');
+const btnStop = $('btn-stop');
+const btnJsonl = $('btn-download-jsonl');
+const btnJson = $('btn-download-json');
+const progressArea = $('progress-area');
+const progressFill = $('progress-fill');
+const progressLabel = $('progress-label');
+const progressPct = $('progress-pct');
+const progressLog = $('progress-log');
+const resultsDiv = $('results');
+const resultsList = $('results-list');
+const resultsCount = $('results-count');
+const setupGuide = $('setup-guide');
+
+// ============================================================================
+// OLLAMA CONNECTION
+// ============================================================================
+async function checkOllama() {
+  statusDot.className = 'dot loading';
+  statusText.textContent = 'Connecting to Ollama...';
+  try {
+    const r = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    const data = await r.json();
+    const models = (data.models || []).map(m => m.name);
+    if (models.length === 0) {
+      setStatus('warn', 'Ollama running but no models. Run: ollama pull llama3.2:3b');
+      setupGuide.style.display = 'block';
+      return false;
+    }
+    modelSelect.innerHTML = models.map(m =>
+      `<option value="${m}" ${m.includes('llama3.2') ? 'selected' : ''}>${m}</option>`
+    ).join('');
+    setStatus('ok', `Connected · ${models.length} model${models.length > 1 ? 's' : ''}`);
+    setupGuide.style.display = 'none';
+    return true;
+  } catch(e) {
+    setStatus('err', 'Cannot reach Ollama at localhost:11434');
+    setupGuide.style.display = 'block';
+    modelSelect.innerHTML = '<option value="">Not connected</option>';
+    return false;
+  }
+}
+
+function setStatus(state, text) {
+  statusDot.className = `dot ${state === 'err' ? '' : state === 'warn' ? 'loading' : 'ok'}`;
+  statusText.textContent = text;
+}
+
+async function ollamaGenerate(prompt, model) {
+  const r = await fetch(`${OLLAMA}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model, prompt, stream: false,
+      options: { temperature: 0.7, num_predict: 400 }
+    }),
+    signal: abortCtrl?.signal,
+  });
+  if (!r.ok) throw new Error(`Ollama error: ${r.status}`);
+  const data = await r.json();
+  return data.response || '';
+}
+
+// ============================================================================
+// FILE PARSERS
+// ============================================================================
+async function parseFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  log(`Parsing ${file.name} (${(file.size/1024).toFixed(0)} KB)...`, 'info');
+
+  switch (ext) {
+    case 'txt': case 'text':
+      return await file.text();
+    case 'pdf':
+      return await parsePDF(file);
+    case 'docx':
+      return await parseDOCX(file);
+    case 'epub':
+      return await parseEPUB(file);
+    default:
+      throw new Error(`Unsupported format: .${ext}`);
+  }
+}
+
+async function parsePDF(file) {
+  if (!pdfjsLib) throw new Error('PDF.js not loaded. Check internet connection.');
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(item => item.str).join(' ');
+    text += pageText + '\n\n';
+    if (i % 20 === 0) log(`  PDF page ${i}/${pdf.numPages}`, 'info');
+  }
+  log(`  ✓ Extracted ${pdf.numPages} pages`, 'ok');
+  return text;
+}
+
+async function parseDOCX(file) {
+  const buf = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buf });
+  log(`  ✓ DOCX extracted`, 'ok');
+  return result.value;
+}
+
+async function parseEPUB(file) {
+  const buf = await file.arrayBuffer();
+  const zip = await JSZip.loadAsync(buf);
+  let text = '';
+  let chapterCount = 0;
+
+  // Find HTML/XHTML files in the EPUB
+  const htmlFiles = [];
+  zip.forEach((path, entry) => {
+    if (!entry.dir && /\.(x?html?|htm)$/i.test(path)) {
+      htmlFiles.push(path);
+    }
+  });
+
+  // Sort by path to maintain chapter order
+  htmlFiles.sort();
+
+  for (const path of htmlFiles) {
+    try {
+      const html = await zip.file(path).async('string');
+      // Strip HTML tags to get plain text
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const chText = doc.body?.textContent?.trim() || '';
+      if (chText.length > 20) {
+        text += chText + '\n\n';
+        chapterCount++;
+      }
+    } catch(e) { /* skip problematic files */ }
+  }
+
+  log(`  ✓ EPUB: ${chapterCount} chapters extracted`, 'ok');
+  return text;
+}
+
+// ============================================================================
+// TEXT CHUNKING
+// ============================================================================
+function chunkText(text, maxLen) {
+  // Clean text
+  text = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
+  // Split by paragraphs first, then sentences
+  const paragraphs = text.split(/\n\n+/);
+  const chunks = [];
+  let current = '';
+
+  for (const para of paragraphs) {
+    if (current.length + para.length > maxLen && current.length > 50) {
+      chunks.push(current.trim());
+      current = para;
+    } else {
+      current += (current ? '\n\n' : '') + para;
+    }
+  }
+  if (current.trim().length > 30) chunks.push(current.trim());
+
+  return chunks.filter(c => c.length > 50);
+}
+
+// ============================================================================
+// PAIR GENERATION
+// ============================================================================
+function parsePairResponse(response) {
+  let instruction = '', output = '';
+
+  if (response.includes('INSTRUCTION:')) {
+    const rest = response.split('INSTRUCTION:')[1];
+    if (rest.includes('OUTPUT:')) {
+      instruction = rest.split('OUTPUT:')[0].trim();
+      output = rest.split('OUTPUT:')[1].trim();
+    } else {
+      instruction = rest.trim();
+    }
+  }
+
+  // Clean up quotes and extra whitespace
+  instruction = instruction.replace(/^["'\s]+|["'\s]+$/g, '').trim();
+  output = output.replace(/^["'\s]+|["'\s]+$/g, '').trim();
+
+  return { instruction, output };
+}
+
+async function generatePairs() {
+  running = true;
+  abortCtrl = new AbortController();
+  pairs = [];
+  const model = modelSelect.value;
+  const chunkSize = parseInt($('chunk-size').value) || 500;
+  const systemPrompt = $('system-prompt').value;
+
+  // Reset UI
+  progressArea.style.display = 'block';
+  progressLog.innerHTML = '';
+  resultsList.innerHTML = '';
+  resultsDiv.style.display = 'none';
+  btnStart.disabled = true;
+  btnStop.disabled = false;
+  btnStop.style.display = '';
+  btnJsonl.style.display = 'none';
+  btnJson.style.display = 'none';
+
+  const chunks = chunkText(extractedText, chunkSize);
+  log(`Split into ${chunks.length} chunks (${chunkSize} char each)`, 'info');
+  log(`Model: ${model}`, 'info');
+  log(`Starting generation...`, 'info');
+
+  const startTime = Date.now();
+
+  for (let i = 0; i < chunks.length; i++) {
+    if (!running) { log('Stopped by user', 'err'); break; }
+
+    const pct = ((i + 1) / chunks.length * 100).toFixed(0);
+    progressFill.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+
+    const elapsed = (Date.now() - startTime) / 1000;
+    const rate = (i + 1) / elapsed;
+    const remaining = ((chunks.length - i - 1) / rate / 60).toFixed(1);
+    progressLabel.textContent = `Chunk ${i + 1}/${chunks.length} · ~${remaining} min left`;
+
+    try {
+      const prompt = `${systemPrompt}\n\nText:\n${chunks[i]}`;
+      const response = await ollamaGenerate(prompt, model);
+      const { instruction, output } = parsePairResponse(response);
+
+      if (instruction.length > 5 && output.length > 5) {
+        const pair = { instruction, output };
+        pairs.push(pair);
+        addPairToUI(pair, pairs.length);
+        log(`✓ Pair ${pairs.length}: "${instruction.substring(0, 60)}..."`, 'ok');
+      } else {
+        log(`⚠ Chunk ${i+1}: weak response, skipped`, 'err');
+      }
+    } catch(e) {
+      if (e.name === 'AbortError') { log('Stopped', 'err'); break; }
+      log(`✗ Chunk ${i+1}: ${e.message}`, 'err');
+    }
+  }
+
+  // Done
+  running = false;
+  const totalTime = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
+  progressLabel.textContent = `Done! ${pairs.length} pairs in ${totalTime} min`;
+  progressFill.style.width = '100%';
+  progressPct.textContent = '✓';
+  btnStart.disabled = false;
+  btnStop.disabled = true;
+  btnStop.style.display = 'none';
+
+  if (pairs.length > 0) {
+    btnJsonl.style.display = '';
+    btnJson.style.display = '';
+    btnJsonl.disabled = false;
+    btnJson.disabled = false;
+    resultsDiv.style.display = 'block';
+    resultsCount.textContent = `${pairs.length} pairs generated`;
+    log(`\n✨ Complete! ${pairs.length} training pairs ready to download.`, 'ok');
+  }
+}
+
+// ============================================================================
+// UI HELPERS
+// ============================================================================
+function log(msg, cls = '') {
+  const line = document.createElement('div');
+  line.className = cls;
+  line.textContent = msg;
+  progressLog.appendChild(line);
+  progressLog.scrollTop = progressLog.scrollHeight;
+}
+
+function addPairToUI(pair, idx) {
+  // Only show first 20 and last 5 to keep UI fast
+  if (idx > 20 && idx < pairs.length - 5) {
+    if (idx === 21) {
+      const note = document.createElement('div');
+      note.style.cssText = 'text-align:center; color:var(--text2); padding:.5rem; font-size:.8rem;';
+      note.textContent = '... more pairs (see download) ...';
+      note.id = 'pair-ellipsis';
+      resultsList.appendChild(note);
+    }
+    return;
+  }
+
+  const el = document.createElement('div');
+  el.className = 'pair-card';
+  el.innerHTML = `
+    <div class="pair-label">Instruction #${idx}</div>
+    <div class="pair-text instruction">${escHtml(pair.instruction)}</div>
+    <div class="pair-divider"></div>
+    <div class="pair-label">Output</div>
+    <div class="pair-text output">${escHtml(pair.output.substring(0, 300))}${pair.output.length > 300 ? '...' : ''}</div>
+  `;
+  resultsList.appendChild(el);
+  resultsDiv.style.display = 'block';
+  resultsCount.textContent = `${idx} pairs generated`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ============================================================================
+// DOWNLOAD
+// ============================================================================
+function downloadFile(content, name, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function downloadJSONL() {
+  const content = pairs.map(p => JSON.stringify(p)).join('\n');
+  const name = fileName.replace(/\.[^.]+$/, '') + '_training_data.jsonl';
+  downloadFile(content, name, 'application/jsonl');
+}
+
+function downloadJSON() {
+  const content = JSON.stringify(pairs, null, 2);
+  const name = fileName.replace(/\.[^.]+$/, '') + '_training_data.json';
+  downloadFile(content, name, 'application/json');
+}
+
+// ============================================================================
+// FILE HANDLING
+// ============================================================================
+async function handleFile(file) {
+  fileName = file.name;
+  $('file-name').textContent = file.name;
+  fileInfo.style.display = 'block';
+  btnStart.disabled = true;
+
+  try {
+    $('file-meta').textContent = `Parsing... (${(file.size / 1024).toFixed(0)} KB)`;
+    progressArea.style.display = 'block';
+    progressLog.innerHTML = '';
+
+    extractedText = await parseFile(file);
+
+    const words = extractedText.split(/\s+/).length;
+    const chunkSize = parseInt($('chunk-size').value) || 500;
+    const estChunks = chunkText(extractedText, chunkSize).length;
+    $('file-meta').textContent =
+      `${(file.size / 1024).toFixed(0)} KB · ~${words.toLocaleString()} words · ~${estChunks} chunks`;
+
+    log(`✓ Ready! ${words.toLocaleString()} words, ~${estChunks} chunks`, 'ok');
+    btnStart.disabled = false;
+  } catch(e) {
+    $('file-meta').textContent = `Error: ${e.message}`;
+    log(`✗ ${e.message}`, 'err');
+  }
+}
+
+// ============================================================================
+// EVENT LISTENERS
+// ============================================================================
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+btnStart.addEventListener('click', generatePairs);
+btnStop.addEventListener('click', () => { running = false; abortCtrl?.abort(); });
+btnJsonl.addEventListener('click', downloadJSONL);
+btnJson.addEventListener('click', downloadJSON);
+
+// Update chunk estimate when chunk size changes
+$('chunk-size').addEventListener('change', () => {
+  if (extractedText) {
+    const chunkSize = parseInt($('chunk-size').value) || 500;
+    const estChunks = chunkText(extractedText, chunkSize).length;
+    $('file-meta').textContent = $('file-meta').textContent.replace(/~\d+ chunks/, `~${estChunks} chunks`);
+  }
+});
+
+// ============================================================================
+// INIT
+// ============================================================================
+checkOllama();
+// Re-check every 10s if not connected
+setInterval(() => {
+  if (!statusDot.classList.contains('ok') && !running) checkOllama();
+}, 10000);
+
+</script>
+</body>
+</html>
