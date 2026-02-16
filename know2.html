@@ -28,6 +28,7 @@
   --warn: #f59e0b;
   --err: #ef4444;
   --blue: #60a5fa;
+  --purple: #a78bfa;
   --mono: 'JetBrains Mono', monospace;
   --sans: 'DM Sans', system-ui, sans-serif;
 }
@@ -42,7 +43,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Subtle grid background */
 body::before {
   content: '';
   position: fixed;
@@ -57,7 +57,6 @@ body::before {
 
 .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
 
-/* Header */
 header {
   text-align: center;
   margin-bottom: 2.5rem;
@@ -76,7 +75,6 @@ header h1 {
 }
 header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 
-/* Connection status */
 #status-bar {
   display: flex;
   align-items: center;
@@ -100,7 +98,6 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 .dot.loading { background: var(--warn); animation: pulse 1s infinite; }
 @keyframes pulse { 50% { opacity: .4; } }
 
-/* Settings panel */
 .settings {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -144,7 +141,30 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   min-height: 80px;
 }
 
-/* Drop zone */
+/* Filter checkboxes */
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .4rem .8rem;
+  margin-top: .5rem;
+}
+.filter-grid label {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .82rem;
+  font-family: var(--sans);
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+.filter-grid label input[type=checkbox] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
 #drop-zone {
   border: 2px dashed var(--border);
   border-radius: 12px;
@@ -164,7 +184,6 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 #drop-zone p { color: var(--text2); font-size: .85rem; }
 #file-input { display: none; }
 
-/* File info */
 #file-info {
   display: none;
   background: var(--surface);
@@ -178,7 +197,21 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 #file-info .name { color: var(--accent); font-weight: 600; }
 #file-info .meta { color: var(--text2); margin-top: .3rem; }
 
-/* Buttons */
+/* Filter stats bar */
+#filter-stats {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--purple);
+  border-radius: 10px;
+  padding: .8rem 1.2rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--mono);
+  font-size: .78rem;
+  color: var(--text2);
+}
+#filter-stats .highlight { color: var(--accent); font-weight: 600; }
+#filter-stats .saved { color: var(--purple); font-weight: 600; }
+
 .btn-row { display: flex; gap: .8rem; margin-bottom: 2rem; flex-wrap: wrap; }
 .btn {
   padding: .7rem 1.5rem;
@@ -191,25 +224,14 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   transition: all .2s;
 }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn-primary {
-  background: var(--accent);
-  color: #0a0a0f;
-}
+.btn-primary { background: var(--accent); color: #0a0a0f; }
 .btn-primary:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
-.btn-secondary {
-  background: var(--surface2);
-  color: var(--text);
-  border: 1px solid var(--border);
-}
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
 .btn-secondary:hover:not(:disabled) { border-color: var(--text2); }
 .btn-stop { background: var(--err); color: #fff; }
 .btn-stop:hover:not(:disabled) { background: #dc2626; }
 
-/* Progress area */
-#progress-area {
-  display: none;
-  margin-bottom: 2rem;
-}
+#progress-area { display: none; margin-bottom: 2rem; }
 .progress-header {
   display: flex;
   justify-content: space-between;
@@ -247,18 +269,10 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 #progress-log .ok { color: var(--accent); }
 #progress-log .err { color: var(--err); }
 #progress-log .info { color: var(--blue); }
+#progress-log .filter { color: var(--purple); }
 
-/* Results */
-#results {
-  display: none;
-  margin-bottom: 2rem;
-}
-#results h2 {
-  font-family: var(--mono);
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  color: var(--accent);
-}
+#results { display: none; margin-bottom: 2rem; }
+#results h2 { font-family: var(--mono); font-size: 1rem; margin-bottom: 1rem; color: var(--accent); }
 .pair-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -276,43 +290,21 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   color: var(--text2);
   margin-bottom: .3rem;
 }
-.pair-text {
-  font-size: .88rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+.pair-text { font-size: .88rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
 .pair-text.instruction { color: var(--blue); }
 .pair-text.output { color: var(--text); }
 .pair-divider { border-top: 1px solid var(--border); margin: .6rem 0; }
-#results-count {
-  font-family: var(--mono);
-  font-size: .8rem;
-  color: var(--text2);
-  margin-bottom: .8rem;
-}
+#results-count { font-family: var(--mono); font-size: .8rem; color: var(--text2); margin-bottom: .8rem; }
 
-/* Download area */
-#download-area {
-  display: none;
-  background: var(--surface);
-  border: 1px solid var(--accent);
-  border-radius: 10px;
-  padding: 1.5rem;
-  text-align: center;
-}
-#download-area h3 { color: var(--accent); margin-bottom: .8rem; font-family: var(--mono); }
-
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* Responsive */
 @media (max-width: 600px) {
   .settings { grid-template-columns: 1fr; }
   .setting-card.wide { grid-column: 1; }
   header h1 { font-size: 1.3rem; }
+  .filter-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -339,6 +331,45 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
       <label>Chunk Size (chars)</label>
       <input type="number" id="chunk-size" value="500" min="200" max="2000" step="100">
     </div>
+
+    <!-- NEW: Smart Filter -->
+    <div class="setting-card wide">
+      <label>🧹 Smart Content Filter — skip junk before Ollama touches it</label>
+      <div class="filter-grid">
+        <label><input type="checkbox" id="f-dedication" checked> Dedications</label>
+        <label><input type="checkbox" id="f-copyright" checked> Copyright pages</label>
+        <label><input type="checkbox" id="f-toc" checked> Table of Contents</label>
+        <label><input type="checkbox" id="f-listfig" checked> List of Figures/Tables</label>
+        <label><input type="checkbox" id="f-preface" checked> Preface / About Author</label>
+        <label><input type="checkbox" id="f-references" checked> References / Bibliography</label>
+        <label><input type="checkbox" id="f-index" checked> Index pages</label>
+        <label><input type="checkbox" id="f-endnotes" checked> Endnotes / Footnotes</label>
+        <label><input type="checkbox" id="f-blanks" checked> Blank / near-empty chunks</label>
+        <label><input type="checkbox" id="f-pagenum" checked> Page-number-heavy chunks</label>
+      </div>
+    </div>
+
+    <!-- NEW: Parallel requests -->
+    <div class="setting-card">
+      <label>Parallel Requests</label>
+      <select id="concurrency">
+        <option value="1">1 (safe)</option>
+        <option value="2" selected>2 (faster)</option>
+        <option value="3">3 (fast, needs GPU)</option>
+        <option value="4">4 (max, may OOM)</option>
+      </select>
+    </div>
+
+    <!-- NEW: Figure handling -->
+    <div class="setting-card">
+      <label>Figure Handling</label>
+      <select id="figure-mode">
+        <option value="bind">Bind caption + context</option>
+        <option value="skip">Skip figure-only chunks</option>
+        <option value="keep">Keep as-is</option>
+      </select>
+    </div>
+
     <div class="setting-card wide">
       <label>System Prompt (how to generate pairs)</label>
       <textarea id="system-prompt">Given this text from a technical book, create ONE instruction-output training pair.
@@ -365,6 +396,9 @@ OUTPUT: [your output here]</textarea>
     <div class="name" id="file-name"></div>
     <div class="meta" id="file-meta"></div>
   </div>
+
+  <!-- Filter stats -->
+  <div id="filter-stats"></div>
 
   <!-- Actions -->
   <div class="btn-row">
@@ -393,7 +427,7 @@ OUTPUT: [your output here]</textarea>
     <div id="results-list"></div>
   </div>
 
-  <!-- Setup instructions (shown when Ollama not found) -->
+  <!-- Setup instructions -->
   <div id="setup-guide" style="display:none">
     <div class="setting-card wide" style="border-color: var(--warn);">
       <label style="color: var(--warn);">⚠ Setup Required</label>
@@ -458,6 +492,7 @@ const resultsDiv = $('results');
 const resultsList = $('results-list');
 const resultsCount = $('results-count');
 const setupGuide = $('setup-guide');
+const filterStats = $('filter-stats');
 
 // ============================================================================
 // OLLAMA CONNECTION
@@ -493,13 +528,15 @@ function setStatus(state, text) {
   statusText.textContent = text;
 }
 
+// SPEED OPTIMIZATION 1: keep_alive keeps model in VRAM between calls
 async function ollamaGenerate(prompt, model) {
   const r = await fetch(`${OLLAMA}/api/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model, prompt, stream: false,
-      options: { temperature: 0.7, num_predict: 400 }
+      options: { temperature: 0.7, num_predict: 400 },
+      keep_alive: '30m',
     }),
     signal: abortCtrl?.signal,
   });
@@ -509,23 +546,189 @@ async function ollamaGenerate(prompt, model) {
 }
 
 // ============================================================================
+// SMART CONTENT FILTER — runs entirely in browser, zero Ollama cost
+// ============================================================================
+
+const FILTER_PATTERNS = {
+  dedication: [
+    /^dedicated\s+to/i,
+    /^to\s+my\s+(wife|husband|family|parents|children|mother|father)/i,
+    /^in\s+memory\s+of/i,
+    /^for\s+my\s+/i,
+    /^this\s+book\s+is\s+dedicated/i,
+  ],
+  copyright: [
+    /all\s+rights\s+reserved/i,
+    /isbn[\s:\-]*[\dxX\-]{10,}/i,
+    /library\s+of\s+congress/i,
+    /printed\s+in\s+(the\s+)?united\s+states/i,
+    /no\s+part\s+of\s+this\s+(book|publication)/i,
+    /permission\s+.*\s+publisher/i,
+    /cataloging[\-\s]in[\-\s]publication/i,
+    /©\s*\d{4}/,
+  ],
+  toc: [
+    /^table\s+of\s+contents/i,
+    /^contents$/im,
+  ],
+  listfig: [
+    /^list\s+of\s+(figures|tables|illustrations|abbreviations|acronyms|symbols)/i,
+  ],
+  preface: [
+    /^preface$/im,
+    /^acknowledgment/im,
+    /^about\s+the\s+author/im,
+    /^author\s+biograph/im,
+    /^contributor/im,
+    /^foreword$/im,
+  ],
+  references: [
+    /^references$/im,
+    /^bibliography$/im,
+    /^works\s+cited$/im,
+    /^further\s+reading$/im,
+  ],
+  index: [
+    /^(subject\s+)?index$/im,
+    /^author\s+index$/im,
+  ],
+  endnotes: [
+    /^endnotes$/im,
+    /^notes$/im,
+    /^footnotes$/im,
+  ],
+};
+
+// Structural detectors — catch these by SHAPE even without headers
+function hasTocStructure(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 4) return false;
+  const tocLine = /[\.\s]{3,}\d+\s*$/;
+  const matching = lines.filter(l => tocLine.test(l.trim())).length;
+  return matching / lines.length > 0.4;
+}
+
+function hasReferenceStructure(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 3) return false;
+  const refs = [/^\[\d+\]/, /^\d+\.\s+[A-Z]/, /^[A-Z][a-z]+,\s+[A-Z]/];
+  const matching = lines.filter(l => refs.some(p => p.test(l.trim()))).length;
+  return matching / lines.length > 0.5;
+}
+
+function hasIndexStructure(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 6) return false;
+  const indexLine = /^.{2,50},?\s+\d[\d,\s\-]*$/;
+  const matching = lines.filter(l => indexLine.test(l.trim())).length;
+  return matching / lines.length > 0.4;
+}
+
+function getActiveFilters() {
+  return {
+    dedication: $('f-dedication').checked,
+    copyright: $('f-copyright').checked,
+    toc: $('f-toc').checked,
+    listfig: $('f-listfig').checked,
+    preface: $('f-preface').checked,
+    references: $('f-references').checked,
+    index: $('f-index').checked,
+    endnotes: $('f-endnotes').checked,
+    blanks: $('f-blanks').checked,
+    pagenum: $('f-pagenum').checked,
+  };
+}
+
+function filterChunk(text) {
+  const f = getActiveFilters();
+
+  // Blank / tiny
+  if (f.blanks && text.trim().split(/\s+/).length < 8) {
+    return { keep: false, reason: 'blank/tiny' };
+  }
+
+  // Page-number heavy (>40% digits)
+  if (f.pagenum) {
+    const digits = (text.match(/\d/g) || []).length;
+    const total = text.replace(/\s/g, '').length;
+    if (total > 10 && digits / total > 0.4) {
+      return { keep: false, reason: 'page-number-heavy' };
+    }
+  }
+
+  // Regex pattern matching
+  const map = {
+    dedication: 'dedication', copyright: 'copyright', toc: 'toc',
+    listfig: 'listfig', preface: 'preface', references: 'references',
+    index: 'index', endnotes: 'endnotes',
+  };
+  for (const [patKey, filterKey] of Object.entries(map)) {
+    if (!f[filterKey]) continue;
+    if (FILTER_PATTERNS[patKey]?.some(p => p.test(text))) {
+      return { keep: false, reason: patKey };
+    }
+  }
+
+  // Structural detection (catches pattern even without header text)
+  if (f.toc && hasTocStructure(text)) return { keep: false, reason: 'toc-structure' };
+  if (f.references && hasReferenceStructure(text)) return { keep: false, reason: 'ref-structure' };
+  if (f.index && hasIndexStructure(text)) return { keep: false, reason: 'index-structure' };
+
+  return { keep: true, reason: '' };
+}
+
+
+// ============================================================================
+// FIGURE CAPTION HANDLING
+// ============================================================================
+const FIGURE_RE = /(?:^|\n)\s*(fig(?:ure)?|table|diagram|chart|exhibit)[\s.]*(\d+[\d.]*)\s*[:.]\s*(.+)/i;
+
+function processChunksForFigures(chunks) {
+  const mode = $('figure-mode').value;
+  if (mode === 'keep') return chunks;
+
+  const out = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const fig = chunks[i].match(FIGURE_RE);
+    if (!fig) { out.push(chunks[i]); continue; }
+
+    if (mode === 'skip') {
+      // Only skip if chunk is MOSTLY just the caption (few real words)
+      const withoutCaption = chunks[i].replace(FIGURE_RE, '').trim();
+      if (withoutCaption.split(/\s+/).length < 15) continue;
+      out.push(chunks[i]);
+      continue;
+    }
+
+    // mode === 'bind': glue surrounding context to the figure caption
+    let bound = '';
+    if (i > 0) {
+      const prevWords = chunks[i - 1].split(/\s+/);
+      bound += prevWords.slice(-25).join(' ') + '\n\n';
+    }
+    bound += chunks[i];
+    if (i < chunks.length - 1) {
+      const nextWords = chunks[i + 1].split(/\s+/);
+      bound += '\n\n' + nextWords.slice(0, 25).join(' ');
+    }
+    out.push(bound);
+  }
+  return out;
+}
+
+
+// ============================================================================
 // FILE PARSERS
 // ============================================================================
 async function parseFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   log(`Parsing ${file.name} (${(file.size/1024).toFixed(0)} KB)...`, 'info');
-
   switch (ext) {
-    case 'txt': case 'text':
-      return await file.text();
-    case 'pdf':
-      return await parsePDF(file);
-    case 'docx':
-      return await parseDOCX(file);
-    case 'epub':
-      return await parseEPUB(file);
-    default:
-      throw new Error(`Unsupported format: .${ext}`);
+    case 'txt': case 'text': return await file.text();
+    case 'pdf': return await parsePDF(file);
+    case 'docx': return await parseDOCX(file);
+    case 'epub': return await parseEPUB(file);
+    default: throw new Error(`Unsupported format: .${ext}`);
   }
 }
 
@@ -557,31 +760,19 @@ async function parseEPUB(file) {
   const zip = await JSZip.loadAsync(buf);
   let text = '';
   let chapterCount = 0;
-
-  // Find HTML/XHTML files in the EPUB
   const htmlFiles = [];
   zip.forEach((path, entry) => {
-    if (!entry.dir && /\.(x?html?|htm)$/i.test(path)) {
-      htmlFiles.push(path);
-    }
+    if (!entry.dir && /\.(x?html?|htm)$/i.test(path)) htmlFiles.push(path);
   });
-
-  // Sort by path to maintain chapter order
   htmlFiles.sort();
-
   for (const path of htmlFiles) {
     try {
       const html = await zip.file(path).async('string');
-      // Strip HTML tags to get plain text
       const doc = new DOMParser().parseFromString(html, 'text/html');
       const chText = doc.body?.textContent?.trim() || '';
-      if (chText.length > 20) {
-        text += chText + '\n\n';
-        chapterCount++;
-      }
-    } catch(e) { /* skip problematic files */ }
+      if (chText.length > 20) { text += chText + '\n\n'; chapterCount++; }
+    } catch(e) {}
   }
-
   log(`  ✓ EPUB: ${chapterCount} chapters extracted`, 'ok');
   return text;
 }
@@ -590,10 +781,7 @@ async function parseEPUB(file) {
 // TEXT CHUNKING
 // ============================================================================
 function chunkText(text, maxLen) {
-  // Clean text
   text = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-
-  // Split by paragraphs first, then sentences
   const paragraphs = text.split(/\n\n+/);
   const chunks = [];
   let current = '';
@@ -607,16 +795,14 @@ function chunkText(text, maxLen) {
     }
   }
   if (current.trim().length > 30) chunks.push(current.trim());
-
   return chunks.filter(c => c.length > 50);
 }
 
 // ============================================================================
-// PAIR GENERATION
+// PAIR GENERATION — with filtering + parallelism
 // ============================================================================
 function parsePairResponse(response) {
   let instruction = '', output = '';
-
   if (response.includes('INSTRUCTION:')) {
     const rest = response.split('INSTRUCTION:')[1];
     if (rest.includes('OUTPUT:')) {
@@ -626,11 +812,8 @@ function parsePairResponse(response) {
       instruction = rest.trim();
     }
   }
-
-  // Clean up quotes and extra whitespace
   instruction = instruction.replace(/^["'\s]+|["'\s]+$/g, '').trim();
   output = output.replace(/^["'\s]+|["'\s]+$/g, '').trim();
-
   return { instruction, output };
 }
 
@@ -641,6 +824,7 @@ async function generatePairs() {
   const model = modelSelect.value;
   const chunkSize = parseInt($('chunk-size').value) || 500;
   const systemPrompt = $('system-prompt').value;
+  const concurrency = parseInt($('concurrency').value) || 1;
 
   // Reset UI
   progressArea.style.display = 'block';
@@ -653,42 +837,89 @@ async function generatePairs() {
   btnJsonl.style.display = 'none';
   btnJson.style.display = 'none';
 
-  const chunks = chunkText(extractedText, chunkSize);
+  // STEP 1: Chunk
+  let chunks = chunkText(extractedText, chunkSize);
+  const totalBefore = chunks.length;
   log(`Split into ${chunks.length} chunks (${chunkSize} char each)`, 'info');
-  log(`Model: ${model}`, 'info');
+
+  // STEP 2: SMART FILTER — free, instant, no Ollama calls
+  const stats = { kept: 0, skipped: 0, reasons: {} };
+  const clean = [];
+  for (const c of chunks) {
+    const r = filterChunk(c);
+    if (r.keep) { clean.push(c); stats.kept++; }
+    else { stats.skipped++; stats.reasons[r.reason] = (stats.reasons[r.reason] || 0) + 1; }
+  }
+  chunks = clean;
+
+  // STEP 3: Figure handling
+  chunks = processChunksForFigures(chunks);
+
+  // Show filter stats
+  if (stats.skipped > 0) {
+    const reasons = Object.entries(stats.reasons).map(([r,c]) => `${r}:${c}`).join(' · ');
+    log(`🧹 Filtered ${stats.skipped}/${totalBefore} chunks → ${reasons}`, 'filter');
+    log(`📦 ${chunks.length} clean chunks → Ollama (saved ~${stats.skipped} API calls)`, 'filter');
+    filterStats.style.display = 'block';
+    filterStats.innerHTML =
+      `🧹 <span class="saved">${stats.skipped} junk chunks removed</span> out of ${totalBefore} ` +
+      `→ <span class="highlight">${chunks.length} clean</span> sent to Ollama ` +
+      `(~${Math.round(stats.skipped / totalBefore * 100)}% savings)`;
+  } else {
+    filterStats.style.display = 'none';
+  }
+
+  log(`Model: ${model} · Concurrency: ${concurrency}`, 'info');
+
+  // SPEED OPTIMIZATION 2: Pre-warm the model (loads into VRAM once)
+  try {
+    log(`Warming up model...`, 'info');
+    await ollamaGenerate('Hi', model);
+    log(`✓ Model loaded in VRAM`, 'ok');
+  } catch(e) {
+    log(`⚠ Warm-up failed: ${e.message}`, 'err');
+  }
+
   log(`Starting generation...`, 'info');
-
   const startTime = Date.now();
+  let completed = 0;
 
-  for (let i = 0; i < chunks.length; i++) {
+  // SPEED OPTIMIZATION 3: Parallel batch processing
+  for (let i = 0; i < chunks.length; i += concurrency) {
     if (!running) { log('Stopped by user', 'err'); break; }
 
-    const pct = ((i + 1) / chunks.length * 100).toFixed(0);
+    const batch = chunks.slice(i, Math.min(i + concurrency, chunks.length));
+    const promises = batch.map(async (chunk) => {
+      try {
+        const prompt = `${systemPrompt}\n\nText:\n${chunk}`;
+        const response = await ollamaGenerate(prompt, model);
+        const { instruction, output } = parsePairResponse(response);
+
+        if (instruction.length > 5 && output.length > 5) {
+          const pair = { instruction, output };
+          pairs.push(pair);
+          addPairToUI(pair, pairs.length);
+          log(`✓ Pair ${pairs.length}: "${instruction.substring(0, 60)}..."`, 'ok');
+        } else {
+          log(`⚠ Weak response, skipped`, 'err');
+        }
+      } catch(e) {
+        if (e.name === 'AbortError') throw e;
+        log(`✗ ${e.message}`, 'err');
+      }
+    });
+
+    try { await Promise.all(promises); }
+    catch(e) { if (e.name === 'AbortError') { log('Stopped', 'err'); break; } }
+
+    completed += batch.length;
+    const pct = (completed / chunks.length * 100).toFixed(0);
     progressFill.style.width = pct + '%';
     progressPct.textContent = pct + '%';
-
     const elapsed = (Date.now() - startTime) / 1000;
-    const rate = (i + 1) / elapsed;
-    const remaining = ((chunks.length - i - 1) / rate / 60).toFixed(1);
-    progressLabel.textContent = `Chunk ${i + 1}/${chunks.length} · ~${remaining} min left`;
-
-    try {
-      const prompt = `${systemPrompt}\n\nText:\n${chunks[i]}`;
-      const response = await ollamaGenerate(prompt, model);
-      const { instruction, output } = parsePairResponse(response);
-
-      if (instruction.length > 5 && output.length > 5) {
-        const pair = { instruction, output };
-        pairs.push(pair);
-        addPairToUI(pair, pairs.length);
-        log(`✓ Pair ${pairs.length}: "${instruction.substring(0, 60)}..."`, 'ok');
-      } else {
-        log(`⚠ Chunk ${i+1}: weak response, skipped`, 'err');
-      }
-    } catch(e) {
-      if (e.name === 'AbortError') { log('Stopped', 'err'); break; }
-      log(`✗ Chunk ${i+1}: ${e.message}`, 'err');
-    }
+    const rate = completed / elapsed;
+    const remaining = ((chunks.length - completed) / rate / 60).toFixed(1);
+    progressLabel.textContent = `Chunk ${completed}/${chunks.length} · ~${remaining} min left`;
   }
 
   // Done
@@ -724,18 +955,15 @@ function log(msg, cls = '') {
 }
 
 function addPairToUI(pair, idx) {
-  // Only show first 20 and last 5 to keep UI fast
   if (idx > 20 && idx < pairs.length - 5) {
     if (idx === 21) {
       const note = document.createElement('div');
       note.style.cssText = 'text-align:center; color:var(--text2); padding:.5rem; font-size:.8rem;';
       note.textContent = '... more pairs (see download) ...';
-      note.id = 'pair-ellipsis';
       resultsList.appendChild(note);
     }
     return;
   }
-
   const el = document.createElement('div');
   el.className = 'pair-card';
   el.innerHTML = `
@@ -783,10 +1011,23 @@ function downloadJSON() {
 // ============================================================================
 // FILE HANDLING
 // ============================================================================
+function updatePreviewStats() {
+  if (!extractedText) return;
+  const chunkSize = parseInt($('chunk-size').value) || 500;
+  const allChunks = chunkText(extractedText, chunkSize);
+  let skipCount = 0;
+  for (const c of allChunks) { if (!filterChunk(c).keep) skipCount++; }
+  const cleanCount = allChunks.length - skipCount;
+  const words = extractedText.split(/\s+/).length;
+  $('file-meta').textContent =
+    `~${words.toLocaleString()} words · ${allChunks.length} chunks (${skipCount} filtered → ${cleanCount} to Ollama)`;
+}
+
 async function handleFile(file) {
   fileName = file.name;
   $('file-name').textContent = file.name;
   fileInfo.style.display = 'block';
+  filterStats.style.display = 'none';
   btnStart.disabled = true;
 
   try {
@@ -795,14 +1036,17 @@ async function handleFile(file) {
     progressLog.innerHTML = '';
 
     extractedText = await parseFile(file);
+    updatePreviewStats();
 
-    const words = extractedText.split(/\s+/).length;
     const chunkSize = parseInt($('chunk-size').value) || 500;
-    const estChunks = chunkText(extractedText, chunkSize).length;
-    $('file-meta').textContent =
-      `${(file.size / 1024).toFixed(0)} KB · ~${words.toLocaleString()} words · ~${estChunks} chunks`;
+    const allChunks = chunkText(extractedText, chunkSize);
+    let skipCount = 0;
+    for (const c of allChunks) { if (!filterChunk(c).keep) skipCount++; }
 
-    log(`✓ Ready! ${words.toLocaleString()} words, ~${estChunks} chunks`, 'ok');
+    log(`✓ Ready! Parsed successfully`, 'ok');
+    if (skipCount > 0) {
+      log(`🧹 Smart filter preview: ${skipCount} junk chunks detected (~${Math.round(skipCount / allChunks.length * 100)}% will be skipped)`, 'filter');
+    }
     btnStart.disabled = false;
   } catch(e) {
     $('file-meta').textContent = `Error: ${e.message}`;
@@ -815,7 +1059,6 @@ async function handleFile(file) {
 // ============================================================================
 dropZone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
@@ -829,20 +1072,16 @@ btnStop.addEventListener('click', () => { running = false; abortCtrl?.abort(); }
 btnJsonl.addEventListener('click', downloadJSONL);
 btnJson.addEventListener('click', downloadJSON);
 
-// Update chunk estimate when chunk size changes
-$('chunk-size').addEventListener('change', () => {
-  if (extractedText) {
-    const chunkSize = parseInt($('chunk-size').value) || 500;
-    const estChunks = chunkText(extractedText, chunkSize).length;
-    $('file-meta').textContent = $('file-meta').textContent.replace(/~\d+ chunks/, `~${estChunks} chunks`);
-  }
+// Live-update stats when settings change
+$('chunk-size').addEventListener('change', updatePreviewStats);
+document.querySelectorAll('.filter-grid input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', updatePreviewStats);
 });
 
 // ============================================================================
 // INIT
 // ============================================================================
 checkOllama();
-// Re-check every 10s if not connected
 setInterval(() => {
   if (!statusDot.classList.contains('ok') && !running) checkOllama();
 }, 10000);
