@@ -771,7 +771,7 @@ function getActiveFilters() {
 
 function filterChunk(text) {
   const f = getActiveFilters();
-  if (f.blanks && text.trim().split(/\s+/).length < 8) return { keep: false, reason: 'blank/tiny' };
+  if (f.blanks && text.trim().split(/\s+/).length < 5) return { keep: false, reason: 'blank/tiny' };
   if (f.pagenum) {
     const d = (text.match(/\d/g) || []).length, total = text.replace(/\s/g, '').length;
     if (total > 10 && d / total > 0.4) return { keep: false, reason: 'page-number-heavy' };
@@ -842,37 +842,111 @@ async function parsePDFEnhanced(file) {
   let fullText = '';
   let eqPagesOCR = 0;
   let eqPagesUnicode = 0;
+  let ocrFallbackPages = 0;
+  let emptyPages = 0;
+  let totalTextChars = 0;
+
+  // PASS 1: Quick scan first 10 pages to detect if this is an image-heavy PDF
+  let sampleTextLen = 0;
+  const samplePages = Math.min(10, pdf.numPages);
+  for (let i = 1; i <= samplePages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    sampleTextLen += content.items.map(it => it.str).join(' ').trim().length;
+  }
+  const avgCharsPerPage = sampleTextLen / samplePages;
+  const isImageHeavy = avgCharsPerPage < 100; // less than ~20 words/page average
+
+  if (isImageHeavy) {
+    log(`  ⚠ Image-heavy PDF detected (avg ${Math.round(avgCharsPerPage)} chars/page) — enabling OCR fallback`, 'eq');
+  } else {
+    log(`  📊 Text density: avg ${Math.round(avgCharsPerPage)} chars/page — PDF text extraction looks good`, 'info');
+  }
+
+  // PASS 2: Extract text from all pages, OCR when needed
+  const OCR_THRESHOLD = 50; // if PDF.js gets fewer chars than this, try OCR
 
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    let pageText = content.items.map(item => item.str).join(' ');
+    let pageText = content.items.map(item => item.str).join(' ').trim();
 
-    // Layer 1 (always): Unicode math normalization — free, instant
-    if (textHasUnicodeMath(pageText)) {
-      pageText = normalizeUnicodeMath(pageText);
-      eqPagesUnicode++;
-    }
-
-    // Layer 2 (if selected): Render page + OCR for equation regions
-    if (eqMode === 'render-ocr' && textHasEquations(pageText)) {
-      const ocrResult = await ocrPageForEquations(page, pageText, i);
-      if (ocrResult) {
-        pageText = mergeTextWithOCR(pageText, ocrResult);
-        eqPagesOCR++;
-        log(`  🔢 Page ${i}: equations enhanced via OCR`, 'eq');
+    // If page has very little text, try OCR (for image-heavy PDFs or scanned pages)
+    if (pageText.length < OCR_THRESHOLD) {
+      try {
+        const ocrText = await ocrFullPage(page, i);
+        if (ocrText && ocrText.length > pageText.length + 20) {
+          pageText = ocrText;
+          ocrFallbackPages++;
+        } else if (pageText.length < 10) {
+          emptyPages++;
+        }
+      } catch(e) {
+        // OCR failed, keep whatever PDF.js got
+        if (pageText.length < 10) emptyPages++;
+      }
+    } else {
+      // Normal text page — apply equation handling
+      if (textHasUnicodeMath(pageText)) {
+        pageText = normalizeUnicodeMath(pageText);
+        eqPagesUnicode++;
+      }
+      if (eqMode === 'render-ocr' && textHasEquations(pageText)) {
+        const ocrResult = await ocrPageForEquations(page, pageText, i);
+        if (ocrResult) {
+          pageText = mergeTextWithOCR(pageText, ocrResult);
+          eqPagesOCR++;
+        }
       }
     }
 
-    fullText += pageText + '\n\n';
+    totalTextChars += pageText.length;
+    if (pageText.trim().length > 10) {
+      fullText += pageText + '\n\n';
+    }
+
     if (i % 10 === 0) log(`  PDF page ${i}/${pdf.numPages}`, 'info');
   }
 
-  log(`  ✓ ${pdf.numPages} pages extracted`, 'ok');
+  log(`  ✓ ${pdf.numPages} pages extracted (${Math.round(totalTextChars / 1024)} KB text)`, 'ok');
+  if (emptyPages > 0) log(`  📊 ${emptyPages} pages had no extractable text (images/blanks)`, 'info');
+  if (ocrFallbackPages > 0) log(`  🔍 ${ocrFallbackPages} pages recovered via OCR fallback`, 'eq');
   if (eqPagesUnicode > 0) log(`  🔢 ${eqPagesUnicode} pages: Unicode math normalized`, 'eq');
   if (eqPagesOCR > 0) log(`  🔢 ${eqPagesOCR} pages: equations enhanced via OCR`, 'eq');
 
+  // Warn if very little text was extracted overall
+  const totalWords = fullText.split(/\s+/).length;
+  if (totalWords < 200) {
+    log(`  ⚠ WARNING: Only ~${totalWords} words extracted. This PDF may be mostly images/scans.`, 'err');
+    log(`  💡 Tip: For scanned books, Equation Handling "Render page → OCR" helps, but very image-heavy books may need pre-OCR.`, 'info');
+  }
+
   return { text: fullText };
+}
+
+/**
+ * OCR a full PDF page — used as fallback when PDF.js extracts very little text.
+ * Renders the page to canvas at 2x, then runs Tesseract.
+ */
+async function ocrFullPage(page, pageNum) {
+  try {
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const imgData = canvas.toDataURL('image/png');
+    const worker = await getTesseractWorker();
+    const result = await worker.recognize(imgData);
+    const ocrText = result.data.text.trim();
+    canvas.remove();
+
+    return ocrText.length > 20 ? ocrText : null;
+  } catch(e) {
+    return null;
+  }
 }
 
 async function parseDOCX(file) {
@@ -911,7 +985,7 @@ function chunkText(text, maxLen) {
   const paragraphs = text.split(/\n\n+/);
   const chunks = []; let current = '';
   for (const para of paragraphs) {
-    if (current.length + para.length > maxLen && current.length > 50) {
+    if (current.length + para.length > maxLen && current.length > 30) {
       chunks.push(current.trim());
       current = para;
     } else {
@@ -919,7 +993,7 @@ function chunkText(text, maxLen) {
     }
   }
   if (current.trim().length > 30) chunks.push(current.trim());
-  return chunks.filter(c => c.length > 50);
+  return chunks.filter(c => c.length > 30);
 }
 
 // ============================================================================
@@ -1109,6 +1183,25 @@ async function processQueue() {
       // Chunk
       let chunks = chunkText(rawText, chunkSize);
       const totalBefore = chunks.length;
+
+      // Diagnostic: log what we got
+      const rawWords = rawText.split(/\s+/).filter(w => w.length > 0).length;
+      const rawChars = rawText.length;
+      log(`📊 Extracted: ${rawChars} chars, ~${rawWords} words → ${totalBefore} chunks`, 'info');
+      if (totalBefore === 0 && rawChars > 0) {
+        log(`⚠ Text was extracted but no chunks formed. Possible causes:`, 'err');
+        log(`  - All text fragments < 50 chars (image-heavy PDF)`, 'err');
+        log(`  - Chunk size too large for the content density`, 'err');
+        // Try with a lower threshold as emergency fallback
+        const emergencyChunks = chunkText(rawText, Math.max(100, chunkSize));
+        if (emergencyChunks.length > 0) {
+          log(`  → Emergency re-chunk at min size found ${emergencyChunks.length} chunks`, 'info');
+          chunks = emergencyChunks;
+        }
+      }
+      if (totalBefore === 0 && rawChars < 500) {
+        log(`⚠ Very little text extracted from this file. It may be a scanned/image-only PDF.`, 'err');
+      }
 
       // Filter
       const stats = { skipped: 0, reasons: {} };
