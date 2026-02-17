@@ -516,12 +516,15 @@ OUTPUT: [your output here]</textarea>
 
 <script type="module">
 // ============================================================================
-// PDF.js setup
+// PDF.js setup — disable worker to avoid cross-origin redirect errors
+// The fake (in-thread) worker works fine for our sequential page processing
 // ============================================================================
 let pdfjsLib = null;
 try {
   pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+  // Do NOT set workerSrc — let PDF.js use its built-in fake worker
+  // This avoids: "Refused to cross-origin redirects of the top-level worker script"
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '';
 } catch(e) {
   console.warn('PDF.js import failed', e);
 }
