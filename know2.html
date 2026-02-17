@@ -9,8 +9,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
 <!-- Mammoth for DOCX parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
-<!-- JSZip for EPUB parsing (EPUB = zipped HTML) -->
+<!-- JSZip for EPUB parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Tesseract.js for equation OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,6 +31,7 @@
   --err: #ef4444;
   --blue: #60a5fa;
   --purple: #a78bfa;
+  --orange: #fb923c;
   --mono: 'JetBrains Mono', monospace;
   --sans: 'DM Sans', system-ui, sans-serif;
 }
@@ -141,7 +144,6 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   min-height: 80px;
 }
 
-/* Filter checkboxes */
 .filter-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -165,6 +167,7 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   height: 15px;
 }
 
+/* Drop zone — now multi-file */
 #drop-zone {
   border: 2px dashed var(--border);
   border-radius: 12px;
@@ -172,7 +175,7 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   text-align: center;
   cursor: pointer;
   transition: all .25s;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   background: var(--surface);
 }
 #drop-zone:hover, #drop-zone.dragover {
@@ -184,18 +187,55 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 #drop-zone p { color: var(--text2); font-size: .85rem; }
 #file-input { display: none; }
 
-#file-info {
-  display: none;
+/* File queue */
+#file-queue {
+  margin-bottom: 1.5rem;
+}
+.queue-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.2rem;
-  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  padding: .6rem 1rem;
+  margin-bottom: .4rem;
   font-family: var(--mono);
-  font-size: .85rem;
+  font-size: .8rem;
+  transition: border-color .2s;
 }
-#file-info .name { color: var(--accent); font-weight: 600; }
-#file-info .meta { color: var(--text2); margin-top: .3rem; }
+.queue-item.active { border-color: var(--accent); background: rgba(74,222,128,.04); }
+.queue-item.done { border-color: var(--accent); opacity: .7; }
+.queue-item.error { border-color: var(--err); }
+.queue-item .q-status {
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.queue-item .q-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-item .q-info { color: var(--text2); font-size: .72rem; flex-shrink: 0; }
+.queue-item .q-remove {
+  background: none;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 .3rem;
+  flex-shrink: 0;
+}
+.queue-item .q-remove:hover { color: var(--err); }
+.queue-item .q-download {
+  background: var(--surface2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: .7rem;
+  font-family: var(--mono);
+  padding: .2rem .5rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.queue-item .q-download:hover { background: var(--accent); color: var(--bg); }
 
 /* Filter stats bar */
 #filter-stats {
@@ -259,7 +299,7 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: .8rem 1rem;
-  max-height: 160px;
+  max-height: 200px;
   overflow-y: auto;
   font-family: var(--mono);
   font-size: .75rem;
@@ -270,6 +310,15 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 #progress-log .err { color: var(--err); }
 #progress-log .info { color: var(--blue); }
 #progress-log .filter { color: var(--purple); }
+#progress-log .eq { color: var(--orange); }
+#progress-log .file-header {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: .85rem;
+  margin-top: .5rem;
+  padding-top: .5rem;
+  border-top: 1px solid var(--border);
+}
 
 #results { display: none; margin-bottom: 2rem; }
 #results h2 { font-family: var(--mono); font-size: 1rem; margin-bottom: 1rem; color: var(--accent); }
@@ -300,6 +349,9 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
+/* Setup guide */
+#setup-guide { display: none; }
+
 @media (max-width: 600px) {
   .settings { grid-template-columns: 1fr; }
   .setting-card.wide { grid-column: 1; }
@@ -313,7 +365,7 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 
   <header>
     <h1>Book → Training Data</h1>
-    <p>Upload a book, get AI-ready instruction-output pairs via local Ollama</p>
+    <p>Queue multiple books — each auto-downloads as JSON + JSONL when done</p>
   </header>
 
   <div id="status-bar">
@@ -332,7 +384,6 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
       <input type="number" id="chunk-size" value="500" min="200" max="2000" step="100">
     </div>
 
-    <!-- NEW: Smart Filter -->
     <div class="setting-card wide">
       <label>🧹 Smart Content Filter — skip junk before Ollama touches it</label>
       <div class="filter-grid">
@@ -349,7 +400,6 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
       </div>
     </div>
 
-    <!-- NEW: Parallel requests -->
     <div class="setting-card">
       <label>Parallel Requests</label>
       <select id="concurrency">
@@ -360,13 +410,32 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
       </select>
     </div>
 
-    <!-- NEW: Figure handling -->
     <div class="setting-card">
       <label>Figure Handling</label>
       <select id="figure-mode">
         <option value="bind">Bind caption + context</option>
         <option value="skip">Skip figure-only chunks</option>
         <option value="keep">Keep as-is</option>
+      </select>
+    </div>
+
+    <!-- NEW: Equation handling -->
+    <div class="setting-card">
+      <label>PDF Equation Handling</label>
+      <select id="equation-mode">
+        <option value="render-ocr">Render page → OCR equations</option>
+        <option value="describe">Ask Ollama to describe equations</option>
+        <option value="off">Off (text-only extraction)</option>
+      </select>
+    </div>
+
+    <div class="setting-card">
+      <label>Auto-Download When Done</label>
+      <select id="auto-download">
+        <option value="both" selected>JSON + JSONL</option>
+        <option value="jsonl">JSONL only</option>
+        <option value="json">JSON only</option>
+        <option value="off">Off (manual download)</option>
       </select>
     </div>
 
@@ -377,6 +446,7 @@ header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
 Rules:
 - Instruction: A clear, specific question or task (1-2 sentences)
 - Output: A complete, accurate answer based on the text
+- If the text contains mathematical equations or formulas, preserve them accurately in the output
 
 Format EXACTLY as:
 INSTRUCTION: [your instruction here]
@@ -384,28 +454,25 @@ OUTPUT: [your output here]</textarea>
     </div>
   </div>
 
-  <!-- Upload -->
+  <!-- Upload — now multi-file -->
   <div id="drop-zone">
     <div class="icon">📚</div>
-    <h3>Drop your book here</h3>
-    <p>PDF · EPUB · DOCX · TXT — or click to browse</p>
-    <input type="file" id="file-input" accept=".pdf,.epub,.docx,.txt,.text">
+    <h3>Drop your books here (multiple files OK)</h3>
+    <p>PDF · EPUB · DOCX · TXT — select many at once or add one by one</p>
+    <input type="file" id="file-input" accept=".pdf,.epub,.docx,.txt,.text" multiple>
   </div>
 
-  <div id="file-info">
-    <div class="name" id="file-name"></div>
-    <div class="meta" id="file-meta"></div>
-  </div>
+  <!-- File queue -->
+  <div id="file-queue"></div>
 
   <!-- Filter stats -->
   <div id="filter-stats"></div>
 
   <!-- Actions -->
   <div class="btn-row">
-    <button class="btn btn-primary" id="btn-start" disabled>▶ Generate Training Data</button>
+    <button class="btn btn-primary" id="btn-start" disabled>▶ Process All Files</button>
     <button class="btn btn-stop" id="btn-stop" disabled style="display:none">■ Stop</button>
-    <button class="btn btn-secondary" id="btn-download-jsonl" disabled style="display:none">⬇ Download JSONL</button>
-    <button class="btn btn-secondary" id="btn-download-json" disabled style="display:none">⬇ Download JSON</button>
+    <button class="btn btn-secondary" id="btn-clear-queue" style="display:none">✕ Clear Queue</button>
   </div>
 
   <!-- Progress -->
@@ -420,9 +487,9 @@ OUTPUT: [your output here]</textarea>
     <div id="progress-log"></div>
   </div>
 
-  <!-- Results Preview -->
+  <!-- Results Preview (shows current file) -->
   <div id="results">
-    <h2>Generated Pairs</h2>
+    <h2>Generated Pairs (current file)</h2>
     <div id="results-count"></div>
     <div id="results-list"></div>
   </div>
@@ -438,7 +505,7 @@ OUTPUT: [your output here]</textarea>
         <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">ollama pull llama3.2:3b</code><br>
         <strong style="color:var(--text)">Step 3:</strong> Set CORS (one time):<br>
         &nbsp;&nbsp;• <strong>Mac:</strong> <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">launchctl setenv OLLAMA_ORIGINS "*"</code> then restart Ollama<br>
-        &nbsp;&nbsp;• <strong>Windows:</strong> Set environment variable <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS=*</code> in System Properties → Env Variables<br>
+        &nbsp;&nbsp;• <strong>Windows:</strong> Set env var <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS=*</code><br>
         &nbsp;&nbsp;• <strong>Linux:</strong> <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS="*" ollama serve</code><br>
         <strong style="color:var(--text)">Step 4:</strong> Refresh this page
       </div>
@@ -456,18 +523,18 @@ try {
   pdfjsLib = await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
 } catch(e) {
-  console.warn('PDF.js import failed, trying fallback...', e);
+  console.warn('PDF.js import failed', e);
 }
 
 // ============================================================================
 // STATE
 // ============================================================================
 const OLLAMA = 'http://localhost:11434';
-let extractedText = '';
-let fileName = '';
-let pairs = [];
 let running = false;
 let abortCtrl = null;
+
+// Multi-file queue: array of { file, status, pairs, el }
+let fileQueue = [];
 
 // ============================================================================
 // DOM
@@ -478,11 +545,10 @@ const statusText = $('status-text');
 const modelSelect = $('model-select');
 const dropZone = $('drop-zone');
 const fileInput = $('file-input');
-const fileInfo = $('file-info');
+const fileQueueDiv = $('file-queue');
 const btnStart = $('btn-start');
 const btnStop = $('btn-stop');
-const btnJsonl = $('btn-download-jsonl');
-const btnJson = $('btn-download-json');
+const btnClear = $('btn-clear-queue');
 const progressArea = $('progress-area');
 const progressFill = $('progress-fill');
 const progressLabel = $('progress-label');
@@ -505,7 +571,7 @@ async function checkOllama() {
     const data = await r.json();
     const models = (data.models || []).map(m => m.name);
     if (models.length === 0) {
-      setStatus('warn', 'Ollama running but no models. Run: ollama pull llama3.2:3b');
+      setStatus('warn', 'Ollama running but no models');
       setupGuide.style.display = 'block';
       return false;
     }
@@ -528,7 +594,6 @@ function setStatus(state, text) {
   statusText.textContent = text;
 }
 
-// SPEED OPTIMIZATION 1: keep_alive keeps model in VRAM between calls
 async function ollamaGenerate(prompt, model) {
   const r = await fetch(`${OLLAMA}/api/generate`, {
     method: 'POST',
@@ -546,137 +611,170 @@ async function ollamaGenerate(prompt, model) {
 }
 
 // ============================================================================
-// SMART CONTENT FILTER — runs entirely in browser, zero Ollama cost
+// EQUATION EXTRACTION FROM PDF PAGES
 // ============================================================================
+// Strategy: render each PDF page to a canvas at high DPI, then look for
+// regions that contain mathematical notation. We use two approaches:
+//
+// 1. "render-ocr": Render page → canvas, look for equation-like patterns
+//    in the raw text. If detected, crop that region, OCR with Tesseract
+//    to get a better text representation, and describe it as LaTeX-like.
+//
+// 2. "describe": Send the text chunk containing equation-like symbols
+//    to Ollama and ask it to rewrite equations in readable form.
 
+// Heuristics: does this text likely contain equations?
+const EQUATION_SIGNALS = [
+  /[=∑∫∏√∂∇∞±×÷≈≠≤≥∈∉⊂⊃∪∩∀∃]/,        // math symbols
+  /\b[a-z]\s*[=<>]\s*[a-z0-9]/i,             // x = y patterns
+  /\b(sin|cos|tan|log|ln|exp|lim|max|min|sum|prod)\s*[(\[]/i, // functions
+  /\^\{?[\d\w]+\}?/,                          // superscripts x^2
+  /_\{?[\d\w]+\}?/,                           // subscripts x_i
+  /\\(frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|sigma|lambda|mu|pi|phi|omega)/i, // LaTeX
+  /\b[A-Z]\s*=\s*[A-Z0-9]/,                  // F = ma style
+  /\(\s*\d+\s*[+\-*/]\s*\d+\s*\)/,           // (a + b)
+  /\bd[a-z]\s*\/\s*d[a-z]/i,                  // dx/dt derivatives
+];
+
+function textHasEquations(text) {
+  return EQUATION_SIGNALS.some(re => re.test(text));
+}
+
+/**
+ * Render a PDF page to canvas and OCR equation regions.
+ * Returns enhanced text with equations described.
+ */
+async function extractEquationsFromPage(page, pageText, pageNum) {
+  // Only process if page text looks like it has equations
+  if (!textHasEquations(pageText)) return null;
+
+  try {
+    // Render page at 2x scale for better OCR
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // Convert canvas to image data for Tesseract
+    const imgData = canvas.toDataURL('image/png');
+
+    // OCR the full page — Tesseract often reads equations better than PDF.js text extraction
+    const result = await Tesseract.recognize(imgData, 'eng', {
+      logger: () => {}, // silent
+    });
+
+    const ocrText = result.data.text.trim();
+    canvas.remove();
+
+    // Compare: if OCR caught more equation-like content, return it
+    const ocrHasMore = EQUATION_SIGNALS.filter(re => re.test(ocrText)).length >
+                       EQUATION_SIGNALS.filter(re => re.test(pageText)).length;
+
+    if (ocrHasMore && ocrText.length > 30) {
+      return ocrText;
+    }
+
+    return null;
+  } catch(e) {
+    console.warn(`Equation OCR failed page ${pageNum}:`, e);
+    return null;
+  }
+}
+
+/**
+ * Ask Ollama to describe/rewrite equations in a chunk.
+ */
+async function describeEquationsViaOllama(text, model) {
+  if (!textHasEquations(text)) return text;
+
+  try {
+    const prompt = `The following text contains mathematical equations or formulas. ` +
+      `Rewrite the text preserving ALL content, but convert any equations into clear, readable form. ` +
+      `Use standard notation like x^2 for superscripts, x_i for subscripts, sqrt() for roots. ` +
+      `Do NOT add explanations — just return the cleaned text with readable equations.\n\n` +
+      `Text:\n${text}`;
+
+    const response = await ollamaGenerate(prompt, model);
+    // Only use the response if it's reasonable
+    if (response.length > text.length * 0.5 && response.length < text.length * 3) {
+      return response;
+    }
+  } catch(e) {
+    // Fall back to original text
+  }
+  return text;
+}
+
+// ============================================================================
+// SMART CONTENT FILTER
+// ============================================================================
 const FILTER_PATTERNS = {
   dedication: [
-    /^dedicated\s+to/i,
-    /^to\s+my\s+(wife|husband|family|parents|children|mother|father)/i,
-    /^in\s+memory\s+of/i,
-    /^for\s+my\s+/i,
-    /^this\s+book\s+is\s+dedicated/i,
+    /^dedicated\s+to/i, /^to\s+my\s+(wife|husband|family|parents|children|mother|father)/i,
+    /^in\s+memory\s+of/i, /^for\s+my\s+/i, /^this\s+book\s+is\s+dedicated/i,
   ],
   copyright: [
-    /all\s+rights\s+reserved/i,
-    /isbn[\s:\-]*[\dxX\-]{10,}/i,
-    /library\s+of\s+congress/i,
-    /printed\s+in\s+(the\s+)?united\s+states/i,
-    /no\s+part\s+of\s+this\s+(book|publication)/i,
-    /permission\s+.*\s+publisher/i,
-    /cataloging[\-\s]in[\-\s]publication/i,
-    /©\s*\d{4}/,
+    /all\s+rights\s+reserved/i, /isbn[\s:\-]*[\dxX\-]{10,}/i,
+    /library\s+of\s+congress/i, /printed\s+in\s+(the\s+)?united\s+states/i,
+    /no\s+part\s+of\s+this\s+(book|publication)/i, /permission\s+.*\s+publisher/i,
+    /cataloging[\-\s]in[\-\s]publication/i, /©\s*\d{4}/,
   ],
-  toc: [
-    /^table\s+of\s+contents/i,
-    /^contents$/im,
-  ],
-  listfig: [
-    /^list\s+of\s+(figures|tables|illustrations|abbreviations|acronyms|symbols)/i,
-  ],
+  toc: [/^table\s+of\s+contents/i, /^contents$/im],
+  listfig: [/^list\s+of\s+(figures|tables|illustrations|abbreviations|acronyms|symbols)/i],
   preface: [
-    /^preface$/im,
-    /^acknowledgment/im,
-    /^about\s+the\s+author/im,
-    /^author\s+biograph/im,
-    /^contributor/im,
-    /^foreword$/im,
+    /^preface$/im, /^acknowledgment/im, /^about\s+the\s+author/im,
+    /^author\s+biograph/im, /^contributor/im, /^foreword$/im,
   ],
-  references: [
-    /^references$/im,
-    /^bibliography$/im,
-    /^works\s+cited$/im,
-    /^further\s+reading$/im,
-  ],
-  index: [
-    /^(subject\s+)?index$/im,
-    /^author\s+index$/im,
-  ],
-  endnotes: [
-    /^endnotes$/im,
-    /^notes$/im,
-    /^footnotes$/im,
-  ],
+  references: [/^references$/im, /^bibliography$/im, /^works\s+cited$/im, /^further\s+reading$/im],
+  index: [/^(subject\s+)?index$/im, /^author\s+index$/im],
+  endnotes: [/^endnotes$/im, /^notes$/im, /^footnotes$/im],
 };
 
-// Structural detectors — catch these by SHAPE even without headers
-function hasTocStructure(text) {
-  const lines = text.trim().split('\n');
-  if (lines.length < 4) return false;
-  const tocLine = /[\.\s]{3,}\d+\s*$/;
-  const matching = lines.filter(l => tocLine.test(l.trim())).length;
-  return matching / lines.length > 0.4;
+function hasTocStructure(t) {
+  const l = t.trim().split('\n'); if (l.length < 4) return false;
+  return l.filter(x => /[\.\s]{3,}\d+\s*$/.test(x.trim())).length / l.length > 0.4;
 }
-
-function hasReferenceStructure(text) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 3) return false;
-  const refs = [/^\[\d+\]/, /^\d+\.\s+[A-Z]/, /^[A-Z][a-z]+,\s+[A-Z]/];
-  const matching = lines.filter(l => refs.some(p => p.test(l.trim()))).length;
-  return matching / lines.length > 0.5;
+function hasRefStructure(t) {
+  const l = t.trim().split('\n').filter(x => x.trim()); if (l.length < 3) return false;
+  const p = [/^\[\d+\]/, /^\d+\.\s+[A-Z]/, /^[A-Z][a-z]+,\s+[A-Z]/];
+  return l.filter(x => p.some(r => r.test(x.trim()))).length / l.length > 0.5;
 }
-
-function hasIndexStructure(text) {
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  if (lines.length < 6) return false;
-  const indexLine = /^.{2,50},?\s+\d[\d,\s\-]*$/;
-  const matching = lines.filter(l => indexLine.test(l.trim())).length;
-  return matching / lines.length > 0.4;
+function hasIndexStructure(t) {
+  const l = t.trim().split('\n').filter(x => x.trim()); if (l.length < 6) return false;
+  return l.filter(x => /^.{2,50},?\s+\d[\d,\s\-]*$/.test(x.trim())).length / l.length > 0.4;
 }
 
 function getActiveFilters() {
   return {
-    dedication: $('f-dedication').checked,
-    copyright: $('f-copyright').checked,
-    toc: $('f-toc').checked,
-    listfig: $('f-listfig').checked,
-    preface: $('f-preface').checked,
-    references: $('f-references').checked,
-    index: $('f-index').checked,
-    endnotes: $('f-endnotes').checked,
-    blanks: $('f-blanks').checked,
-    pagenum: $('f-pagenum').checked,
+    dedication: $('f-dedication').checked, copyright: $('f-copyright').checked,
+    toc: $('f-toc').checked, listfig: $('f-listfig').checked,
+    preface: $('f-preface').checked, references: $('f-references').checked,
+    index: $('f-index').checked, endnotes: $('f-endnotes').checked,
+    blanks: $('f-blanks').checked, pagenum: $('f-pagenum').checked,
   };
 }
 
 function filterChunk(text) {
   const f = getActiveFilters();
-
-  // Blank / tiny
-  if (f.blanks && text.trim().split(/\s+/).length < 8) {
-    return { keep: false, reason: 'blank/tiny' };
-  }
-
-  // Page-number heavy (>40% digits)
+  if (f.blanks && text.trim().split(/\s+/).length < 8) return { keep: false, reason: 'blank/tiny' };
   if (f.pagenum) {
-    const digits = (text.match(/\d/g) || []).length;
-    const total = text.replace(/\s/g, '').length;
-    if (total > 10 && digits / total > 0.4) {
-      return { keep: false, reason: 'page-number-heavy' };
-    }
+    const d = (text.match(/\d/g) || []).length, total = text.replace(/\s/g, '').length;
+    if (total > 10 && d / total > 0.4) return { keep: false, reason: 'page-number-heavy' };
   }
-
-  // Regex pattern matching
-  const map = {
-    dedication: 'dedication', copyright: 'copyright', toc: 'toc',
-    listfig: 'listfig', preface: 'preface', references: 'references',
-    index: 'index', endnotes: 'endnotes',
-  };
-  for (const [patKey, filterKey] of Object.entries(map)) {
-    if (!f[filterKey]) continue;
-    if (FILTER_PATTERNS[patKey]?.some(p => p.test(text))) {
-      return { keep: false, reason: patKey };
-    }
+  const map = { dedication:'dedication', copyright:'copyright', toc:'toc', listfig:'listfig',
+    preface:'preface', references:'references', index:'index', endnotes:'endnotes' };
+  for (const [pk, fk] of Object.entries(map)) {
+    if (!f[fk]) continue;
+    if (FILTER_PATTERNS[pk]?.some(p => p.test(text))) return { keep: false, reason: pk };
   }
-
-  // Structural detection (catches pattern even without header text)
   if (f.toc && hasTocStructure(text)) return { keep: false, reason: 'toc-structure' };
-  if (f.references && hasReferenceStructure(text)) return { keep: false, reason: 'ref-structure' };
+  if (f.references && hasRefStructure(text)) return { keep: false, reason: 'ref-structure' };
   if (f.index && hasIndexStructure(text)) return { keep: false, reason: 'index-structure' };
-
   return { keep: true, reason: '' };
 }
-
 
 // ============================================================================
 // FIGURE CAPTION HANDLING
@@ -686,36 +784,24 @@ const FIGURE_RE = /(?:^|\n)\s*(fig(?:ure)?|table|diagram|chart|exhibit)[\s.]*(\d
 function processChunksForFigures(chunks) {
   const mode = $('figure-mode').value;
   if (mode === 'keep') return chunks;
-
   const out = [];
   for (let i = 0; i < chunks.length; i++) {
     const fig = chunks[i].match(FIGURE_RE);
     if (!fig) { out.push(chunks[i]); continue; }
-
     if (mode === 'skip') {
-      // Only skip if chunk is MOSTLY just the caption (few real words)
-      const withoutCaption = chunks[i].replace(FIGURE_RE, '').trim();
-      if (withoutCaption.split(/\s+/).length < 15) continue;
-      out.push(chunks[i]);
-      continue;
+      const wo = chunks[i].replace(FIGURE_RE, '').trim();
+      if (wo.split(/\s+/).length < 15) continue;
+      out.push(chunks[i]); continue;
     }
-
-    // mode === 'bind': glue surrounding context to the figure caption
+    // bind
     let bound = '';
-    if (i > 0) {
-      const prevWords = chunks[i - 1].split(/\s+/);
-      bound += prevWords.slice(-25).join(' ') + '\n\n';
-    }
+    if (i > 0) bound += chunks[i-1].split(/\s+/).slice(-25).join(' ') + '\n\n';
     bound += chunks[i];
-    if (i < chunks.length - 1) {
-      const nextWords = chunks[i + 1].split(/\s+/);
-      bound += '\n\n' + nextWords.slice(0, 25).join(' ');
-    }
+    if (i < chunks.length - 1) bound += '\n\n' + chunks[i+1].split(/\s+/).slice(0, 25).join(' ');
     out.push(bound);
   }
   return out;
 }
-
 
 // ============================================================================
 // FILE PARSERS
@@ -724,28 +810,84 @@ async function parseFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
   log(`Parsing ${file.name} (${(file.size/1024).toFixed(0)} KB)...`, 'info');
   switch (ext) {
-    case 'txt': case 'text': return await file.text();
-    case 'pdf': return await parsePDF(file);
-    case 'docx': return await parseDOCX(file);
-    case 'epub': return await parseEPUB(file);
-    default: throw new Error(`Unsupported format: .${ext}`);
+    case 'txt': case 'text': return { text: await file.text(), pages: null };
+    case 'pdf': return await parsePDFEnhanced(file);
+    case 'docx': return { text: await parseDOCX(file), pages: null };
+    case 'epub': return { text: await parseEPUB(file), pages: null };
+    default: throw new Error(`Unsupported: .${ext}`);
   }
 }
 
-async function parsePDF(file) {
-  if (!pdfjsLib) throw new Error('PDF.js not loaded. Check internet connection.');
+/**
+ * Enhanced PDF parser: extracts text AND optionally renders pages
+ * for equation OCR.
+ */
+async function parsePDFEnhanced(file) {
+  if (!pdfjsLib) throw new Error('PDF.js not loaded.');
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  let text = '';
+  const eqMode = $('equation-mode').value;
+
+  let fullText = '';
+  const pagesData = []; // store per-page for equation processing
+
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str).join(' ');
-    text += pageText + '\n\n';
-    if (i % 20 === 0) log(`  PDF page ${i}/${pdf.numPages}`, 'info');
+    let pageText = content.items.map(item => item.str).join(' ');
+
+    // Equation OCR: render page and try to read equations
+    if (eqMode === 'render-ocr') {
+      const ocrResult = await extractEquationsFromPage(page, pageText, i);
+      if (ocrResult) {
+        log(`  🔢 Page ${i}: equations enhanced via OCR`, 'eq');
+        // Merge: keep the OCR version for equation regions
+        pageText = mergeTextWithOCR(pageText, ocrResult);
+      }
+    }
+
+    pagesData.push({ pageNum: i, text: pageText, page });
+    fullText += pageText + '\n\n';
+
+    if (i % 10 === 0) log(`  PDF page ${i}/${pdf.numPages}`, 'info');
   }
+
   log(`  ✓ Extracted ${pdf.numPages} pages`, 'ok');
-  return text;
+  return { text: fullText, pages: pagesData, pdf };
+}
+
+/**
+ * Merge original PDF.js text with OCR text for better equation coverage.
+ * OCR often reads equation symbols better; PDF.js reads regular text better.
+ */
+function mergeTextWithOCR(pdfText, ocrText) {
+  // If OCR text has significantly more math symbols, prefer it for equation regions
+  const pdfMathCount = EQUATION_SIGNALS.filter(re => re.test(pdfText)).length;
+  const ocrMathCount = EQUATION_SIGNALS.filter(re => re.test(ocrText)).length;
+
+  if (ocrMathCount > pdfMathCount + 2) {
+    // OCR caught a lot more equations — use OCR text but note the source
+    return ocrText + '\n[Note: Enhanced via OCR for equation accuracy]';
+  }
+
+  // Otherwise prefer PDF.js text (cleaner for regular text) but append
+  // any equation-rich lines from OCR that are missing
+  const ocrLines = ocrText.split('\n');
+  const equationLines = ocrLines.filter(l => EQUATION_SIGNALS.some(re => re.test(l)));
+
+  if (equationLines.length > 0) {
+    // Check if these equation lines are already in the PDF text
+    const missing = equationLines.filter(eqLine => {
+      const simplified = eqLine.replace(/\s+/g, '').toLowerCase();
+      return !pdfText.replace(/\s+/g, '').toLowerCase().includes(simplified.substring(0, 20));
+    });
+
+    if (missing.length > 0) {
+      return pdfText + '\n\n[Equations from page scan:]\n' + missing.join('\n');
+    }
+  }
+
+  return pdfText;
 }
 
 async function parseDOCX(file) {
@@ -759,7 +901,7 @@ async function parseEPUB(file) {
   const buf = await file.arrayBuffer();
   const zip = await JSZip.loadAsync(buf);
   let text = '';
-  let chapterCount = 0;
+  let count = 0;
   const htmlFiles = [];
   zip.forEach((path, entry) => {
     if (!entry.dir && /\.(x?html?|htm)$/i.test(path)) htmlFiles.push(path);
@@ -769,11 +911,11 @@ async function parseEPUB(file) {
     try {
       const html = await zip.file(path).async('string');
       const doc = new DOMParser().parseFromString(html, 'text/html');
-      const chText = doc.body?.textContent?.trim() || '';
-      if (chText.length > 20) { text += chText + '\n\n'; chapterCount++; }
+      const t = doc.body?.textContent?.trim() || '';
+      if (t.length > 20) { text += t + '\n\n'; count++; }
     } catch(e) {}
   }
-  log(`  ✓ EPUB: ${chapterCount} chapters extracted`, 'ok');
+  log(`  ✓ EPUB: ${count} chapters`, 'ok');
   return text;
 }
 
@@ -785,7 +927,6 @@ function chunkText(text, maxLen) {
   const paragraphs = text.split(/\n\n+/);
   const chunks = [];
   let current = '';
-
   for (const para of paragraphs) {
     if (current.length + para.length > maxLen && current.length > 50) {
       chunks.push(current.trim());
@@ -799,7 +940,7 @@ function chunkText(text, maxLen) {
 }
 
 // ============================================================================
-// PAIR GENERATION — with filtering + parallelism
+// PAIR PARSING
 // ============================================================================
 function parsePairResponse(response) {
   let instruction = '', output = '';
@@ -817,130 +958,279 @@ function parsePairResponse(response) {
   return { instruction, output };
 }
 
-async function generatePairs() {
+// ============================================================================
+// DOWNLOAD HELPERS
+// ============================================================================
+function downloadFile(content, name, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function autoDownloadPairs(pairs, baseName) {
+  const mode = $('auto-download').value;
+  if (mode === 'off') return;
+
+  const safeName = baseName.replace(/\.[^.]+$/, '');
+
+  if (mode === 'jsonl' || mode === 'both') {
+    const content = pairs.map(p => JSON.stringify(p)).join('\n');
+    downloadFile(content, `${safeName}_training_data.jsonl`, 'application/jsonl');
+  }
+  if (mode === 'json' || mode === 'both') {
+    const content = JSON.stringify(pairs, null, 2);
+    downloadFile(content, `${safeName}_training_data.json`, 'application/json');
+  }
+}
+
+// ============================================================================
+// MULTI-FILE QUEUE
+// ============================================================================
+function addToQueue(files) {
+  for (const file of files) {
+    // Skip duplicates
+    if (fileQueue.some(q => q.file.name === file.name && q.file.size === file.size)) continue;
+
+    const item = {
+      file,
+      status: 'pending',  // pending | active | done | error
+      pairs: [],
+      el: null,
+    };
+    fileQueue.push(item);
+  }
+  renderQueue();
+  updateStartButton();
+}
+
+function removeFromQueue(idx) {
+  if (fileQueue[idx]?.status === 'active') return; // can't remove while processing
+  fileQueue.splice(idx, 1);
+  renderQueue();
+  updateStartButton();
+}
+
+function renderQueue() {
+  fileQueueDiv.innerHTML = '';
+  if (fileQueue.length === 0) {
+    btnClear.style.display = 'none';
+    return;
+  }
+  btnClear.style.display = '';
+
+  fileQueue.forEach((item, idx) => {
+    const el = document.createElement('div');
+    el.className = `queue-item ${item.status}`;
+
+    const statusIcon = {
+      pending: '⏳', active: '⚡', done: '✅', error: '❌'
+    }[item.status];
+
+    const sizeKB = (item.file.size / 1024).toFixed(0);
+    let info = `${sizeKB} KB`;
+    if (item.status === 'done') info = `${item.pairs.length} pairs`;
+    if (item.status === 'error') info = 'failed';
+
+    el.innerHTML = `
+      <span class="q-status">${statusIcon}</span>
+      <span class="q-name">${item.file.name}</span>
+      <span class="q-info">${info}</span>
+    `;
+
+    // Download buttons for completed files
+    if (item.status === 'done' && item.pairs.length > 0) {
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'q-download';
+      dlBtn.textContent = '⬇ Re-download';
+      dlBtn.onclick = (e) => { e.stopPropagation(); autoDownloadPairs(item.pairs, item.file.name); };
+      el.appendChild(dlBtn);
+    }
+
+    // Remove button (only if not active)
+    if (item.status !== 'active') {
+      const rmBtn = document.createElement('button');
+      rmBtn.className = 'q-remove';
+      rmBtn.textContent = '×';
+      rmBtn.onclick = (e) => { e.stopPropagation(); removeFromQueue(idx); };
+      el.appendChild(rmBtn);
+    }
+
+    item.el = el;
+    fileQueueDiv.appendChild(el);
+  });
+}
+
+function updateStartButton() {
+  const hasPending = fileQueue.some(q => q.status === 'pending');
+  btnStart.disabled = !hasPending || running;
+  btnStart.textContent = fileQueue.length > 1
+    ? `▶ Process All Files (${fileQueue.filter(q => q.status === 'pending').length} remaining)`
+    : '▶ Process File';
+}
+
+// ============================================================================
+// MAIN PROCESSING LOOP — processes each file in queue sequentially
+// ============================================================================
+async function processQueue() {
   running = true;
   abortCtrl = new AbortController();
-  pairs = [];
+  btnStart.disabled = true;
+  btnStop.disabled = false;
+  btnStop.style.display = '';
+  progressArea.style.display = 'block';
+
   const model = modelSelect.value;
   const chunkSize = parseInt($('chunk-size').value) || 500;
   const systemPrompt = $('system-prompt').value;
   const concurrency = parseInt($('concurrency').value) || 1;
+  const eqMode = $('equation-mode').value;
 
-  // Reset UI
-  progressArea.style.display = 'block';
-  progressLog.innerHTML = '';
-  resultsList.innerHTML = '';
-  resultsDiv.style.display = 'none';
-  btnStart.disabled = true;
-  btnStop.disabled = false;
-  btnStop.style.display = '';
-  btnJsonl.style.display = 'none';
-  btnJson.style.display = 'none';
-
-  // STEP 1: Chunk
-  let chunks = chunkText(extractedText, chunkSize);
-  const totalBefore = chunks.length;
-  log(`Split into ${chunks.length} chunks (${chunkSize} char each)`, 'info');
-
-  // STEP 2: SMART FILTER — free, instant, no Ollama calls
-  const stats = { kept: 0, skipped: 0, reasons: {} };
-  const clean = [];
-  for (const c of chunks) {
-    const r = filterChunk(c);
-    if (r.keep) { clean.push(c); stats.kept++; }
-    else { stats.skipped++; stats.reasons[r.reason] = (stats.reasons[r.reason] || 0) + 1; }
-  }
-  chunks = clean;
-
-  // STEP 3: Figure handling
-  chunks = processChunksForFigures(chunks);
-
-  // Show filter stats
-  if (stats.skipped > 0) {
-    const reasons = Object.entries(stats.reasons).map(([r,c]) => `${r}:${c}`).join(' · ');
-    log(`🧹 Filtered ${stats.skipped}/${totalBefore} chunks → ${reasons}`, 'filter');
-    log(`📦 ${chunks.length} clean chunks → Ollama (saved ~${stats.skipped} API calls)`, 'filter');
-    filterStats.style.display = 'block';
-    filterStats.innerHTML =
-      `🧹 <span class="saved">${stats.skipped} junk chunks removed</span> out of ${totalBefore} ` +
-      `→ <span class="highlight">${chunks.length} clean</span> sent to Ollama ` +
-      `(~${Math.round(stats.skipped / totalBefore * 100)}% savings)`;
-  } else {
-    filterStats.style.display = 'none';
-  }
-
-  log(`Model: ${model} · Concurrency: ${concurrency}`, 'info');
-
-  // SPEED OPTIMIZATION 2: Pre-warm the model (loads into VRAM once)
+  // Warm up model once
   try {
-    log(`Warming up model...`, 'info');
+    log(`Warming up model: ${model}...`, 'info');
     await ollamaGenerate('Hi', model);
     log(`✓ Model loaded in VRAM`, 'ok');
   } catch(e) {
     log(`⚠ Warm-up failed: ${e.message}`, 'err');
   }
 
-  log(`Starting generation...`, 'info');
-  const startTime = Date.now();
-  let completed = 0;
+  // Process each pending file
+  for (let fi = 0; fi < fileQueue.length; fi++) {
+    if (!running) break;
+    const item = fileQueue[fi];
+    if (item.status !== 'pending') continue;
 
-  // SPEED OPTIMIZATION 3: Parallel batch processing
-  for (let i = 0; i < chunks.length; i += concurrency) {
-    if (!running) { log('Stopped by user', 'err'); break; }
+    item.status = 'active';
+    item.pairs = [];
+    renderQueue();
+    resultsList.innerHTML = '';
+    resultsDiv.style.display = 'none';
 
-    const batch = chunks.slice(i, Math.min(i + concurrency, chunks.length));
-    const promises = batch.map(async (chunk) => {
-      try {
-        const prompt = `${systemPrompt}\n\nText:\n${chunk}`;
-        const response = await ollamaGenerate(prompt, model);
-        const { instruction, output } = parsePairResponse(response);
+    log(`\n━━━ FILE ${fi + 1}/${fileQueue.length}: ${item.file.name} ━━━`, 'file-header');
 
-        if (instruction.length > 5 && output.length > 5) {
-          const pair = { instruction, output };
-          pairs.push(pair);
-          addPairToUI(pair, pairs.length);
-          log(`✓ Pair ${pairs.length}: "${instruction.substring(0, 60)}..."`, 'ok');
-        } else {
-          log(`⚠ Weak response, skipped`, 'err');
-        }
-      } catch(e) {
-        if (e.name === 'AbortError') throw e;
-        log(`✗ ${e.message}`, 'err');
+    try {
+      // Parse
+      const parsed = await parseFile(item.file);
+      const rawText = typeof parsed === 'string' ? parsed : parsed.text;
+
+      // Chunk
+      let chunks = chunkText(rawText, chunkSize);
+      const totalBefore = chunks.length;
+
+      // Filter
+      const stats = { skipped: 0, reasons: {} };
+      const clean = [];
+      for (const c of chunks) {
+        const r = filterChunk(c);
+        if (r.keep) clean.push(c);
+        else { stats.skipped++; stats.reasons[r.reason] = (stats.reasons[r.reason] || 0) + 1; }
       }
-    });
+      chunks = clean;
 
-    try { await Promise.all(promises); }
-    catch(e) { if (e.name === 'AbortError') { log('Stopped', 'err'); break; } }
+      // Figure handling
+      chunks = processChunksForFigures(chunks);
 
-    completed += batch.length;
-    const pct = (completed / chunks.length * 100).toFixed(0);
-    progressFill.style.width = pct + '%';
-    progressPct.textContent = pct + '%';
-    const elapsed = (Date.now() - startTime) / 1000;
-    const rate = completed / elapsed;
-    const remaining = ((chunks.length - completed) / rate / 60).toFixed(1);
-    progressLabel.textContent = `Chunk ${completed}/${chunks.length} · ~${remaining} min left`;
+      if (stats.skipped > 0) {
+        const reasons = Object.entries(stats.reasons).map(([r,c]) => `${r}:${c}`).join(' · ');
+        log(`🧹 Filtered ${stats.skipped}/${totalBefore} → ${reasons}`, 'filter');
+      }
+      log(`📦 ${chunks.length} clean chunks → Ollama`, 'filter');
+
+      // Equation enhancement for text chunks (describe mode)
+      if (eqMode === 'describe') {
+        let eqCount = 0;
+        for (let i = 0; i < chunks.length; i++) {
+          if (!running) break;
+          if (textHasEquations(chunks[i])) {
+            chunks[i] = await describeEquationsViaOllama(chunks[i], model);
+            eqCount++;
+          }
+        }
+        if (eqCount > 0) log(`🔢 Enhanced ${eqCount} chunks with equation descriptions`, 'eq');
+      }
+
+      // Generate pairs
+      const startTime = Date.now();
+      let completed = 0;
+
+      for (let i = 0; i < chunks.length; i += concurrency) {
+        if (!running) break;
+
+        const batch = chunks.slice(i, Math.min(i + concurrency, chunks.length));
+        const promises = batch.map(async (chunk) => {
+          try {
+            const prompt = `${systemPrompt}\n\nText:\n${chunk}`;
+            const response = await ollamaGenerate(prompt, model);
+            const { instruction, output } = parsePairResponse(response);
+            if (instruction.length > 5 && output.length > 5) {
+              const pair = { instruction, output };
+              item.pairs.push(pair);
+              addPairToUI(pair, item.pairs.length, item.file.name);
+              log(`✓ #${item.pairs.length}: "${instruction.substring(0, 55)}..."`, 'ok');
+            } else {
+              log(`⚠ Weak response, skipped`, 'err');
+            }
+          } catch(e) {
+            if (e.name === 'AbortError') throw e;
+            log(`✗ ${e.message}`, 'err');
+          }
+        });
+
+        try { await Promise.all(promises); }
+        catch(e) { if (e.name === 'AbortError') break; }
+
+        completed += batch.length;
+        const pct = (completed / chunks.length * 100).toFixed(0);
+        progressFill.style.width = pct + '%';
+        progressPct.textContent = pct + '%';
+        const elapsed = (Date.now() - startTime) / 1000;
+        const rate = completed / elapsed;
+        const rem = ((chunks.length - completed) / rate / 60).toFixed(1);
+        const fileProgress = `File ${fi+1}/${fileQueue.length}`;
+        progressLabel.textContent = `${fileProgress} · Chunk ${completed}/${chunks.length} · ~${rem} min`;
+      }
+
+      const totalTime = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
+      log(`✨ ${item.file.name}: ${item.pairs.length} pairs in ${totalTime} min`, 'ok');
+
+      item.status = 'done';
+
+      // AUTO-DOWNLOAD this file's results
+      if (item.pairs.length > 0) {
+        autoDownloadPairs(item.pairs, item.file.name);
+        log(`⬇ Auto-downloaded ${item.file.name} training data`, 'ok');
+      }
+
+    } catch(e) {
+      if (e.name === 'AbortError') {
+        item.status = 'error';
+        log(`Stopped by user`, 'err');
+        break;
+      }
+      item.status = 'error';
+      log(`✗ ${item.file.name}: ${e.message}`, 'err');
+    }
+
+    renderQueue();
   }
 
-  // Done
+  // All done
   running = false;
-  const totalTime = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
-  progressLabel.textContent = `Done! ${pairs.length} pairs in ${totalTime} min`;
-  progressFill.style.width = '100%';
-  progressPct.textContent = '✓';
-  btnStart.disabled = false;
   btnStop.disabled = true;
   btnStop.style.display = 'none';
+  updateStartButton();
+  progressFill.style.width = '100%';
+  progressPct.textContent = '✓';
 
-  if (pairs.length > 0) {
-    btnJsonl.style.display = '';
-    btnJson.style.display = '';
-    btnJsonl.disabled = false;
-    btnJson.disabled = false;
-    resultsDiv.style.display = 'block';
-    resultsCount.textContent = `${pairs.length} pairs generated`;
-    log(`\n✨ Complete! ${pairs.length} training pairs ready to download.`, 'ok');
-  }
+  const totalPairs = fileQueue.reduce((sum, q) => sum + q.pairs.length, 0);
+  const doneCount = fileQueue.filter(q => q.status === 'done').length;
+  progressLabel.textContent = `All done! ${doneCount} files · ${totalPairs} total pairs`;
+  log(`\n🎉 Queue complete: ${doneCount} files processed, ${totalPairs} total pairs`, 'ok');
 }
 
 // ============================================================================
@@ -954,12 +1244,12 @@ function log(msg, cls = '') {
   progressLog.scrollTop = progressLog.scrollHeight;
 }
 
-function addPairToUI(pair, idx) {
-  if (idx > 20 && idx < pairs.length - 5) {
-    if (idx === 21) {
+function addPairToUI(pair, idx, fileName) {
+  if (idx > 15) {
+    if (idx === 16) {
       const note = document.createElement('div');
       note.style.cssText = 'text-align:center; color:var(--text2); padding:.5rem; font-size:.8rem;';
-      note.textContent = '... more pairs (see download) ...';
+      note.textContent = '... more pairs in downloaded files ...';
       resultsList.appendChild(note);
     }
     return;
@@ -975,7 +1265,7 @@ function addPairToUI(pair, idx) {
   `;
   resultsList.appendChild(el);
   resultsDiv.style.display = 'block';
-  resultsCount.textContent = `${idx} pairs generated`;
+  resultsCount.textContent = `${idx} pairs (${fileName})`;
 }
 
 function escHtml(s) {
@@ -983,99 +1273,38 @@ function escHtml(s) {
 }
 
 // ============================================================================
-// DOWNLOAD
-// ============================================================================
-function downloadFile(content, name, type) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-function downloadJSONL() {
-  const content = pairs.map(p => JSON.stringify(p)).join('\n');
-  const name = fileName.replace(/\.[^.]+$/, '') + '_training_data.jsonl';
-  downloadFile(content, name, 'application/jsonl');
-}
-
-function downloadJSON() {
-  const content = JSON.stringify(pairs, null, 2);
-  const name = fileName.replace(/\.[^.]+$/, '') + '_training_data.json';
-  downloadFile(content, name, 'application/json');
-}
-
-// ============================================================================
-// FILE HANDLING
-// ============================================================================
-function updatePreviewStats() {
-  if (!extractedText) return;
-  const chunkSize = parseInt($('chunk-size').value) || 500;
-  const allChunks = chunkText(extractedText, chunkSize);
-  let skipCount = 0;
-  for (const c of allChunks) { if (!filterChunk(c).keep) skipCount++; }
-  const cleanCount = allChunks.length - skipCount;
-  const words = extractedText.split(/\s+/).length;
-  $('file-meta').textContent =
-    `~${words.toLocaleString()} words · ${allChunks.length} chunks (${skipCount} filtered → ${cleanCount} to Ollama)`;
-}
-
-async function handleFile(file) {
-  fileName = file.name;
-  $('file-name').textContent = file.name;
-  fileInfo.style.display = 'block';
-  filterStats.style.display = 'none';
-  btnStart.disabled = true;
-
-  try {
-    $('file-meta').textContent = `Parsing... (${(file.size / 1024).toFixed(0)} KB)`;
-    progressArea.style.display = 'block';
-    progressLog.innerHTML = '';
-
-    extractedText = await parseFile(file);
-    updatePreviewStats();
-
-    const chunkSize = parseInt($('chunk-size').value) || 500;
-    const allChunks = chunkText(extractedText, chunkSize);
-    let skipCount = 0;
-    for (const c of allChunks) { if (!filterChunk(c).keep) skipCount++; }
-
-    log(`✓ Ready! Parsed successfully`, 'ok');
-    if (skipCount > 0) {
-      log(`🧹 Smart filter preview: ${skipCount} junk chunks detected (~${Math.round(skipCount / allChunks.length * 100)}% will be skipped)`, 'filter');
-    }
-    btnStart.disabled = false;
-  } catch(e) {
-    $('file-meta').textContent = `Error: ${e.message}`;
-    log(`✗ ${e.message}`, 'err');
-  }
-}
-
-// ============================================================================
 // EVENT LISTENERS
 // ============================================================================
 dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+// Multi-file input
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length > 0) {
+    addToQueue(Array.from(e.target.files));
+    fileInput.value = ''; // allow re-selecting same files
+  }
+});
+
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files.length > 0) {
+    addToQueue(Array.from(e.dataTransfer.files));
+  }
 });
 
-btnStart.addEventListener('click', generatePairs);
+btnStart.addEventListener('click', processQueue);
 btnStop.addEventListener('click', () => { running = false; abortCtrl?.abort(); });
-btnJsonl.addEventListener('click', downloadJSONL);
-btnJson.addEventListener('click', downloadJSON);
-
-// Live-update stats when settings change
-$('chunk-size').addEventListener('change', updatePreviewStats);
-document.querySelectorAll('.filter-grid input[type=checkbox]').forEach(cb => {
-  cb.addEventListener('change', updatePreviewStats);
+btnClear.addEventListener('click', () => {
+  if (running) return;
+  fileQueue = [];
+  renderQueue();
+  updateStartButton();
+  resultsDiv.style.display = 'none';
+  progressArea.style.display = 'none';
+  filterStats.style.display = 'none';
 });
 
 // ============================================================================
