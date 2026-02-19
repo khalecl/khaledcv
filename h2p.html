@@ -4,28 +4,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML → PDF</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #0c0f1a;
-            --surface: #131929;
-            --surface2: #1a2235;
-            --glass: rgba(255,255,255,0.04);
-            --glass-border: rgba(255,255,255,0.08);
-            --gold: #c9a84c;
-            --gold-light: #e8c97a;
-            --gold-dim: rgba(201,168,76,0.15);
-            --text: #e8ecf4;
-            --muted: #6b7a99;
-            --success: #22c55e;
-            --error: #f87171;
-            --accent: #3d6fff;
-        }
 
 ```
+<!-- ── Identity ── -->
+<title>HTML → PDF Converter · v1.0.0</title>
+<meta name="description" content="Convert HTML files or code to high-quality PDF documents — free, client-side, no upload to server.">
+<meta name="author" content="Dr. Khaled Diab">
+<meta name="version" content="1.0.0">
+<meta name="release-date" content="2026-02-19">
+
+<!-- ── GitHub Pages / SEO ── -->
+<meta name="robots" content="index, follow">
+
+<!-- ── Open Graph (shows nicely when sharing the GitHub Pages link) ── -->
+<meta property="og:title" content="HTML → PDF Converter">
+<meta property="og:description" content="Free browser-based tool to convert HTML files or pasted code to PDF. No server, no upload.">
+<meta property="og:type" content="website">
+
+<!-- ── Libraries (CDN — HTTPS, GitHub Pages compatible) ── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg: #0c0f1a;
+        --surface: #131929;
+        --surface2: #1a2235;
+        --glass: rgba(255,255,255,0.04);
+        --glass-border: rgba(255,255,255,0.08);
+        --gold: #c9a84c;
+        --gold-light: #e8c97a;
+        --gold-dim: rgba(201,168,76,0.15);
+        --text: #e8ecf4;
+        --muted: #6b7a99;
+        --success: #22c55e;
+        --error: #f87171;
+        --accent: #3d6fff;
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
@@ -273,6 +289,13 @@
         z-index: 2;
         pointer-events: auto;
         cursor: text;
+        -webkit-overflow-scrolling: touch;
+        /* Prevent iOS zoom-on-focus (requires >= 16px on mobile) */
+        -webkit-text-size-adjust: 100%;
+    }
+
+    @media (max-width: 768px) {
+        #codeInput { font-size: 16px; }
     }
 
     #codeInput::placeholder { color: rgba(107,122,153,0.5); }
@@ -490,9 +513,12 @@
 ```
 <!-- Header -->
 <header class="header">
-    <div class="header-eyebrow"><span></span> Document Tool</div>
+    <div class="header-eyebrow"><span></span> Document Tool &nbsp;·&nbsp; v1.3</div>
     <h1>HTML <em>to</em> PDF</h1>
     <p>Upload a file or paste your code — get a polished PDF in seconds.</p>
+    <div id="iosBanner" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:10px 16px;font-size:0.82rem;color:var(--gold);line-height:1.5;">
+        📱 <strong>iPhone / iPad detected.</strong> The PDF will open in a new tab — tap <strong>Share → Save to Files</strong> to keep it.
+    </div>
 </header>
 
 <!-- Input Card -->
@@ -632,6 +658,31 @@
 <div class="toast" id="toast"></div>
 
 <script>
+    // ── iOS detection ──
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    function savePDF(pdf, fileName) {
+        if (isIOS) {
+            // iOS Safari: pdf.save() silently fails — open blob URL in new tab instead
+            const blobUrl = pdf.output('bloburl');
+            window.open(blobUrl, '_blank');
+        } else {
+            pdf.save(fileName);
+        }
+    }
+
+    // Auto-switch to Paste Code on iOS (no file system access)
+    document.addEventListener('DOMContentLoaded', () => {
+        if (isIOS) {
+            document.getElementById('iosBanner').style.display = 'block';
+            switchTab('code');
+            // Change button label for iOS
+            document.getElementById('convertBtn').innerHTML = `
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open PDF`;
+        }
+    });
+
     // ── Tab switching ──
     let activeTab = 'upload';
 
@@ -750,7 +801,7 @@
                 const pw = canvas.width * 0.75, ph = canvas.height * 0.75;
                 const pdf = new jsPDF({ orientation, unit: 'pt', format: [pw, ph] });
                 pdf.addImage(imgData, 'JPEG', 0, 0, pw, ph);
-                pdf.save(fileName);
+                savePDF(pdf, fileName);
             } else {
                 const pdf = new jsPDF(orientation, 'mm', 'a4');
                 const pw = (orientation === 'landscape' ? 297 : 210) - margin * 2;
@@ -770,10 +821,10 @@
                         pdf.addImage(pc.toDataURL('image/jpeg', jpegQ), 'JPEG', margin, margin, pw, (srcH / 3.78) * ratio);
                     }
                 }
-                pdf.save(fileName);
+                savePDF(pdf, fileName);
             }
 
-            showToast('PDF saved successfully!', 'success');
+            showToast(isIOS ? 'PDF opened — tap Share → Save to Files' : 'PDF saved successfully!', 'success');
         } catch (err) {
             console.error(err);
             showToast('Conversion failed: ' + err.message, 'error');
