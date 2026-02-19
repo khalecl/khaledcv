@@ -1,566 +1,540 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-```
-<!-- ── Identity ── -->
-<title>HTML → PDF Converter · v1.0.0</title>
-<meta name="description" content="Convert HTML files or code to high-quality PDF documents — free, client-side, no upload to server.">
-<meta name="author" content="Dr. Khaled Diab">
-<meta name="version" content="1.0.0">
-<meta name="release-date" content="2026-02-19">
-
-<!-- ── GitHub Pages / SEO ── -->
-<meta name="robots" content="index, follow">
-
-<!-- ── Open Graph (shows nicely when sharing the GitHub Pages link) ── -->
-<meta property="og:title" content="HTML → PDF Converter">
-<meta property="og:description" content="Free browser-based tool to convert HTML files or pasted code to PDF. No server, no upload.">
-<meta property="og:type" content="website">
-
-<!-- ── Libraries (CDN — HTTPS, GitHub Pages compatible) ── -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-    :root {
-        --bg: #0c0f1a;
-        --surface: #131929;
-        --surface2: #1a2235;
-        --glass: rgba(255,255,255,0.04);
-        --glass-border: rgba(255,255,255,0.08);
-        --gold: #c9a84c;
-        --gold-light: #e8c97a;
-        --gold-dim: rgba(201,168,76,0.15);
-        --text: #e8ecf4;
-        --muted: #6b7a99;
-        --success: #22c55e;
-        --error: #f87171;
-        --accent: #3d6fff;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-        font-family: 'DM Sans', sans-serif;
-        background: var(--bg);
-        min-height: 100vh;
-        color: var(--text);
-        overflow-x: hidden;
-    }
-
-    /* ── Animated background ── */
-    body::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background:
-            radial-gradient(ellipse 80% 50% at 20% -10%, rgba(201,168,76,0.08) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 40% at 80% 110%, rgba(61,111,255,0.06) 0%, transparent 60%);
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    /* ── Grid texture ── */
-    body::after {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background-image:
-            linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-        background-size: 40px 40px;
-        pointer-events: none;
-        z-index: 0;
-    }
-
-    .wrap {
-        position: relative;
-        z-index: 1;
-        max-width: 860px;
-        margin: 0 auto;
-        padding: 3rem 1.5rem 4rem;
-    }
-
-    /* ── Header ── */
-    .header {
-        text-align: center;
-        margin-bottom: 3rem;
-        animation: fadeUp 0.7s ease both;
-    }
-
-    .header-eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: var(--gold-dim);
-        border: 1px solid rgba(201,168,76,0.25);
-        border-radius: 100px;
-        padding: 5px 14px;
-        font-size: 0.72rem;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--gold);
-        margin-bottom: 1.25rem;
-    }
-
-    .header-eyebrow span { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; animation: pulse 2s infinite; }
-
-    .header h1 {
-        font-family: 'DM Serif Display', serif;
-        font-size: clamp(2.4rem, 5vw, 3.6rem);
-        font-weight: 400;
-        line-height: 1.1;
-        letter-spacing: -0.02em;
-        color: var(--text);
-        margin-bottom: 0.75rem;
-    }
-
-    .header h1 em {
-        font-style: italic;
-        color: var(--gold);
-    }
-
-    .header p {
-        color: var(--muted);
-        font-size: 1rem;
-        font-weight: 300;
-    }
-
-    /* ── Card ── */
-    .card {
-        background: var(--surface);
-        border: 1px solid var(--glass-border);
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 1.25rem;
-        animation: fadeUp 0.7s ease both;
-        position: relative;
-    }
-
-    .card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 5%; right: 5%;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent);
-        border-radius: 1px;
-        pointer-events: none;
-    }
-
-    .card-label {
-        font-size: 0.7rem;
-        font-weight: 600;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 1rem;
-    }
-
-    /* ── Tabs ── */
-    .tabs {
-        display: flex;
-        gap: 4px;
-        background: var(--bg);
-        border-radius: 10px;
-        padding: 4px;
-        margin-bottom: 1.5rem;
-        border: 1px solid var(--glass-border);
-    }
-
-    .tab {
-        flex: 1;
-        padding: 9px 16px;
-        border: none;
-        background: transparent;
-        color: var(--muted);
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border-radius: 7px;
-        cursor: pointer;
-        transition: all 0.25s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 7px;
-    }
-
-    .tab.active {
-        background: var(--surface2);
-        color: var(--text);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    }
-
-    .tab svg { flex-shrink: 0; }
-
-    /* ── Upload area ── */
-    .upload-area {
-        border: 2px dashed var(--glass-border);
-        border-radius: 14px;
-        padding: 3rem 2rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: relative;
-    }
-
-    .upload-area:hover, .upload-area.dragover {
-        border-color: rgba(201,168,76,0.45);
-        background: var(--gold-dim);
-    }
-
-    .upload-area.loaded {
-        border-style: solid;
-        border-color: rgba(34,197,94,0.4);
-        background: rgba(34,197,94,0.05);
-    }
-
-    .upload-icon {
-        width: 52px; height: 52px;
-        margin: 0 auto 1rem;
-        background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 14px;
-        display: flex; align-items: center; justify-content: center;
-    }
-
-    .upload-area h3 { font-size: 1rem; font-weight: 500; margin-bottom: 0.35rem; }
-    .upload-area p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; }
-
-    .file-input { display: none; }
-
-    /* ── Code editor area ── */
-    .code-pane { display: none; }
-    .upload-pane { display: block; }
-
-    .code-editor-wrap {
-        position: relative;
-        border: 1px solid var(--glass-border);
-        border-radius: 14px;
-        overflow: hidden;
-        transition: border-color 0.25s;
-    }
-
-    .code-editor-wrap:focus-within {
-        border-color: rgba(201,168,76,0.4);
-        box-shadow: 0 0 0 3px var(--gold-dim);
-    }
-
-    .code-bar {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 14px;
-        background: var(--bg);
-        border-bottom: 1px solid var(--glass-border);
-    }
-
-    .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .dot.r { background: #ff5f57; }
-    .dot.y { background: #febc2e; }
-    .dot.g { background: #28c840; }
-
-    .code-filename {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.72rem;
-        color: var(--muted);
-        margin-left: 6px;
-    }
-
-    #codeInput {
-        width: 100%;
-        min-height: 280px;
-        background: var(--bg);
-        border: none;
-        padding: 1.25rem;
-        color: var(--text);
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.82rem;
-        line-height: 1.65;
-        resize: vertical;
-        outline: none;
-        tab-size: 2;
-        position: relative;
-        z-index: 2;
-        pointer-events: auto;
-        cursor: text;
-        -webkit-overflow-scrolling: touch;
-        /* Prevent iOS zoom-on-focus (requires >= 16px on mobile) */
-        -webkit-text-size-adjust: 100%;
-    }
-
-    @media (max-width: 768px) {
-        #codeInput { font-size: 16px; }
-    }
-
-    #codeInput::placeholder { color: rgba(107,122,153,0.5); }
-
-    .code-hint {
-        padding: 8px 14px;
-        background: var(--bg);
-        border-top: 1px solid var(--glass-border);
-        font-size: 0.72rem;
-        color: var(--muted);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    /* ── Options ── */
-    .options-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
-
-    .opt-group label {
-        display: block;
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.6rem;
-    }
-
-    .radio-pill {
-        display: flex;
-        gap: 4px;
-        background: var(--bg);
-        border: 1px solid var(--glass-border);
-        border-radius: 8px;
-        padding: 4px;
-    }
-
-    .radio-pill label {
-        flex: 1;
-        text-align: center;
-        padding: 7px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 0.82rem;
-        font-weight: 500;
-        color: var(--muted);
-        transition: all 0.2s ease;
-        text-transform: none;
-        letter-spacing: 0;
-        margin: 0;
-    }
-
-    .radio-pill input { display: none; }
-    .radio-pill input:checked + label {
-        background: var(--surface2);
-        color: var(--text);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    }
-
-    select, input[type="text"], input[type="number"] {
-        width: 100%;
-        background: var(--bg);
-        border: 1px solid var(--glass-border);
-        border-radius: 8px;
-        padding: 9px 12px;
-        color: var(--text);
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.875rem;
-        outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        appearance: none;
-        -webkit-appearance: none;
-    }
-
-    select:focus, input[type="text"]:focus, input[type="number"]:focus {
-        border-color: rgba(201,168,76,0.4);
-        box-shadow: 0 0 0 3px var(--gold-dim);
-    }
-
-    select option { background: var(--surface); }
-
-    /* ── Preview ── */
-    .preview-card { display: none; }
-
-    .preview-frame {
-        width: 100%;
-        height: 500px;
-        border: none;
-        border-radius: 10px;
-        background: white;
-        overflow: hidden;
-    }
-
-    /* ── Actions ── */
-    .actions { display: flex; gap: 10px; justify-content: flex-end; }
-
-    .btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 11px 22px;
-        border: none;
-        border-radius: 10px;
-        font-family: 'DM Sans', sans-serif;
-        font-size: 0.9rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.25s ease;
-    }
-
-    .btn-convert {
-        background: linear-gradient(135deg, var(--gold) 0%, #e8a526 100%);
-        color: #0c0f1a;
-        box-shadow: 0 4px 20px rgba(201,168,76,0.25);
-    }
-
-    .btn-convert:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 28px rgba(201,168,76,0.4);
-    }
-
-    .btn-convert:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
-    .btn-ghost {
-        background: var(--glass);
-        border: 1px solid var(--glass-border);
-        color: var(--muted);
-    }
-
-    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
-
-    /* ── Loading ── */
-    .loading-bar {
-        display: none;
-        margin-bottom: 1rem;
-        background: var(--bg);
-        border-radius: 100px;
-        height: 3px;
-        overflow: hidden;
-    }
-
-    .loading-bar.visible { display: block; }
-
-    .loading-bar-fill {
-        height: 100%;
-        background: linear-gradient(90deg, var(--gold), var(--accent), var(--gold));
-        background-size: 200% 100%;
-        animation: shimmer 1.5s infinite;
-        width: 100%;
-        border-radius: 100px;
-    }
-
-    /* ── Toast ── */
-    .toast {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        padding: 12px 20px;
-        border-radius: 12px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        transform: translateY(100px);
-        opacity: 0;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        z-index: 9999;
-        max-width: 320px;
-        border: 1px solid;
-    }
-
-    .toast.show { transform: translateY(0); opacity: 1; }
-    .toast.success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #4ade80; }
-    .toast.error { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: #fca5a5; }
-
-    /* ── Animations ── */
-    @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(22px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50% { opacity: 0.5; transform: scale(0.85); }
-    }
-
-    @keyframes shimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-    }
-
-    .card:nth-child(2) { animation-delay: 0.1s; }
-    .card:nth-child(3) { animation-delay: 0.2s; }
-
-    /* ── Char counter ── */
-    #charCount { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
-</style>
-```
-
+    <!-- ── Identity ── -->
+    <title>HTML → PDF Converter · v1.0.0</title>
+    <meta name="description" content="Convert HTML files or code to high-quality PDF documents — free, client-side, no upload to server.">
+    <meta name="author" content="Dr. Khaled Diab">
+    <meta name="version" content="1.0.0">
+    <meta name="release-date" content="2026-02-19">
+
+    <!-- ── GitHub Pages / SEO ── -->
+    <meta name="robots" content="index, follow">
+
+    <!-- ── Open Graph (shows nicely when sharing the GitHub Pages link) ── -->
+    <meta property="og:title" content="HTML → PDF Converter">
+    <meta property="og:description" content="Free browser-based tool to convert HTML files or pasted code to PDF. No server, no upload.">
+    <meta property="og:type" content="website">
+
+    <!-- ── Libraries (CDN — HTTPS, GitHub Pages compatible) ── -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0c0f1a;
+            --surface: #131929;
+            --surface2: #1a2235;
+            --glass: rgba(255,255,255,0.04);
+            --glass-border: rgba(255,255,255,0.08);
+            --gold: #c9a84c;
+            --gold-light: #e8c97a;
+            --gold-dim: rgba(201,168,76,0.15);
+            --text: #e8ecf4;
+            --muted: #6b7a99;
+            --success: #22c55e;
+            --error: #f87171;
+            --accent: #3d6fff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* ── Animated background ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 20% -10%, rgba(201,168,76,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 110%, rgba(61,111,255,0.06) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Grid texture ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 4rem;
+        }
+
+        /* ── Header ── */
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeUp 0.7s ease both;
+        }
+
+        .header-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--gold-dim);
+            border: 1px solid rgba(201,168,76,0.25);
+            border-radius: 100px;
+            padding: 5px 14px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 1.25rem;
+        }
+
+        .header-eyebrow span { width: 6px; height: 6px; background: var(--gold); border-radius: 50%; animation: pulse 2s infinite; }
+
+        .header h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(2.4rem, 5vw, 3.6rem);
+            font-weight: 400;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 0.75rem;
+        }
+
+        .header h1 em {
+            font-style: italic;
+            color: var(--gold);
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 1.25rem;
+            animation: fadeUp 0.7s ease both;
+            position: relative;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 5%; right: 5%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent);
+            border-radius: 1px;
+            pointer-events: none;
+        }
+
+        .card-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+
+        /* ── Input sections layout ── */
+        .input-sections {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .input-sections {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+            }
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        /* ── Upload area ── */
+        .upload-area {
+            border: 2px dashed var(--glass-border);
+            border-radius: 14px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: rgba(201,168,76,0.45);
+            background: var(--gold-dim);
+        }
+
+        .upload-area.loaded {
+            border-style: solid;
+            border-color: rgba(34,197,94,0.4);
+            background: rgba(34,197,94,0.05);
+        }
+
+        .upload-icon {
+            width: 52px; height: 52px;
+            margin: 0 auto 1rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .upload-area h3 { font-size: 1rem; font-weight: 500; margin-bottom: 0.35rem; }
+        .upload-area p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; }
+
+        .file-input { display: none; }
+
+        /* ── Code editor area ── */
+
+        .code-editor-wrap {
+            position: relative;
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: border-color 0.25s;
+        }
+
+        .code-editor-wrap:focus-within {
+            border-color: rgba(201,168,76,0.4);
+            box-shadow: 0 0 0 3px var(--gold-dim);
+        }
+
+        .code-bar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 14px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot.r { background: #ff5f57; }
+        .dot.y { background: #febc2e; }
+        .dot.g { background: #28c840; }
+
+        .code-filename {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-left: 6px;
+        }
+
+        #codeInput {
+            width: 100%;
+            min-height: 280px;
+            background: var(--bg);
+            border: none;
+            padding: 1.25rem;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.65;
+            resize: vertical;
+            outline: none;
+            tab-size: 2;
+            position: relative;
+            z-index: 2;
+            pointer-events: auto;
+            cursor: text;
+            -webkit-overflow-scrolling: touch;
+            /* Prevent iOS zoom-on-focus (requires >= 16px on mobile) */
+            -webkit-text-size-adjust: 100%;
+        }
+
+        @media (max-width: 768px) {
+            #codeInput { font-size: 16px; }
+        }
+
+        #codeInput::placeholder { color: rgba(107,122,153,0.5); }
+
+        .code-hint {
+            padding: 8px 14px;
+            background: var(--bg);
+            border-top: 1px solid var(--glass-border);
+            font-size: 0.72rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* ── Options ── */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+
+        .opt-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.6rem;
+        }
+
+        .radio-pill {
+            display: flex;
+            gap: 4px;
+            background: var(--bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 4px;
+        }
+
+        .radio-pill label {
+            flex: 1;
+            text-align: center;
+            padding: 7px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: var(--muted);
+            transition: all 0.2s ease;
+            text-transform: none;
+            letter-spacing: 0;
+            margin: 0;
+        }
+
+        .radio-pill input { display: none; }
+        .radio-pill input:checked + label {
+            background: var(--surface2);
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+        }
+
+        select, input[type="text"], input[type="number"] {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        select:focus, input[type="text"]:focus, input[type="number"]:focus {
+            border-color: rgba(201,168,76,0.4);
+            box-shadow: 0 0 0 3px var(--gold-dim);
+        }
+
+        select option { background: var(--surface); }
+
+        /* ── Preview ── */
+        .preview-card { display: none; }
+
+        .preview-frame {
+            width: 100%;
+            height: 500px;
+            border: none;
+            border-radius: 10px;
+            background: white;
+            overflow: hidden;
+        }
+
+        /* ── Actions ── */
+        .actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 22px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .btn-convert {
+            background: linear-gradient(135deg, var(--gold) 0%, #e8a526 100%);
+            color: #0c0f1a;
+            box-shadow: 0 4px 20px rgba(201,168,76,0.25);
+        }
+
+        .btn-convert:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(201,168,76,0.4);
+        }
+
+        .btn-convert:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-ghost {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--muted);
+        }
+
+        .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+
+        /* ── Loading ── */
+        .loading-bar {
+            display: none;
+            margin-bottom: 1rem;
+            background: var(--bg);
+            border-radius: 100px;
+            height: 3px;
+            overflow: hidden;
+        }
+
+        .loading-bar.visible { display: block; }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), var(--accent), var(--gold));
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            width: 100%;
+            border-radius: 100px;
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 9999;
+            max-width: 320px;
+            border: 1px solid;
+        }
+
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #4ade80; }
+        .toast.error { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: #fca5a5; }
+
+        /* ── Animations ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(22px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .card:nth-child(2) { animation-delay: 0.1s; }
+        .card:nth-child(3) { animation-delay: 0.2s; }
+
+        /* ── Char counter ── */
+        #charCount { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+    </style>
 </head>
 <body>
 
 <div class="wrap">
 
-```
-<!-- Header -->
-<header class="header">
-    <div class="header-eyebrow"><span></span> Document Tool &nbsp;·&nbsp; v1.3</div>
-    <h1>HTML <em>to</em> PDF</h1>
-    <p>Upload a file or paste your code — get a polished PDF in seconds.</p>
-    <div id="iosBanner" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:10px 16px;font-size:0.82rem;color:var(--gold);line-height:1.5;">
-        📱 <strong>iPhone / iPad detected.</strong> The PDF will open in a new tab — tap <strong>Share → Save to Files</strong> to keep it.
-    </div>
-</header>
-
-<!-- Input Card -->
-<div class="card">
-    <p class="card-label">Input Source</p>
-
-    <div class="tabs">
-        <button class="tab active" id="tabUpload" onclick="switchTab('upload')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload File
-        </button>
-        <button class="tab" id="tabCode" onclick="switchTab('code')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            Paste Code
-        </button>
-    </div>
-
-    <!-- Upload Pane -->
-    <div class="upload-pane" id="uploadPane">
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            </div>
-            <h3 id="uploadTitle">Drop your HTML file here</h3>
-            <p id="uploadSub">Supports .html and .htm files</p>
-            <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
-            <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()">Browse File</button>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-eyebrow"><span></span> Document Tool &nbsp;·&nbsp; v1.3</div>
+        <h1>HTML <em>to</em> PDF</h1>
+        <p>Upload a file or paste your code — get a polished PDF in seconds.</p>
+        <div id="iosBanner" style="display:none;margin-top:1rem;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:10px 16px;font-size:0.82rem;color:var(--gold);line-height:1.5;">
+            📱 <strong>iPhone / iPad detected.</strong> The PDF will open in a new tab — tap <strong>Share → Save to Files</strong> to keep it.
         </div>
-    </div>
+    </header>
 
-    <!-- Code Pane -->
-    <div class="code-pane" id="codePane">
-        <div class="code-editor-wrap">
-            <div class="code-bar">
-                <div class="dot r"></div>
-                <div class="dot y"></div>
-                <div class="dot g"></div>
-                <span class="code-filename">index.html</span>
+    <!-- Input Card -->
+    <div class="card">
+        <!-- Upload and Code Input -->
+        <div class="input-sections">
+            <!-- Upload Section -->
+            <div class="input-section">
+                <p class="section-title">Upload HTML File</p>
+                <div class="upload-area" id="uploadArea" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <div class="upload-icon">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    </div>
+                    <h3 id="uploadTitle">Drop your HTML file here</h3>
+                    <p id="uploadSub">Supports .html and .htm files</p>
+                    <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+                    <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()" style="margin-top: 0.5rem;">Browse File</button>
+                </div>
             </div>
-            <textarea id="codeInput" placeholder="<!DOCTYPE html>
-```
 
+            <!-- Code Input Section -->
+            <div class="input-section">
+                <p class="section-title">Paste or Edit HTML Code</p>
+                <div class="code-editor-wrap" style="flex: 1; display: flex; flex-direction: column;">
+                    <div class="code-bar">
+                        <div class="dot r"></div>
+                        <div class="dot y"></div>
+                        <div class="dot g"></div>
+                        <span class="code-filename">index.html</span>
+                    </div>
+                    <textarea id="codeInput" placeholder="<!DOCTYPE html>
 <html>
   <head>
     <title>My Document</title>
@@ -571,90 +545,88 @@
   <body>
     <!-- paste or type your HTML here -->
   </body>
-</html>"></textarea>
-                <div class="code-hint">
-                    <span>Paste or type full HTML document</span>
-                    <span id="charCount">0 chars</span>
+</html>" style="flex: 1;"></textarea>
+                    <div class="code-hint">
+                        <span>Paste or type full HTML document</span>
+                        <span id="charCount">0 chars</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-```
-<!-- Options Card -->
-<div class="card">
-    <p class="card-label">PDF Options</p>
-    <div class="options-grid">
+    <!-- Options Card -->
+    <div class="card">
+        <p class="card-label">PDF Options</p>
+        <div class="options-grid">
 
-        <div class="opt-group">
-            <label>Page Format</label>
-            <div class="radio-pill">
-                <input type="radio" name="pageFormat" id="full" value="full" checked>
-                <label for="full">Full Page</label>
-                <input type="radio" name="pageFormat" id="a4" value="a4">
-                <label for="a4">A4</label>
+            <div class="opt-group">
+                <label>Page Format</label>
+                <div class="radio-pill">
+                    <input type="radio" name="pageFormat" id="full" value="full" checked>
+                    <label for="full">Full Page</label>
+                    <input type="radio" name="pageFormat" id="a4" value="a4">
+                    <label for="a4">A4</label>
+                </div>
             </div>
-        </div>
 
-        <div class="opt-group">
-            <label>Orientation</label>
-            <div class="radio-pill">
-                <input type="radio" name="orientation" id="portrait" value="portrait" checked>
-                <label for="portrait">Portrait</label>
-                <input type="radio" name="orientation" id="landscape" value="landscape">
-                <label for="landscape">Landscape</label>
+            <div class="opt-group">
+                <label>Orientation</label>
+                <div class="radio-pill">
+                    <input type="radio" name="orientation" id="portrait" value="portrait" checked>
+                    <label for="portrait">Portrait</label>
+                    <input type="radio" name="orientation" id="landscape" value="landscape">
+                    <label for="landscape">Landscape</label>
+                </div>
             </div>
-        </div>
 
-        <div class="opt-group">
-            <label>File Name</label>
-            <input type="text" id="fileName" value="converted-document.pdf" placeholder="document.pdf">
-        </div>
+            <div class="opt-group">
+                <label>File Name</label>
+                <input type="text" id="fileName" value="converted-document.pdf" placeholder="document.pdf">
+            </div>
 
-        <div class="opt-group">
-            <label>Image Quality</label>
-            <select id="quality">
-                <option value="1">Low — Fast</option>
-                <option value="1.5" selected>Medium</option>
-                <option value="2">High</option>
-                <option value="3">Ultra High — Slow</option>
-            </select>
-        </div>
+            <div class="opt-group">
+                <label>Image Quality</label>
+                <select id="quality">
+                    <option value="1">Low — Fast</option>
+                    <option value="1.5" selected>Medium</option>
+                    <option value="2">High</option>
+                    <option value="3">Ultra High — Slow</option>
+                </select>
+            </div>
 
-        <div class="opt-group">
-            <label>Page Margin (mm)</label>
-            <input type="number" id="margin" value="10" min="0" max="50">
-        </div>
+            <div class="opt-group">
+                <label>Page Margin (mm)</label>
+                <input type="number" id="margin" value="10" min="0" max="50">
+            </div>
 
+        </div>
     </div>
-</div>
 
-<!-- Preview Card -->
-<div class="card preview-card" id="previewCard">
-    <p class="card-label">Preview</p>
-    <iframe id="previewFrame" class="preview-frame"></iframe>
-</div>
-
-<!-- Actions -->
-<div class="card" style="animation-delay:0.3s">
-    <div class="loading-bar" id="loadingBar"><div class="loading-bar-fill"></div></div>
-    <div class="actions">
-        <button class="btn btn-ghost" id="clearBtn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            Clear
-        </button>
-        <button class="btn btn-convert" id="convertBtn" disabled>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v10M12 2L8 6M12 2l4 4"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
-            Convert to PDF
-        </button>
+    <!-- Preview Card -->
+    <div class="card preview-card" id="previewCard">
+        <p class="card-label">Preview</p>
+        <iframe id="previewFrame" class="preview-frame"></iframe>
     </div>
-</div>
-```
+
+    <!-- Actions -->
+    <div class="card" style="animation-delay:0.3s">
+        <div class="loading-bar" id="loadingBar"><div class="loading-bar-fill"></div></div>
+        <div class="actions">
+            <button class="btn btn-ghost" id="clearBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                Clear
+            </button>
+            <button class="btn btn-convert" id="convertBtn" disabled>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v10M12 2L8 6M12 2l4 4"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+                Convert to PDF
+            </button>
+        </div>
+    </div>
 
 </div>
 
 <!-- Toast -->
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -671,30 +643,16 @@
         }
     }
 
-    // Auto-switch to Paste Code on iOS (no file system access)
+    // Both inputs are now always visible
     document.addEventListener('DOMContentLoaded', () => {
         if (isIOS) {
             document.getElementById('iosBanner').style.display = 'block';
-            switchTab('code');
             // Change button label for iOS
             document.getElementById('convertBtn').innerHTML = `
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 Open PDF`;
         }
     });
-
-    // ── Tab switching ──
-    let activeTab = 'upload';
-
-    function switchTab(tab) {
-        activeTab = tab;
-        document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
-        document.getElementById('tabCode').classList.toggle('active', tab === 'code');
-        document.getElementById('uploadPane').style.display = tab === 'upload' ? 'block' : 'none';
-        document.getElementById('codePane').style.display  = tab === 'code'   ? 'block' : 'none';
-        if (tab === 'code') document.getElementById('codeInput').focus();
-        checkReady();
-    }
 
     // ── Code input char counter ──
     const codeInput = document.getElementById('codeInput');
@@ -723,17 +681,21 @@
     async function processFile(file) {
         if (!/\.html?$/i.test(file.name)) return showToast('Please select an HTML file', 'error');
         fileHTML = await file.text();
+        // Auto-populate code input with uploaded file content
+        codeInput.value = fileHTML;
+        codeInput.dispatchEvent(new Event('input'));
         uploadArea.classList.add('loaded');
         document.getElementById('uploadTitle').textContent = '✓ ' + file.name;
-        document.getElementById('uploadSub').textContent = (file.size / 1024).toFixed(1) + ' KB — Ready to convert';
+        document.getElementById('uploadSub').textContent = (file.size / 1024).toFixed(1) + ' KB — Loaded in code editor';
         showPreview(fileHTML);
         checkReady();
     }
 
     function checkReady() {
-        const hasContent = activeTab === 'upload' ? !!fileHTML : codeInput.value.trim().length > 20;
+        // Enable convert if either code input has content or file was uploaded
+        const hasContent = codeInput.value.trim().length > 20 || !!fileHTML;
         document.getElementById('convertBtn').disabled = !hasContent;
-        if (activeTab === 'code' && codeInput.value.trim().length > 20) showPreview(codeInput.value);
+        if (codeInput.value.trim().length > 20) showPreview(codeInput.value);
     }
 
     function showPreview(content) {
@@ -742,7 +704,8 @@
     }
 
     function getHTML() {
-        return activeTab === 'upload' ? fileHTML : codeInput.value;
+        // Use code input if it has content, otherwise use file HTML
+        return codeInput.value.trim().length > 20 ? codeInput.value : fileHTML;
     }
 
     // ── Convert ──
@@ -842,55 +805,50 @@
             ${fmt==='a4'?`@page{size:A4 ${ori};margin:${margin}mm;}`:''}
             }
         </style>`;
+        return html.includes('</head>') ? html.replace('</head>', inject + '</head>') : inject + html;
+    }
 
-```
-    return html.includes('</head>') ? html.replace('</head>', inject + '</head>') : inject + html;
-}
-
-function waitForIframe(iframe) {
-    return new Promise(resolve => {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        const imgs = doc.querySelectorAll('img');
-        if (!imgs.length) return setTimeout(resolve, 1000);
-        let done = 0;
-        imgs.forEach(img => {
-            if (img.complete) { done++; if (done === imgs.length) setTimeout(resolve, 800); }
-            else { img.onload = img.onerror = () => { done++; if (done === imgs.length) setTimeout(resolve, 800); }; }
+    function waitForIframe(iframe) {
+        return new Promise(resolve => {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            const imgs = doc.querySelectorAll('img');
+            if (!imgs.length) return setTimeout(resolve, 1000);
+            let done = 0;
+            imgs.forEach(img => {
+                if (img.complete) { done++; if (done === imgs.length) setTimeout(resolve, 800); }
+                else { img.onload = img.onerror = () => { done++; if (done === imgs.length) setTimeout(resolve, 800); }; }
+            });
+            setTimeout(resolve, 8000);
         });
-        setTimeout(resolve, 8000);
-    });
-}
+    }
 
-function clearAll() {
-    fileHTML = '';
-    fileInput.value = '';
-    codeInput.value = '';
-    document.getElementById('charCount').textContent = '0 chars';
-    document.getElementById('convertBtn').disabled = true;
-    document.getElementById('previewCard').style.display = 'none';
-    uploadArea.classList.remove('loaded');
-    document.getElementById('uploadTitle').textContent = 'Drop your HTML file here';
-    document.getElementById('uploadSub').textContent = 'Supports .html and .htm files';
-    if (activeTab === 'code') { switchTab('code'); }
-}
+    function clearAll() {
+        fileHTML = '';
+        fileInput.value = '';
+        codeInput.value = '';
+        document.getElementById('charCount').textContent = '0 chars';
+        document.getElementById('convertBtn').disabled = true;
+        document.getElementById('previewCard').style.display = 'none';
+        uploadArea.classList.remove('loaded');
+        document.getElementById('uploadTitle').textContent = 'Drop your HTML file here';
+        document.getElementById('uploadSub').textContent = 'Supports .html and .htm files';
+    }
 
-// ── Loading ──
-function setLoading(v) {
-    document.getElementById('loadingBar').classList.toggle('visible', v);
-    document.getElementById('convertBtn').disabled = v;
-}
+    // ── Loading ──
+    function setLoading(v) {
+        document.getElementById('loadingBar').classList.toggle('visible', v);
+        document.getElementById('convertBtn').disabled = v;
+    }
 
-// ── Toast ──
-function showToast(msg, type) {
-    const t = document.getElementById('toast');
-    const icons = { success: '✓', error: '✕' };
-    t.className = 'toast ' + type;
-    t.innerHTML = `<span>${icons[type]}</span> ${msg}`;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 4000);
-}
-```
-
+    // ── Toast ──
+    function showToast(msg, type) {
+        const t = document.getElementById('toast');
+        const icons = { success: '✓', error: '✕' };
+        t.className = 'toast ' + type;
+        t.innerHTML = `<span>${icons[type]}</span> ${msg}`;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 4000);
+    }
 </script>
 </body>
 </html>
