@@ -124,15 +124,16 @@
         margin-bottom: 1.25rem;
         animation: fadeUp 0.7s ease both;
         position: relative;
-        overflow: hidden;
     }
 
     .card::before {
         content: '';
         position: absolute;
-        top: 0; left: 0; right: 0;
+        top: 0; left: 5%; right: 5%;
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(201,168,76,0.4), transparent);
+        border-radius: 1px;
+        pointer-events: none;
     }
 
     .card-label {
@@ -219,8 +220,7 @@
 
     /* ── Code editor area ── */
     .code-pane { display: none; }
-    .code-pane.visible { display: block; }
-    .upload-pane.hidden { display: none; }
+    .upload-pane { display: block; }
 
     .code-editor-wrap {
         position: relative;
@@ -269,6 +269,10 @@
         resize: vertical;
         outline: none;
         tab-size: 2;
+        position: relative;
+        z-index: 2;
+        pointer-events: auto;
+        cursor: text;
     }
 
     #codeInput::placeholder { color: rgba(107,122,153,0.5); }
@@ -635,8 +639,9 @@
         activeTab = tab;
         document.getElementById('tabUpload').classList.toggle('active', tab === 'upload');
         document.getElementById('tabCode').classList.toggle('active', tab === 'code');
-        document.getElementById('uploadPane').classList.toggle('hidden', tab === 'code');
-        document.getElementById('codePane').classList.toggle('visible', tab === 'code');
+        document.getElementById('uploadPane').style.display = tab === 'upload' ? 'block' : 'none';
+        document.getElementById('codePane').style.display  = tab === 'code'   ? 'block' : 'none';
+        if (tab === 'code') document.getElementById('codeInput').focus();
         checkReady();
     }
 
