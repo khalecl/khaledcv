@@ -3,813 +3,328 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Book → Training Data</title>
-
-<!-- PDF.js for PDF parsing -->
+<title>Book → Training Data v3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<!-- Mammoth for DOCX parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
-<!-- JSZip for EPUB parsing -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<!-- Tesseract.js for equation OCR — reuse a single worker for speed -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
-:root {
-  --bg: #0a0a0f;
-  --surface: #12121a;
-  --surface2: #1a1a26;
-  --border: #2a2a3a;
-  --text: #e4e4ef;
-  --text2: #8888a0;
-  --accent: #4ade80;
-  --accent2: #22c55e;
-  --warn: #f59e0b;
-  --err: #ef4444;
-  --blue: #60a5fa;
-  --purple: #a78bfa;
-  --orange: #fb923c;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'DM Sans', system-ui, sans-serif;
-}
-
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  font-family: var(--sans);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(74,222,128,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(74,222,128,0.03) 1px, transparent 1px);
-  background-size: 60px 60px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
-
-header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
-}
-header h1 {
-  font-family: var(--mono);
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  background: linear-gradient(135deg, var(--accent), var(--blue));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-header p { color: var(--text2); margin-top: .5rem; font-size: .95rem; }
-
-#status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .5rem;
-  padding: .6rem 1rem;
-  border-radius: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  margin-bottom: 2rem;
-  font-family: var(--mono);
-  font-size: .8rem;
-}
-.dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--err);
-  transition: background .3s;
-}
-.dot.ok { background: var(--accent); box-shadow: 0 0 8px rgba(74,222,128,.5); }
-.dot.loading { background: var(--warn); animation: pulse 1s infinite; }
-@keyframes pulse { 50% { opacity: .4; } }
-
-.settings {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-.setting-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 1rem 1.2rem;
-}
-.setting-card label {
-  display: block;
-  font-size: .75rem;
-  font-family: var(--mono);
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-bottom: .5rem;
-}
-.setting-card select, .setting-card input[type=number], .setting-card textarea {
-  width: 100%;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: .55rem .7rem;
-  border-radius: 6px;
-  font-family: var(--sans);
-  font-size: .9rem;
-}
-.setting-card select:focus, .setting-card input:focus, .setting-card textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.setting-card.wide { grid-column: 1 / -1; }
-.setting-card textarea {
-  font-family: var(--mono);
-  font-size: .78rem;
-  resize: vertical;
-  min-height: 80px;
-}
-
-.filter-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .4rem .8rem;
-  margin-top: .5rem;
-}
-.filter-grid label {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .82rem;
-  font-family: var(--sans);
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text);
-  cursor: pointer;
-}
-.filter-grid label input[type=checkbox] {
-  accent-color: var(--accent);
-  width: 15px;
-  height: 15px;
-}
-
-#drop-zone {
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 3rem 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all .25s;
-  margin-bottom: 2rem;
-  background: var(--surface);
-}
-#drop-zone:hover, #drop-zone.dragover {
-  border-color: var(--accent);
-  background: rgba(74,222,128,.04);
-}
-#drop-zone .icon { font-size: 2.5rem; margin-bottom: .8rem; }
-#drop-zone h3 { font-size: 1.1rem; margin-bottom: .3rem; }
-#drop-zone p { color: var(--text2); font-size: .85rem; }
-#file-input { display: none; }
-
-/* File Queue */
-#file-queue { margin-bottom: 1rem; }
-.queue-item {
-  display: flex;
-  align-items: center;
-  gap: .6rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: .6rem 1rem;
-  margin-bottom: .4rem;
-  font-family: var(--mono);
-  font-size: .8rem;
-  transition: border-color .2s;
-}
-.queue-item.active { border-color: var(--accent); background: rgba(74,222,128,.04); }
-.queue-item.done { border-color: var(--accent); opacity: .7; }
-.queue-item.error { border-color: var(--err); }
-.queue-item .q-status { width: 20px; text-align: center; flex-shrink: 0; }
-.queue-item .q-name { flex: 1; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.queue-item .q-info { color: var(--text2); font-size: .72rem; flex-shrink: 0; }
-.queue-item .q-remove {
-  background: none; border: none; color: var(--text2); cursor: pointer;
-  font-size: 1rem; padding: 0 .3rem; flex-shrink: 0;
-}
-.queue-item .q-remove:hover { color: var(--err); }
-.queue-item .q-download {
-  background: var(--surface2); border: 1px solid var(--accent); color: var(--accent);
-  cursor: pointer; font-size: .7rem; font-family: var(--mono);
-  padding: .2rem .5rem; border-radius: 4px; flex-shrink: 0;
-}
-.queue-item .q-download:hover { background: var(--accent); color: var(--bg); }
-
-/* Mini progress bar inside queue item */
-.queue-item .q-progress {
-  width: 60px; height: 4px; background: var(--surface2); border-radius: 2px;
-  overflow: hidden; flex-shrink: 0;
-}
-.queue-item .q-progress-fill {
-  height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; width: 0%;
-}
-
-#filter-stats {
-  display: none;
-  background: var(--surface);
-  border: 1px solid var(--purple);
-  border-radius: 10px;
-  padding: .8rem 1.2rem;
-  margin-bottom: 1.5rem;
-  font-family: var(--mono);
-  font-size: .78rem;
-  color: var(--text2);
-}
-#filter-stats .highlight { color: var(--accent); font-weight: 600; }
-#filter-stats .saved { color: var(--purple); font-weight: 600; }
-
-.btn-row { display: flex; gap: .8rem; margin-bottom: 2rem; flex-wrap: wrap; }
-.btn {
-  padding: .7rem 1.5rem; border-radius: 8px; border: none;
-  font-family: var(--sans); font-weight: 600; font-size: .9rem;
-  cursor: pointer; transition: all .2s;
-}
-.btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn-primary { background: var(--accent); color: #0a0a0f; }
-.btn-primary:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
-.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-.btn-secondary:hover:not(:disabled) { border-color: var(--text2); }
-.btn-stop { background: var(--err); color: #fff; }
-.btn-stop:hover:not(:disabled) { background: #dc2626; }
-
-#progress-area { display: none; margin-bottom: 2rem; }
-.progress-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: .5rem; font-family: var(--mono); font-size: .8rem;
-}
-.progress-bar {
-  height: 6px; background: var(--surface2); border-radius: 3px;
-  overflow: hidden; margin-bottom: .8rem;
-}
-.progress-fill {
-  height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue));
-  border-radius: 3px; transition: width .3s; width: 0%;
-}
-#progress-log {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  padding: .8rem 1rem; max-height: 200px; overflow-y: auto;
-  font-family: var(--mono); font-size: .75rem; color: var(--text2); line-height: 1.6;
-}
-#progress-log .ok { color: var(--accent); }
-#progress-log .err { color: var(--err); }
-#progress-log .info { color: var(--blue); }
-#progress-log .filter { color: var(--purple); }
-#progress-log .eq { color: var(--orange); }
-#progress-log .file-header {
-  color: var(--accent); font-weight: 700; font-size: .85rem;
-  margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border);
-}
-
-#results { display: none; margin-bottom: 2rem; }
-#results h2 { font-family: var(--mono); font-size: 1rem; margin-bottom: 1rem; color: var(--accent); }
-.pair-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-  padding: 1rem 1.2rem; margin-bottom: .6rem; transition: border-color .2s;
-}
-.pair-card:hover { border-color: var(--accent); }
-.pair-label {
-  font-family: var(--mono); font-size: .7rem; text-transform: uppercase;
-  letter-spacing: .08em; color: var(--text2); margin-bottom: .3rem;
-}
-.pair-text { font-size: .88rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
-.pair-text.instruction { color: var(--blue); }
-.pair-text.output { color: var(--text); }
-.pair-divider { border-top: 1px solid var(--border); margin: .6rem 0; }
-#results-count { font-family: var(--mono); font-size: .8rem; color: var(--text2); margin-bottom: .8rem; }
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-#setup-guide { display: none; }
-
-@media (max-width: 600px) {
-  .settings { grid-template-columns: 1fr; }
-  .setting-card.wide { grid-column: 1; }
-  header h1 { font-size: 1.3rem; }
-  .filter-grid { grid-template-columns: 1fr; }
-}
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--border:#2a2a3a;--text:#e4e4ef;--text2:#8888a0;--accent:#4ade80;--accent2:#22c55e;--warn:#f59e0b;--err:#ef4444;--blue:#60a5fa;--purple:#a78bfa;--orange:#fb923c;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(74,222,128,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(74,222,128,.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:2rem 1.5rem}
+header{text-align:center;margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+header h1{font-family:var(--mono);font-size:1.8rem;font-weight:700;letter-spacing:-.02em;background:linear-gradient(135deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+header p{color:var(--text2);margin-top:.5rem;font-size:.95rem}
+#status-bar{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.6rem 1rem;border-radius:8px;background:var(--surface);border:1px solid var(--border);margin-bottom:2rem;font-family:var(--mono);font-size:.8rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--err);transition:background .3s}
+.dot.ok{background:var(--accent);box-shadow:0 0 8px rgba(74,222,128,.5)}
+.dot.loading{background:var(--warn);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem}
+.setting-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.2rem}
+.setting-card label{display:block;font-size:.75rem;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.5rem}
+.setting-card select,.setting-card input[type=number],.setting-card textarea{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.55rem .7rem;border-radius:6px;font-family:var(--sans);font-size:.9rem}
+.setting-card select:focus,.setting-card input:focus,.setting-card textarea:focus{outline:none;border-color:var(--accent)}
+.setting-card.wide{grid-column:1/-1}
+.setting-card textarea{font-family:var(--mono);font-size:.78rem;resize:vertical;min-height:80px}
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .8rem;margin-top:.5rem}
+.filter-grid label{display:flex;align-items:center;gap:.4rem;font-size:.82rem;font-family:var(--sans);text-transform:none;letter-spacing:0;color:var(--text);cursor:pointer}
+.filter-grid label input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px}
+#drop-zone{border:2px dashed var(--border);border-radius:12px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:all .25s;margin-bottom:1rem;background:var(--surface)}
+#drop-zone:hover,#drop-zone.dragover{border-color:var(--accent);background:rgba(74,222,128,.04)}
+#drop-zone .icon{font-size:2.5rem;margin-bottom:.8rem}
+#drop-zone h3{font-size:1.1rem;margin-bottom:.3rem}
+#drop-zone p{color:var(--text2);font-size:.85rem}
+#file-input{display:none}
+#file-queue{margin-bottom:1.5rem}
+.queue-item{display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.6rem 1rem;margin-bottom:.4rem;font-family:var(--mono);font-size:.8rem;transition:border-color .2s}
+.queue-item.active{border-color:var(--accent);background:rgba(74,222,128,.04)}
+.queue-item.done{border-color:var(--accent);opacity:.7}
+.queue-item.error{border-color:var(--err)}
+.queue-item .q-status{width:20px;text-align:center;flex-shrink:0}
+.queue-item .q-name{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.queue-item .q-info{color:var(--text2);font-size:.72rem;flex-shrink:0}
+.queue-item .q-remove{background:none;border:none;color:var(--text2);cursor:pointer;font-size:1rem;padding:0 .3rem;flex-shrink:0}
+.queue-item .q-remove:hover{color:var(--err)}
+.queue-item .q-download{background:var(--surface2);border:1px solid var(--accent);color:var(--accent);cursor:pointer;font-size:.7rem;font-family:var(--mono);padding:.2rem .5rem;border-radius:4px;flex-shrink:0}
+.queue-item .q-download:hover{background:var(--accent);color:var(--bg)}
+#filter-stats{display:none;background:var(--surface);border:1px solid var(--purple);border-radius:10px;padding:.8rem 1.2rem;margin-bottom:1.5rem;font-family:var(--mono);font-size:.78rem;color:var(--text2)}
+#filter-stats .highlight{color:var(--accent);font-weight:600}
+#filter-stats .saved{color:var(--purple);font-weight:600}
+.btn-row{display:flex;gap:.8rem;margin-bottom:2rem;flex-wrap:wrap}
+.btn{padding:.7rem 1.5rem;border-radius:8px;border:none;font-family:var(--sans);font-weight:600;font-size:.9rem;cursor:pointer;transition:all .2s}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#0a0a0f}
+.btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){border-color:var(--text2)}
+.btn-stop{background:var(--err);color:#fff}
+.btn-stop:hover:not(:disabled){background:#dc2626}
+#progress-area{display:none;margin-bottom:2rem}
+.progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;font-family:var(--mono);font-size:.8rem}
+.progress-bar{height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:.8rem}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--blue));border-radius:3px;transition:width .3s;width:0%}
+#progress-log{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.8rem 1rem;max-height:200px;overflow-y:auto;font-family:var(--mono);font-size:.75rem;color:var(--text2);line-height:1.6}
+#progress-log .ok{color:var(--accent)}
+#progress-log .err{color:var(--err)}
+#progress-log .info{color:var(--blue)}
+#progress-log .filter{color:var(--purple)}
+#progress-log .eq{color:var(--orange)}
+#progress-log .file-header{color:var(--accent);font-weight:700;font-size:.85rem;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border)}
+#results{display:none;margin-bottom:2rem}
+#results h2{font-family:var(--mono);font-size:1rem;margin-bottom:1rem;color:var(--accent)}
+.pair-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1rem 1.2rem;margin-bottom:.6rem;transition:border-color .2s}
+.pair-card:hover{border-color:var(--accent)}
+.pair-label{font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:.3rem}
+.pair-text{font-size:.88rem;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.pair-text.instruction{color:var(--blue)}
+.pair-text.output{color:var(--text)}
+.pair-divider{border-top:1px solid var(--border);margin:.6rem 0}
+#results-count{font-family:var(--mono);font-size:.8rem;color:var(--text2);margin-bottom:.8rem}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+#setup-guide{display:none}
+@media(max-width:600px){.settings{grid-template-columns:1fr}.setting-card.wide{grid-column:1}header h1{font-size:1.3rem}.filter-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="app">
-
-  <header>
-    <h1>Book → Training Data</h1>
-    <p>Queue multiple books — each auto-downloads JSON + JSONL when done</p>
-  </header>
-
-  <div id="status-bar">
-    <div class="dot" id="status-dot"></div>
-    <span id="status-text">Checking Ollama...</span>
-  </div>
-
-  <!-- Settings -->
-  <div class="settings">
-    <div class="setting-card">
-      <label>Ollama Model</label>
-      <select id="model-select"><option value="">Loading...</option></select>
-    </div>
-    <div class="setting-card">
-      <label>Chunk Size (chars)</label>
-      <input type="number" id="chunk-size" value="500" min="200" max="2000" step="100">
-    </div>
-
-    <div class="setting-card wide">
-      <label>🧹 Smart Content Filter — skip junk before Ollama touches it</label>
-      <div class="filter-grid">
-        <label><input type="checkbox" id="f-dedication" checked> Dedications</label>
-        <label><input type="checkbox" id="f-copyright" checked> Copyright pages</label>
-        <label><input type="checkbox" id="f-toc" checked> Table of Contents</label>
-        <label><input type="checkbox" id="f-listfig" checked> List of Figures/Tables</label>
-        <label><input type="checkbox" id="f-preface" checked> Preface / About Author</label>
-        <label><input type="checkbox" id="f-references" checked> References / Bibliography</label>
-        <label><input type="checkbox" id="f-index" checked> Index pages</label>
-        <label><input type="checkbox" id="f-endnotes" checked> Endnotes / Footnotes</label>
-        <label><input type="checkbox" id="f-blanks" checked> Blank / near-empty chunks</label>
-        <label><input type="checkbox" id="f-pagenum" checked> Page-number-heavy chunks</label>
-      </div>
-    </div>
-
-    <div class="setting-card">
-      <label>Parallel Requests</label>
-      <select id="concurrency">
-        <option value="1">1 (safe)</option>
-        <option value="2" selected>2 (faster)</option>
-        <option value="3">3 (fast, needs GPU)</option>
-        <option value="4">4 (max, may OOM)</option>
-      </select>
-    </div>
-
-    <div class="setting-card">
-      <label>Figure Handling</label>
-      <select id="figure-mode">
-        <option value="bind">Bind caption + context</option>
-        <option value="skip">Skip figure-only chunks</option>
-        <option value="keep">Keep as-is</option>
-      </select>
-    </div>
-
-    <div class="setting-card">
-      <label>PDF Equation Handling</label>
-      <select id="equation-mode">
-        <option value="render-ocr">Render page → OCR equations</option>
-        <option value="describe">Ask Ollama to describe equations</option>
-        <option value="off" selected>Off (text-only extraction)</option>
-      </select>
-    </div>
-
-    <div class="setting-card">
-      <label>Auto-Download When Done</label>
-      <select id="auto-download">
-        <option value="both" selected>JSON + JSONL</option>
-        <option value="jsonl">JSONL only</option>
-        <option value="json">JSON only</option>
-        <option value="off">Off (manual download)</option>
-      </select>
-    </div>
-
-    <div class="setting-card wide">
-      <label>System Prompt (how to generate pairs)</label>
-      <textarea id="system-prompt">Given this text from a technical book, create ONE instruction-output training pair.
+<header><h1>Book → Training Data v3</h1><p>Multi-pair extraction · Quality gate · Dedup · Auto-download per file</p></header>
+<div id="status-bar"><div class="dot" id="status-dot"></div><span id="status-text">Checking Ollama...</span></div>
+<div class="settings">
+<div class="setting-card"><label>Ollama Model</label><select id="model-select"><option value="">Loading...</option></select></div>
+<div class="setting-card"><label>Chunk Size (chars)</label><input type="number" id="chunk-size" value="600" min="200" max="2000" step="100"></div>
+<div class="setting-card wide"><label>🧹 Smart Content Filter</label>
+<div class="filter-grid">
+<label><input type="checkbox" id="f-dedication" checked> Dedications</label>
+<label><input type="checkbox" id="f-copyright" checked> Copyright pages</label>
+<label><input type="checkbox" id="f-toc" checked> Table of Contents</label>
+<label><input type="checkbox" id="f-listfig" checked> List of Figures/Tables</label>
+<label><input type="checkbox" id="f-preface" checked> Preface / About Author</label>
+<label><input type="checkbox" id="f-references" checked> References / Bibliography</label>
+<label><input type="checkbox" id="f-index" checked> Index pages</label>
+<label><input type="checkbox" id="f-endnotes" checked> Endnotes / Footnotes</label>
+<label><input type="checkbox" id="f-blanks" checked> Blank / near-empty</label>
+<label><input type="checkbox" id="f-pagenum" checked> Page-number-heavy</label>
+</div></div>
+<div class="setting-card"><label>Pairs Per Chunk</label><select id="pairs-per-chunk"><option value="1">1 (fast)</option><option value="2" selected>2 (balanced)</option><option value="3">3 (thorough)</option></select></div>
+<div class="setting-card"><label>Parallel Requests</label><select id="concurrency"><option value="1">1 (safe)</option><option value="2" selected>2 (faster)</option><option value="3">3 (GPU)</option><option value="4">4 (max)</option></select></div>
+<div class="setting-card"><label>Figure Handling</label><select id="figure-mode"><option value="bind">Bind caption + context</option><option value="skip">Skip figure-only</option><option value="keep">Keep as-is</option></select></div>
+<div class="setting-card"><label>PDF Equations</label><select id="equation-mode"><option value="render-ocr">Render → OCR</option><option value="describe">Ollama describe</option><option value="off" selected>Off</option></select></div>
+<div class="setting-card"><label>Min Output Length</label><select id="min-output"><option value="30">30 chars (lenient)</option><option value="60" selected>60 chars (balanced)</option><option value="100">100 chars (strict)</option></select></div>
+<div class="setting-card"><label>Auto-Download</label><select id="auto-download"><option value="both" selected>JSON + JSONL</option><option value="jsonl">JSONL only</option><option value="json">JSON only</option><option value="off">Off</option></select></div>
+<div class="setting-card wide"><label>System Prompt</label>
+<textarea id="system-prompt">You are a training data generator. Given text from a book, create {N} distinct instruction-output training pairs.
 
 Rules:
-- Instruction: A clear, specific question or task (1-2 sentences)
-- Output: A complete, accurate answer based on the text
-- If the text contains mathematical equations or formulas, preserve them accurately in the output
+- Each INSTRUCTION must be a different TYPE. Vary between: factual question, explanation request, definition, comparison, process/steps, application scenario, summary
+- Each OUTPUT must be comprehensive (4+ sentences), accurate, and self-contained
+- Do NOT repeat or rephrase the same question
+- If text contains equations/formulas, preserve them accurately
+- If text describes a process, create step-by-step instructions
 
-Format EXACTLY as:
-INSTRUCTION: [your instruction here]
-OUTPUT: [your output here]</textarea>
-    </div>
-  </div>
-
-  <!-- Upload — multi-file, can add while processing -->
-  <div id="drop-zone">
-    <div class="icon">📚</div>
-    <h3>Drop your books here (multiple files OK)</h3>
-    <p>PDF · EPUB · DOCX · TXT — add more files anytime, even while processing</p>
-    <input type="file" id="file-input" accept=".pdf,.epub,.docx,.txt,.text" multiple>
-  </div>
-
-  <!-- File queue -->
-  <div id="file-queue"></div>
-
-  <!-- Filter stats -->
-  <div id="filter-stats"></div>
-
-  <!-- Actions -->
-  <div class="btn-row">
-    <button class="btn btn-primary" id="btn-start" disabled>▶ Process All Files</button>
-    <button class="btn btn-stop" id="btn-stop" disabled style="display:none">■ Stop</button>
-    <button class="btn btn-secondary" id="btn-clear-queue" style="display:none">✕ Clear Queue</button>
-  </div>
-
-  <!-- Progress -->
-  <div id="progress-area">
-    <div class="progress-header">
-      <span id="progress-label">Processing...</span>
-      <span id="progress-pct">0%</span>
-    </div>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress-fill"></div>
-    </div>
-    <div id="progress-log"></div>
-  </div>
-
-  <!-- Results Preview -->
-  <div id="results">
-    <h2>Generated Pairs (current file)</h2>
-    <div id="results-count"></div>
-    <div id="results-list"></div>
-  </div>
-
-  <!-- Setup instructions -->
-  <div id="setup-guide" style="display:none">
-    <div class="setting-card wide" style="border-color: var(--warn);">
-      <label style="color: var(--warn);">⚠ Setup Required</label>
-      <div style="font-size:.88rem; line-height:1.7; color: var(--text2);">
-        <strong style="color:var(--text)">Step 1:</strong> Install Ollama →
-        <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">ollama.com/download</a><br>
-        <strong style="color:var(--text)">Step 2:</strong> Open terminal, run:
-        <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">ollama pull llama3.2:3b</code><br>
-        <strong style="color:var(--text)">Step 3:</strong> Set CORS (one time):<br>
-        &nbsp;&nbsp;• <strong>Mac:</strong> <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">launchctl setenv OLLAMA_ORIGINS "*"</code> then restart Ollama<br>
-        &nbsp;&nbsp;• <strong>Windows:</strong> Set environment variable <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS=*</code> in System Properties → Env Variables<br>
-        &nbsp;&nbsp;• <strong>Linux:</strong> <code style="background:var(--surface2); padding:2px 6px; border-radius:4px; font-family:var(--mono);">OLLAMA_ORIGINS="*" ollama serve</code><br>
-        <strong style="color:var(--text)">Step 4:</strong> Refresh this page
-      </div>
-    </div>
-  </div>
-
+Format EXACTLY (repeat for each pair):
+INSTRUCTION: [question or task]
+OUTPUT: [complete answer]</textarea></div>
+</div>
+<div id="drop-zone"><div class="icon">📚</div><h3>Drop books here (multiple files)</h3><p>PDF · EPUB · DOCX · TXT — auto-downloads when each finishes</p><input type="file" id="file-input" accept=".pdf,.epub,.docx,.txt,.text" multiple></div>
+<div id="file-queue"></div>
+<div id="filter-stats"></div>
+<div class="btn-row">
+<button class="btn btn-primary" id="btn-start" disabled>▶ Process All Files</button>
+<button class="btn btn-stop" id="btn-stop" disabled style="display:none">■ Stop</button>
+<button class="btn btn-secondary" id="btn-clear-queue" style="display:none">✕ Clear Queue</button>
+</div>
+<div id="progress-area"><div class="progress-header"><span id="progress-label">Processing...</span><span id="progress-pct">0%</span></div><div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div><div id="progress-log"></div></div>
+<div id="results"><h2>Generated Pairs</h2><div id="results-count"></div><div id="results-list"></div></div>
+<div id="setup-guide"><div class="setting-card wide" style="border-color:var(--warn)"><label style="color:var(--warn)">⚠ Setup Required</label><div style="font-size:.88rem;line-height:1.7;color:var(--text2)"><strong style="color:var(--text)">1:</strong> <a href="https://ollama.com/download" target="_blank" style="color:var(--accent)">Install Ollama</a><br><strong style="color:var(--text)">2:</strong> <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:var(--mono)">ollama pull llama3.2:3b</code><br><strong style="color:var(--text)">3:</strong> Set CORS env var <code style="background:var(--surface2);padding:2px 6px;border-radius:4px">OLLAMA_ORIGINS=*</code> then restart<br><strong style="color:var(--text)">4:</strong> Refresh this page</div></div></div>
 </div>
 
 <script type="module">
 // ============================================================================
-// PDF.js setup
+// LIB INIT
 // ============================================================================
 let pdfjsLib = null;
 try {
   pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
   if (pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-} catch(e) {
-  console.warn('PDF.js init failed', e);
-}
+} catch(e) { console.warn('PDF.js init failed', e); }
 
-// ============================================================================
-// TESSERACT WORKER — created once, reused across all pages and files
-// ============================================================================
 let tesseractWorker = null;
-let tesseractReady = false;
-
 async function getTesseractWorker() {
-  if (tesseractWorker && tesseractReady) return tesseractWorker;
-  try {
-    tesseractWorker = await Tesseract.createWorker('eng', 1, {
-      logger: () => {},  // silent
-    });
-    tesseractReady = true;
-    return tesseractWorker;
-  } catch(e) {
-    console.warn('Tesseract init failed:', e);
-    return null;
-  }
+  if (tesseractWorker) return tesseractWorker;
+  log('Initializing Tesseract OCR...', 'info');
+  tesseractWorker = await Tesseract.createWorker('eng');
+  log('✓ Tesseract ready', 'ok');
+  return tesseractWorker;
 }
 
 // ============================================================================
 // STATE
 // ============================================================================
 const OLLAMA = 'http://localhost:11434';
-let running = false;
-let abortCtrl = null;
-let fileQueue = [];  // { file, status, pairs, el, progress }
+let running = false, abortCtrl = null, fileQueue = [];
 
 // ============================================================================
 // DOM
 // ============================================================================
 const $ = id => document.getElementById(id);
-const statusDot = $('status-dot');
-const statusText = $('status-text');
-const modelSelect = $('model-select');
-const dropZone = $('drop-zone');
-const fileInput = $('file-input');
-const fileQueueDiv = $('file-queue');
-const btnStart = $('btn-start');
-const btnStop = $('btn-stop');
-const btnClear = $('btn-clear-queue');
-const progressArea = $('progress-area');
-const progressFill = $('progress-fill');
-const progressLabel = $('progress-label');
-const progressPct = $('progress-pct');
-const progressLog = $('progress-log');
-const resultsDiv = $('results');
-const resultsList = $('results-list');
-const resultsCount = $('results-count');
-const setupGuide = $('setup-guide');
-const filterStats = $('filter-stats');
+const statusDot=$('status-dot'),statusText=$('status-text'),modelSelect=$('model-select');
+const dropZone=$('drop-zone'),fileInput=$('file-input'),fileQueueDiv=$('file-queue');
+const btnStart=$('btn-start'),btnStop=$('btn-stop'),btnClear=$('btn-clear-queue');
+const progressArea=$('progress-area'),progressFill=$('progress-fill');
+const progressLabel=$('progress-label'),progressPct=$('progress-pct'),progressLog=$('progress-log');
+const resultsDiv=$('results'),resultsList=$('results-list'),resultsCount=$('results-count');
+const setupGuide=$('setup-guide'),filterStats=$('filter-stats');
 
 // ============================================================================
-// OLLAMA CONNECTION
+// OLLAMA
 // ============================================================================
 async function checkOllama() {
-  statusDot.className = 'dot loading';
-  statusText.textContent = 'Connecting to Ollama...';
+  statusDot.className='dot loading'; statusText.textContent='Connecting...';
   try {
-    const r = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    const r = await fetch(`${OLLAMA}/api/tags`,{signal:AbortSignal.timeout(3000)});
     const data = await r.json();
-    const models = (data.models || []).map(m => m.name);
-    if (models.length === 0) {
-      setStatus('warn', 'Ollama running but no models');
-      setupGuide.style.display = 'block';
-      return false;
-    }
-    modelSelect.innerHTML = models.map(m =>
-      `<option value="${m}" ${m.includes('llama3.2') ? 'selected' : ''}>${m}</option>`
-    ).join('');
-    setStatus('ok', `Connected · ${models.length} model${models.length > 1 ? 's' : ''}`);
-    setupGuide.style.display = 'none';
-    return true;
+    const models = (data.models||[]).map(m=>m.name);
+    if(!models.length){setStatus('warn','No models');setupGuide.style.display='block';return;}
+    modelSelect.innerHTML=models.map(m=>`<option value="${m}" ${m.includes('llama3.2')||m.includes('qwen')?'selected':''}>${m}</option>`).join('');
+    setStatus('ok',`Connected · ${models.length} models`);
+    setupGuide.style.display='none';
   } catch(e) {
-    setStatus('err', 'Cannot reach Ollama at localhost:11434');
-    setupGuide.style.display = 'block';
-    modelSelect.innerHTML = '<option value="">Not connected</option>';
-    return false;
+    setStatus('err','Cannot reach Ollama');setupGuide.style.display='block';
+    modelSelect.innerHTML='<option value="">Not connected</option>';
   }
 }
-
-function setStatus(state, text) {
-  statusDot.className = `dot ${state === 'err' ? '' : state === 'warn' ? 'loading' : 'ok'}`;
-  statusText.textContent = text;
-}
+function setStatus(s,t){statusDot.className=`dot ${s==='err'?'':s==='warn'?'loading':'ok'}`;statusText.textContent=t;}
 
 async function ollamaGenerate(prompt, model) {
   const r = await fetch(`${OLLAMA}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model, prompt, stream: false,
-      options: { temperature: 0.7, num_predict: 400 },
-      keep_alive: '30m',
-    }),
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model, prompt, stream:false, options:{temperature:0.7,num_predict:800}, keep_alive:'30m' }),
     signal: abortCtrl?.signal,
   });
-  if (!r.ok) throw new Error(`Ollama error: ${r.status}`);
-  const data = await r.json();
-  return data.response || '';
+  if(!r.ok) throw new Error(`Ollama ${r.status}`);
+  return (await r.json()).response || '';
 }
 
 // ============================================================================
-// EQUATION HANDLING — 3-layer approach
+// EQUATION HELPERS
 // ============================================================================
-//
-// Layer 1: Unicode math normalization (FREE, instant)
-//   PDF.js sometimes extracts equations as Unicode math symbols.
-//   We normalize these into readable ASCII math notation.
-//
-// Layer 2: Render + OCR (slow but accurate for image-based equations)
-//   Render the PDF page to canvas, OCR with Tesseract reused worker.
-//   Only triggered for pages where Layer 1 detects equation patterns.
-//
-// Layer 3: Ollama describe (uses a model call, most expensive)
-//   Send the chunk to Ollama asking it to rewrite equations readably.
+const UNICODE_MATH={'²':'^2','³':'^3','¹':'^1','⁰':'^0','⁴':'^4','⁵':'^5','⁶':'^6','⁷':'^7','⁸':'^8','⁹':'^9',
+'₀':'_0','₁':'_1','₂':'_2','₃':'_3','₄':'_4','₅':'_5','₆':'_6','₇':'_7','₈':'_8','₉':'_9',
+'≤':'<=','≥':'>=','≠':'!=','≈':'~=','×':'*','÷':'/','±':'+/-','∞':'infinity',
+'∑':'SUM','∏':'PRODUCT','∫':'INTEGRAL','√':'sqrt','∂':'d/d','∇':'nabla',
+'π':'pi','α':'alpha','β':'beta','γ':'gamma','δ':'delta','θ':'theta','λ':'lambda',
+'μ':'mu','σ':'sigma','φ':'phi','ω':'omega','Δ':'Delta','Σ':'Sigma','Ω':'Omega'};
 
-// --- Unicode math → ASCII readable conversion (Layer 1, free) ---
-const UNICODE_MATH_MAP = {
-  '²': '^2', '³': '^3', '⁴': '^4', '⁵': '^5', '⁶': '^6', '⁷': '^7', '⁸': '^8', '⁹': '^9', '⁰': '^0',
-  '⁺': '+', '⁻': '-', '⁼': '=', '⁽': '(', '⁾': ')',
-  '₀': '_0', '₁': '_1', '₂': '_2', '₃': '_3', '₄': '_4',
-  '₅': '_5', '₆': '_6', '₇': '_7', '₈': '_8', '₉': '_9',
-  '₊': '+', '₋': '-', '₌': '=', '₍': '(', '₎': ')',
-  '∑': 'SUM', '∏': 'PRODUCT', '∫': 'INTEGRAL', '∂': 'd/d',
-  '√': 'sqrt', '∞': 'infinity', '±': '+/-', '×': '*', '÷': '/',
-  '≈': '~=', '≠': '!=', '≤': '<=', '≥': '>=',
-  '∈': 'in', '∉': 'not in', '⊂': 'subset', '⊃': 'superset',
-  '∪': 'UNION', '∩': 'INTERSECT', '∀': 'for all', '∃': 'there exists',
-  '∇': 'nabla', '→': '->', '←': '<-', '↔': '<->',
-  'α': 'alpha', 'β': 'beta', 'γ': 'gamma', 'δ': 'delta',
-  'ε': 'epsilon', 'θ': 'theta', 'λ': 'lambda', 'μ': 'mu',
-  'π': 'pi', 'σ': 'sigma', 'φ': 'phi', 'ω': 'omega',
-  'Δ': 'Delta', 'Σ': 'Sigma', 'Π': 'Pi', 'Ω': 'Omega',
-  'ℝ': 'R', 'ℕ': 'N', 'ℤ': 'Z', 'ℂ': 'C',
-};
+function normalizeUnicodeMath(t){for(const[u,r]of Object.entries(UNICODE_MATH))t=t.replaceAll(u,r);return t;}
+function textHasUnicodeMath(t){return Object.keys(UNICODE_MATH).some(u=>t.includes(u));}
 
-function normalizeUnicodeMath(text) {
-  let out = text;
-  for (const [u, a] of Object.entries(UNICODE_MATH_MAP)) {
-    out = out.replaceAll(u, a);
-  }
-  // Clean up common PDF.js equation artifacts
-  // e.g., "x 2" that should be "x^2" when preceded by superscript context
-  out = out.replace(/\s*\^\s*/g, '^');
-  out = out.replace(/\s*_\s*/g, '_');
-  return out;
+const EQ_SIGNALS=[/[=∑∫∏√∂∇∞±×÷≈≠≤≥∈∉⊂⊃∪∩∀∃]/,/\b[a-z]\s*[=<>]\s*[a-z0-9]/i,
+/\b(sin|cos|tan|log|ln|exp|lim|max|min|sum|prod)\s*[(\[]/i,/\^\{?[\d\w]+\}?/,/_\{?[\d\w]+\}?/,
+/\\(frac|sqrt|int|sum|alpha|beta|gamma|delta|theta|sigma|pi|phi|omega)/i,/\bd[a-z]\s*\/\s*d[a-z]/i];
+function textHasEquations(t){return EQ_SIGNALS.some(re=>re.test(t));}
+
+async function ocrPageForEquations(page,pageText,n){
+  if(!textHasEquations(pageText))return null;
+  try{
+    const vp=page.getViewport({scale:2.0});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    const w=await getTesseractWorker();const r=await w.recognize(c.toDataURL('image/png'));c.remove();
+    const t=r.data.text.trim();
+    return(EQ_SIGNALS.filter(re=>re.test(t)).length>EQ_SIGNALS.filter(re=>re.test(pageText)).length+1&&t.length>30)?t:null;
+  }catch(e){return null;}
 }
 
-function textHasUnicodeMath(text) {
-  return Object.keys(UNICODE_MATH_MAP).some(u => text.includes(u));
+async function ocrFullPage(page,n){
+  try{
+    const vp=page.getViewport({scale:2.0});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;
+    await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    const w=await getTesseractWorker();const r=await w.recognize(c.toDataURL('image/png'));c.remove();
+    return r.data.text.trim().length>20?r.data.text.trim():null;
+  }catch(e){return null;}
 }
 
-// --- Equation signal detection ---
-const EQUATION_SIGNALS = [
-  /[=∑∫∏√∂∇∞±×÷≈≠≤≥∈∉⊂⊃∪∩∀∃]/,
-  /\b[a-z]\s*[=<>]\s*[a-z0-9]/i,
-  /\b(sin|cos|tan|log|ln|exp|lim|max|min|sum|prod)\s*[(\[]/i,
-  /\^\{?[\d\w]+\}?/,
-  /_\{?[\d\w]+\}?/,
-  /\\(frac|sqrt|int|sum|prod|alpha|beta|gamma|delta|theta|sigma|lambda|mu|pi|phi|omega)/i,
-  /\b[A-Z]\s*=\s*[A-Z0-9]/,
-  /\bd[a-z]\s*\/\s*d[a-z]/i,
-];
-
-function textHasEquations(text) {
-  return EQUATION_SIGNALS.some(re => re.test(text));
+function mergeTextWithOCR(pdfText,ocrText){
+  if(EQ_SIGNALS.filter(re=>re.test(ocrText)).length>EQ_SIGNALS.filter(re=>re.test(pdfText)).length+2)return ocrText;
+  const eqLines=ocrText.split('\n').filter(l=>EQ_SIGNALS.some(re=>re.test(l)));
+  const missing=eqLines.filter(l=>!pdfText.replace(/\s+/g,'').includes(l.replace(/\s+/g,'').substring(0,20)));
+  return missing.length>0?pdfText+'\n\n[Equations:]\n'+missing.join('\n'):pdfText;
 }
 
-// --- Layer 2: Page render + OCR with reused Tesseract worker ---
-async function ocrPageForEquations(page, pageText, pageNum) {
-  if (!textHasEquations(pageText) && !textHasUnicodeMath(pageText)) return null;
-
-  const worker = await getTesseractWorker();
-  if (!worker) return null;
-
-  try {
-    // Render at 2x for quality but use an offscreen canvas
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = new OffscreenCanvas(viewport.width, viewport.height);
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    const blob = await canvas.convertToBlob({ type: 'image/png' });
-    const result = await worker.recognize(blob);
-    const ocrText = result.data.text.trim();
-
-    // Only use OCR if it found more math than PDF.js extracted
-    const ocrMath = EQUATION_SIGNALS.filter(re => re.test(ocrText)).length;
-    const pdfMath = EQUATION_SIGNALS.filter(re => re.test(pageText)).length;
-
-    if (ocrMath > pdfMath + 1 && ocrText.length > 30) {
-      return ocrText;
-    }
-    return null;
-  } catch(e) {
-    console.warn(`OCR failed page ${pageNum}:`, e);
-    return null;
-  }
-}
-
-// --- Merge PDF text with OCR results ---
-function mergeTextWithOCR(pdfText, ocrText) {
-  const pdfMath = EQUATION_SIGNALS.filter(re => re.test(pdfText)).length;
-  const ocrMath = EQUATION_SIGNALS.filter(re => re.test(ocrText)).length;
-
-  if (ocrMath > pdfMath + 2) {
-    return ocrText + '\n[Enhanced via OCR for equation accuracy]';
-  }
-
-  // Append only the equation-rich lines missing from PDF text
-  const eqLines = ocrText.split('\n').filter(l => EQUATION_SIGNALS.some(re => re.test(l)));
-  const missing = eqLines.filter(l => {
-    const s = l.replace(/\s+/g, '').toLowerCase();
-    return s.length > 5 && !pdfText.replace(/\s+/g, '').toLowerCase().includes(s.substring(0, 20));
-  });
-
-  if (missing.length > 0) {
-    return pdfText + '\n\n[Equations from page scan:]\n' + missing.join('\n');
-  }
-  return pdfText;
-}
-
-// --- Layer 3: Ollama equation description ---
-async function describeEquationsViaOllama(text, model) {
-  if (!textHasEquations(text)) return text;
-  try {
-    const prompt = `The following text contains mathematical equations or formulas. ` +
-      `Rewrite the text preserving ALL content, but convert any equations into clear, readable form. ` +
-      `Use standard notation like x^2 for superscripts, x_i for subscripts, sqrt() for roots. ` +
-      `Do NOT add explanations — just return the cleaned text with readable equations.\n\nText:\n${text}`;
-
-    const response = await ollamaGenerate(prompt, model);
-    if (response.length > text.length * 0.5 && response.length < text.length * 3) {
-      return response;
-    }
-  } catch(e) { /* fall back to original */ }
-  return text;
+async function describeEquationsViaOllama(text,model){
+  if(!textHasEquations(text))return text;
+  try{const r=await ollamaGenerate(`Rewrite with equations in readable notation (x^2,sqrt(),x_i). Only return cleaned text:\n\n${text}`,model);
+  return(r.length>text.length*0.5&&r.length<text.length*3)?r:text;}catch(e){return text;}
 }
 
 // ============================================================================
 // SMART CONTENT FILTER
 // ============================================================================
-const FILTER_PATTERNS = {
-  dedication: [
-    /^dedicated\s+to/i, /^to\s+my\s+(wife|husband|family|parents|children|mother|father)/i,
-    /^in\s+memory\s+of/i, /^for\s+my\s+/i, /^this\s+book\s+is\s+dedicated/i,
-  ],
-  copyright: [
-    /all\s+rights\s+reserved/i, /isbn[\s:\-]*[\dxX\-]{10,}/i,
-    /library\s+of\s+congress/i, /printed\s+in\s+(the\s+)?united\s+states/i,
-    /no\s+part\s+of\s+this\s+(book|publication)/i, /permission\s+.*\s+publisher/i,
-    /cataloging[\-\s]in[\-\s]publication/i, /©\s*\d{4}/,
-  ],
-  toc: [/^table\s+of\s+contents/i, /^contents$/im],
-  listfig: [/^list\s+of\s+(figures|tables|illustrations|abbreviations|acronyms|symbols)/i],
-  preface: [
-    /^preface$/im, /^acknowledgment/im, /^about\s+the\s+author/im,
-    /^author\s+biograph/im, /^contributor/im, /^foreword$/im,
-  ],
-  references: [/^references$/im, /^bibliography$/im, /^works\s+cited$/im, /^further\s+reading$/im],
-  index: [/^(subject\s+)?index$/im, /^author\s+index$/im],
-  endnotes: [/^endnotes$/im, /^notes$/im, /^footnotes$/im],
+const FILTER_PATTERNS={
+  dedication:[/^dedicated\s+to/i,/^to\s+my\s+(wife|husband|family|parents|children)/i,/^in\s+memory\s+of/i,/^this\s+book\s+is\s+dedicated/i],
+  copyright:[/all\s+rights\s+reserved/i,/isbn[\s:\-]*[\dxX\-]{10,}/i,/library\s+of\s+congress/i,/no\s+part\s+of\s+this\s+(book|publication)/i,/cataloging[\-\s]in[\-\s]publication/i,/©\s*\d{4}/],
+  toc:[/^table\s+of\s+contents/i,/^contents$/im],
+  listfig:[/^list\s+of\s+(figures|tables|illustrations|abbreviations|acronyms|symbols)/i],
+  preface:[/^preface$/im,/^acknowledgment/im,/^about\s+the\s+author/im,/^foreword$/im],
+  references:[/^references$/im,/^bibliography$/im,/^works\s+cited$/im,/^further\s+reading$/im],
+  index:[/^(subject\s+)?index$/im,/^author\s+index$/im],
+  endnotes:[/^endnotes$/im,/^notes$/im,/^footnotes$/im],
 };
 
-function hasTocStructure(t) {
-  const l = t.trim().split('\n'); if (l.length < 4) return false;
-  return l.filter(x => /[\.\s]{3,}\d+\s*$/.test(x.trim())).length / l.length > 0.4;
-}
-function hasRefStructure(t) {
-  const l = t.trim().split('\n').filter(x => x.trim()); if (l.length < 3) return false;
-  const p = [/^\[\d+\]/, /^\d+\.\s+[A-Z]/, /^[A-Z][a-z]+,\s+[A-Z]/];
-  return l.filter(x => p.some(r => r.test(x.trim()))).length / l.length > 0.5;
-}
-function hasIndexStructure(t) {
-  const l = t.trim().split('\n').filter(x => x.trim()); if (l.length < 6) return false;
-  return l.filter(x => /^.{2,50},?\s+\d[\d,\s\-]*$/.test(x.trim())).length / l.length > 0.4;
+function hasTocStructure(t){const l=t.trim().split('\n');return l.length>=4&&l.filter(x=>/[\.\s]{3,}\d+\s*$/.test(x.trim())).length/l.length>0.4;}
+function hasRefStructure(t){const l=t.trim().split('\n').filter(x=>x.trim());return l.length>=3&&l.filter(x=>[/^\[\d+\]/,/^\d+\.\s+[A-Z]/,/^[A-Z][a-z]+,\s+[A-Z]/].some(r=>r.test(x.trim()))).length/l.length>0.5;}
+function hasIndexStructure(t){const l=t.trim().split('\n').filter(x=>x.trim());return l.length>=6&&l.filter(x=>/^.{2,50},?\s+\d[\d,\s\-]*$/.test(x.trim())).length/l.length>0.4;}
+
+function getFilters(){
+  return{dedication:$('f-dedication').checked,copyright:$('f-copyright').checked,toc:$('f-toc').checked,
+  listfig:$('f-listfig').checked,preface:$('f-preface').checked,references:$('f-references').checked,
+  index:$('f-index').checked,endnotes:$('f-endnotes').checked,blanks:$('f-blanks').checked,pagenum:$('f-pagenum').checked};
 }
 
-function getActiveFilters() {
-  return {
-    dedication: $('f-dedication').checked, copyright: $('f-copyright').checked,
-    toc: $('f-toc').checked, listfig: $('f-listfig').checked,
-    preface: $('f-preface').checked, references: $('f-references').checked,
-    index: $('f-index').checked, endnotes: $('f-endnotes').checked,
-    blanks: $('f-blanks').checked, pagenum: $('f-pagenum').checked,
-  };
-}
-
-function filterChunk(text) {
-  const f = getActiveFilters();
-  if (f.blanks && text.trim().split(/\s+/).length < 5) return { keep: false, reason: 'blank/tiny' };
-  if (f.pagenum) {
-    const d = (text.match(/\d/g) || []).length, total = text.replace(/\s/g, '').length;
-    if (total > 10 && d / total > 0.4) return { keep: false, reason: 'page-number-heavy' };
+function filterChunk(text){
+  const f=getFilters();
+  if(f.blanks&&text.trim().split(/\s+/).length<5)return{keep:false,reason:'blank/tiny'};
+  if(f.pagenum){const d=(text.match(/\d/g)||[]).length,t=text.replace(/\s/g,'').length;if(t>10&&d/t>0.4)return{keep:false,reason:'number-heavy'};}
+  for(const[pk,fk]of Object.entries({dedication:'dedication',copyright:'copyright',toc:'toc',listfig:'listfig',preface:'preface',references:'references',index:'index',endnotes:'endnotes'})){
+    if(f[fk]&&FILTER_PATTERNS[pk]?.some(p=>p.test(text)))return{keep:false,reason:pk};
   }
-  const map = { dedication:'dedication', copyright:'copyright', toc:'toc', listfig:'listfig',
-    preface:'preface', references:'references', index:'index', endnotes:'endnotes' };
-  for (const [pk, fk] of Object.entries(map)) {
-    if (!f[fk]) continue;
-    if (FILTER_PATTERNS[pk]?.some(p => p.test(text))) return { keep: false, reason: pk };
-  }
-  if (f.toc && hasTocStructure(text)) return { keep: false, reason: 'toc-structure' };
-  if (f.references && hasRefStructure(text)) return { keep: false, reason: 'ref-structure' };
-  if (f.index && hasIndexStructure(text)) return { keep: false, reason: 'index-structure' };
-  return { keep: true, reason: '' };
+  if(f.toc&&hasTocStructure(text))return{keep:false,reason:'toc-structure'};
+  if(f.references&&hasRefStructure(text))return{keep:false,reason:'ref-structure'};
+  if(f.index&&hasIndexStructure(text))return{keep:false,reason:'index-structure'};
+  return{keep:true,reason:''};
 }
 
 // ============================================================================
-// FIGURE CAPTION HANDLING
+// SECTION DETECTION — adds context metadata
 // ============================================================================
-const FIGURE_RE = /(?:^|\n)\s*(fig(?:ure)?|table|diagram|chart|exhibit)[\s.]*(\d+[\d.]*)\s*[:.]\s*(.+)/i;
+const HEADING_RE=/^(?:chapter|section|part|appendix)?\s*(\d+[\.\d]*)\s*[:\.\-–—]\s*(.+)/im;
+const CAPS_HEADING=/^[A-Z][A-Z\s\-:]{5,60}$/m;
+function detectSection(text){
+  const m=text.match(HEADING_RE);if(m)return{number:m[1],title:m[2].trim()};
+  const c=text.match(CAPS_HEADING);if(c&&c[0].trim().split(/\s+/).length<=8)return{number:'',title:c[0].trim()};
+  return null;
+}
 
-function processChunksForFigures(chunks) {
-  const mode = $('figure-mode').value;
-  if (mode === 'keep') return chunks;
-  const out = [];
-  for (let i = 0; i < chunks.length; i++) {
-    const fig = chunks[i].match(FIGURE_RE);
-    if (!fig) { out.push(chunks[i]); continue; }
-    if (mode === 'skip') {
-      const wo = chunks[i].replace(FIGURE_RE, '').trim();
-      if (wo.split(/\s+/).length < 15) continue;
-      out.push(chunks[i]); continue;
-    }
-    let bound = '';
-    if (i > 0) bound += chunks[i-1].split(/\s+/).slice(-25).join(' ') + '\n\n';
-    bound += chunks[i];
-    if (i < chunks.length - 1) bound += '\n\n' + chunks[i+1].split(/\s+/).slice(0, 25).join(' ');
-    out.push(bound);
+// ============================================================================
+// FIGURE HANDLING
+// ============================================================================
+const FIGURE_RE=/(?:^|\n)\s*(fig(?:ure)?|table|diagram|chart|exhibit)[\s.]*(\d+[\d.]*)\s*[:.]\s*(.+)/i;
+function processChunksForFigures(chunks){
+  const mode=$('figure-mode').value;if(mode==='keep')return chunks;
+  const out=[];
+  for(let i=0;i<chunks.length;i++){
+    const fig=chunks[i].match(FIGURE_RE);
+    if(!fig){out.push(chunks[i]);continue;}
+    if(mode==='skip'){if(chunks[i].replace(FIGURE_RE,'').trim().split(/\s+/).length<15)continue;out.push(chunks[i]);continue;}
+    let b='';if(i>0)b+=chunks[i-1].split(/\s+/).slice(-25).join(' ')+'\n\n';
+    b+=chunks[i];if(i<chunks.length-1)b+='\n\n'+chunks[i+1].split(/\s+/).slice(0,25).join(' ');
+    out.push(b);
   }
   return out;
 }
@@ -817,586 +332,314 @@ function processChunksForFigures(chunks) {
 // ============================================================================
 // FILE PARSERS
 // ============================================================================
-async function parseFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  log(`Parsing ${file.name} (${(file.size/1024).toFixed(0)} KB)...`, 'info');
-  switch (ext) {
-    case 'txt': case 'text': return { text: await file.text() };
-    case 'pdf': return await parsePDFEnhanced(file);
-    case 'docx': return { text: await parseDOCX(file) };
-    case 'epub': return { text: await parseEPUB(file) };
-    default: throw new Error(`Unsupported: .${ext}`);
+async function parseFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();
+  log(`Parsing ${file.name} (${(file.size/1024).toFixed(0)} KB)...`,'info');
+  switch(ext){
+    case 'txt':case 'text':return{text:await file.text()};
+    case 'pdf':return await parsePDFEnhanced(file);
+    case 'docx':return{text:await parseDOCX(file)};
+    case 'epub':return{text:await parseEPUB(file)};
+    default:throw new Error(`Unsupported: .${ext}`);
   }
 }
 
-async function parsePDFEnhanced(file) {
-  if (!pdfjsLib) pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
-  if (!pdfjsLib) throw new Error('PDF.js not loaded. Check internet connection.');
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-  const eqMode = $('equation-mode').value;
+async function parsePDFEnhanced(file){
+  if(!pdfjsLib)pdfjsLib=window['pdfjs-dist/build/pdf']||window.pdfjsLib;
+  if(!pdfjsLib)throw new Error('PDF.js not loaded.');
+  if(!pdfjsLib.GlobalWorkerOptions.workerSrc)
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-  let fullText = '';
-  let eqPagesOCR = 0;
-  let eqPagesUnicode = 0;
-  let ocrFallbackPages = 0;
-  let emptyPages = 0;
-  let totalTextChars = 0;
+  const buf=await file.arrayBuffer();
+  const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  const eqMode=$('equation-mode').value;
+  let fullText='',ocrPages=0,emptyPages=0,totalChars=0;
 
-  // PASS 1: Quick scan first 10 pages to detect if this is an image-heavy PDF
-  let sampleTextLen = 0;
-  const samplePages = Math.min(10, pdf.numPages);
-  for (let i = 1; i <= samplePages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    sampleTextLen += content.items.map(it => it.str).join(' ').trim().length;
-  }
-  const avgCharsPerPage = sampleTextLen / samplePages;
-  const isImageHeavy = avgCharsPerPage < 100; // less than ~20 words/page average
+  // Quick scan for image-heavy detection
+  let sampleLen=0;const sampleN=Math.min(10,pdf.numPages);
+  for(let i=1;i<=sampleN;i++){const p=await pdf.getPage(i);const c=await p.getTextContent();sampleLen+=c.items.map(x=>x.str).join(' ').trim().length;}
+  const avg=sampleLen/sampleN;
+  if(avg<100)log(`  ⚠ Image-heavy PDF (avg ${Math.round(avg)} chars/page) — OCR fallback`,'eq');
 
-  if (isImageHeavy) {
-    log(`  ⚠ Image-heavy PDF detected (avg ${Math.round(avgCharsPerPage)} chars/page) — enabling OCR fallback`, 'eq');
-  } else {
-    log(`  📊 Text density: avg ${Math.round(avgCharsPerPage)} chars/page — PDF text extraction looks good`, 'info');
-  }
+  for(let i=1;i<=pdf.numPages;i++){
+    const page=await pdf.getPage(i);const content=await page.getTextContent();
+    let pageText=content.items.map(x=>x.str).join(' ').trim();
 
-  // PASS 2: Extract text from all pages, OCR when needed
-  const OCR_THRESHOLD = 50; // if PDF.js gets fewer chars than this, try OCR
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    let pageText = content.items.map(item => item.str).join(' ').trim();
-
-    // If page has very little text, try OCR (for image-heavy PDFs or scanned pages)
-    if (pageText.length < OCR_THRESHOLD) {
-      try {
-        const ocrText = await ocrFullPage(page, i);
-        if (ocrText && ocrText.length > pageText.length + 20) {
-          pageText = ocrText;
-          ocrFallbackPages++;
-        } else if (pageText.length < 10) {
-          emptyPages++;
-        }
-      } catch(e) {
-        // OCR failed, keep whatever PDF.js got
-        if (pageText.length < 10) emptyPages++;
-      }
-    } else {
-      // Normal text page — apply equation handling
-      if (textHasUnicodeMath(pageText)) {
-        pageText = normalizeUnicodeMath(pageText);
-        eqPagesUnicode++;
-      }
-      if (eqMode === 'render-ocr' && textHasEquations(pageText)) {
-        const ocrResult = await ocrPageForEquations(page, pageText, i);
-        if (ocrResult) {
-          pageText = mergeTextWithOCR(pageText, ocrResult);
-          eqPagesOCR++;
-        }
-      }
+    if(pageText.length<50){
+      try{const ocr=await ocrFullPage(page,i);if(ocr&&ocr.length>pageText.length+20){pageText=ocr;ocrPages++;}
+      else if(pageText.length<10)emptyPages++;}catch(e){if(pageText.length<10)emptyPages++;}
+    }else{
+      if(textHasUnicodeMath(pageText))pageText=normalizeUnicodeMath(pageText);
+      if(eqMode==='render-ocr'&&textHasEquations(pageText)){const ocr=await ocrPageForEquations(page,pageText,i);if(ocr)pageText=mergeTextWithOCR(pageText,ocr);}
     }
-
-    totalTextChars += pageText.length;
-    if (pageText.trim().length > 10) {
-      fullText += pageText + '\n\n';
-    }
-
-    if (i % 10 === 0) log(`  PDF page ${i}/${pdf.numPages}`, 'info');
+    totalChars+=pageText.length;
+    if(pageText.trim().length>10)fullText+=pageText+'\n\n';
+    if(i%10===0)log(`  PDF page ${i}/${pdf.numPages}`,'info');
   }
-
-  log(`  ✓ ${pdf.numPages} pages extracted (${Math.round(totalTextChars / 1024)} KB text)`, 'ok');
-  if (emptyPages > 0) log(`  📊 ${emptyPages} pages had no extractable text (images/blanks)`, 'info');
-  if (ocrFallbackPages > 0) log(`  🔍 ${ocrFallbackPages} pages recovered via OCR fallback`, 'eq');
-  if (eqPagesUnicode > 0) log(`  🔢 ${eqPagesUnicode} pages: Unicode math normalized`, 'eq');
-  if (eqPagesOCR > 0) log(`  🔢 ${eqPagesOCR} pages: equations enhanced via OCR`, 'eq');
-
-  // Warn if very little text was extracted overall
-  const totalWords = fullText.split(/\s+/).length;
-  if (totalWords < 200) {
-    log(`  ⚠ WARNING: Only ~${totalWords} words extracted. This PDF may be mostly images/scans.`, 'err');
-    log(`  💡 Tip: For scanned books, Equation Handling "Render page → OCR" helps, but very image-heavy books may need pre-OCR.`, 'info');
-  }
-
-  return { text: fullText };
+  log(`  ✓ ${pdf.numPages} pages (${Math.round(totalChars/1024)} KB text)`,'ok');
+  if(ocrPages>0)log(`  🔍 ${ocrPages} pages OCR-recovered`,'eq');
+  if(emptyPages>0)log(`  📊 ${emptyPages} empty pages`,'info');
+  return{text:fullText};
 }
 
-/**
- * OCR a full PDF page — used as fallback when PDF.js extracts very little text.
- * Renders the page to canvas at 2x, then runs Tesseract.
- */
-async function ocrFullPage(page, pageNum) {
-  try {
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
+async function parseDOCX(file){const r=await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()});log('  ✓ DOCX','ok');return r.value;}
 
-    const imgData = canvas.toDataURL('image/png');
-    const worker = await getTesseractWorker();
-    const result = await worker.recognize(imgData);
-    const ocrText = result.data.text.trim();
-    canvas.remove();
-
-    return ocrText.length > 20 ? ocrText : null;
-  } catch(e) {
-    return null;
-  }
-}
-
-async function parseDOCX(file) {
-  const buf = await file.arrayBuffer();
-  const result = await mammoth.extractRawText({ arrayBuffer: buf });
-  log(`  ✓ DOCX extracted`, 'ok');
-  return result.value;
-}
-
-async function parseEPUB(file) {
-  const buf = await file.arrayBuffer();
-  const zip = await JSZip.loadAsync(buf);
-  let text = ''; let count = 0;
-  const htmlFiles = [];
-  zip.forEach((path, entry) => {
-    if (!entry.dir && /\.(x?html?|htm)$/i.test(path)) htmlFiles.push(path);
-  });
-  htmlFiles.sort();
-  for (const path of htmlFiles) {
-    try {
-      const html = await zip.file(path).async('string');
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const t = doc.body?.textContent?.trim() || '';
-      if (t.length > 20) { text += t + '\n\n'; count++; }
-    } catch(e) {}
-  }
-  log(`  ✓ EPUB: ${count} chapters`, 'ok');
-  return text;
+async function parseEPUB(file){
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());let text='',count=0;
+  const files=[];zip.forEach((p,e)=>{if(!e.dir&&/\.(x?html?|htm)$/i.test(p))files.push(p);});files.sort();
+  for(const p of files){try{const doc=new DOMParser().parseFromString(await zip.file(p).async('string'),'text/html');
+  const t=doc.body?.textContent?.trim()||'';if(t.length>20){text+=t+'\n\n';count++;}}catch(e){}}
+  log(`  ✓ EPUB: ${count} chapters`,'ok');return text;
 }
 
 // ============================================================================
 // TEXT CHUNKING
 // ============================================================================
-function chunkText(text, maxLen) {
-  text = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  const paragraphs = text.split(/\n\n+/);
-  const chunks = []; let current = '';
-  for (const para of paragraphs) {
-    if (current.length + para.length > maxLen && current.length > 30) {
-      chunks.push(current.trim());
-      current = para;
-    } else {
-      current += (current ? '\n\n' : '') + para;
-    }
+function chunkText(text,maxLen){
+  text=text.replace(/\r\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  const paras=text.split(/\n\n+/);const chunks=[];let cur='';
+  for(const p of paras){
+    if(cur.length+p.length>maxLen&&cur.length>30){chunks.push(cur.trim());cur=p;}
+    else cur+=(cur?'\n\n':'')+p;
   }
-  if (current.trim().length > 30) chunks.push(current.trim());
-  return chunks.filter(c => c.length > 30);
+  if(cur.trim().length>20)chunks.push(cur.trim());
+  return chunks.filter(c=>c.length>30);
 }
 
 // ============================================================================
-// PAIR PARSING
+// MULTI-PAIR PARSING — extracts 1-3 pairs from one response
 // ============================================================================
-function parsePairResponse(response) {
-  let instruction = '', output = '';
-  if (response.includes('INSTRUCTION:')) {
-    const rest = response.split('INSTRUCTION:')[1];
-    if (rest.includes('OUTPUT:')) {
-      instruction = rest.split('OUTPUT:')[0].trim();
-      output = rest.split('OUTPUT:')[1].trim();
-    } else {
-      instruction = rest.trim();
-    }
+function parseMultiPairResponse(response){
+  const pairs=[];
+  const parts=response.split(/INSTRUCTION:\s*/i).filter(p=>p.trim());
+  for(const part of parts){
+    if(!part.includes('OUTPUT:'))continue;
+    const[instPart,...outParts]=part.split(/OUTPUT:\s*/i);
+    const instruction=instPart.replace(/^["'\s]+|["'\s]+$/g,'').trim();
+    const output=outParts.join('OUTPUT:').replace(/^["'\s]+|["'\s]+$/g,'').trim();
+    if(instruction.length>5&&output.length>5)pairs.push({instruction,output});
   }
-  instruction = instruction.replace(/^["'\s]+|["'\s]+$/g, '').trim();
-  output = output.replace(/^["'\s]+|["'\s]+$/g, '').trim();
-  return { instruction, output };
+  return pairs;
 }
 
 // ============================================================================
-// DOWNLOAD HELPERS
+// QUALITY GATE — reject weak pairs
 // ============================================================================
-function downloadFile(content, name, type) {
-  const blob = new Blob([content], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+function qualityCheck(pair){
+  const minOut=parseInt($('min-output').value)||60;
+  if(pair.output.length<minOut)return{pass:false,reason:'output too short'};
+  if(pair.instruction.length<10)return{pass:false,reason:'instruction too short'};
+  // Reject if output mostly repeats instruction
+  const iw=new Set(pair.instruction.toLowerCase().split(/\s+/));
+  const ow=pair.output.toLowerCase().split(/\s+/);
+  if(ow.filter(w=>iw.has(w)).length/ow.length>0.8)return{pass:false,reason:'repeats instruction'};
+  if(pair.output.split(/\s+/).length<3)return{pass:false,reason:'too brief'};
+  return{pass:true,reason:''};
 }
 
-function autoDownloadPairs(pairs, baseName) {
-  const mode = $('auto-download').value;
-  if (mode === 'off') return;
-  const safeName = baseName.replace(/\.[^.]+$/, '');
-  if (mode === 'jsonl' || mode === 'both') {
-    downloadFile(pairs.map(p => JSON.stringify(p)).join('\n'), `${safeName}_training_data.jsonl`, 'application/jsonl');
+// ============================================================================
+// DEDUPLICATION — catch near-duplicate instructions
+// ============================================================================
+function isDuplicate(newPair,existing){
+  const ni=newPair.instruction.toLowerCase().replace(/[^a-z0-9\s]/g,'');
+  for(const p of existing){
+    const ei=p.instruction.toLowerCase().replace(/[^a-z0-9\s]/g,'');
+    const nw=new Set(ni.split(/\s+/)),ew=new Set(ei.split(/\s+/));
+    const inter=[...nw].filter(w=>ew.has(w)).length;
+    const union=new Set([...nw,...ew]).size;
+    if(union>0&&inter/union>0.75)return true;
   }
-  if (mode === 'json' || mode === 'both') {
-    downloadFile(JSON.stringify(pairs, null, 2), `${safeName}_training_data.json`, 'application/json');
-  }
+  return false;
 }
 
 // ============================================================================
-// MULTI-FILE QUEUE — can add files even while processing
+// DOWNLOAD
 // ============================================================================
-function addToQueue(files) {
-  for (const file of files) {
-    if (fileQueue.some(q => q.file.name === file.name && q.file.size === file.size)) continue;
-    fileQueue.push({ file, status: 'pending', pairs: [], progress: 0 });
-  }
-  renderQueue();
-  updateStartButton();
+function downloadFile(content,name,type){
+  const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
 }
 
-function removeFromQueue(idx) {
-  if (fileQueue[idx]?.status === 'active') return;
-  fileQueue.splice(idx, 1);
-  renderQueue();
-  updateStartButton();
+function autoDownloadPairs(pairs,baseName){
+  const mode=$('auto-download').value;if(mode==='off')return;
+  const safe=baseName.replace(/\.[^.]+$/,'');
+  if(mode==='jsonl'||mode==='both')downloadFile(pairs.map(p=>JSON.stringify(p)).join('\n'),`${safe}_training_data.jsonl`,'application/jsonl');
+  if(mode==='json'||mode==='both')downloadFile(JSON.stringify(pairs,null,2),`${safe}_training_data.json`,'application/json');
 }
 
-function renderQueue() {
-  fileQueueDiv.innerHTML = '';
-  if (fileQueue.length === 0) { btnClear.style.display = 'none'; return; }
-  btnClear.style.display = '';
+// ============================================================================
+// FILE QUEUE
+// ============================================================================
+function addToQueue(files){
+  for(const file of files){if(fileQueue.some(q=>q.file.name===file.name&&q.file.size===file.size))continue;
+  fileQueue.push({file,status:'pending',pairs:[],el:null});}
+  renderQueue();updateStartButton();
+}
+function removeFromQueue(idx){if(fileQueue[idx]?.status==='active')return;fileQueue.splice(idx,1);renderQueue();updateStartButton();}
 
-  fileQueue.forEach((item, idx) => {
-    const el = document.createElement('div');
-    el.className = `queue-item ${item.status}`;
-    const icon = { pending: '⏳', active: '⚡', done: '✅', error: '❌' }[item.status];
-    const sizeKB = (item.file.size / 1024).toFixed(0);
-    let info = `${sizeKB} KB`;
-    if (item.status === 'done') info = `${item.pairs.length} pairs`;
-    if (item.status === 'error') info = 'failed';
-    if (item.status === 'active') info = `${item.pairs.length} pairs`;
-
-    el.innerHTML = `
-      <span class="q-status">${icon}</span>
-      <span class="q-name">${item.file.name}</span>
-      <span class="q-info">${info}</span>
-    `;
-
-    // Mini progress bar for active item
-    if (item.status === 'active') {
-      const bar = document.createElement('div');
-      bar.className = 'q-progress';
-      bar.innerHTML = `<div class="q-progress-fill" style="width:${item.progress}%"></div>`;
-      el.appendChild(bar);
+function renderQueue(){
+  fileQueueDiv.innerHTML='';if(!fileQueue.length){btnClear.style.display='none';return;}
+  btnClear.style.display='';
+  fileQueue.forEach((item,idx)=>{
+    const el=document.createElement('div');el.className=`queue-item ${item.status}`;
+    const icon={pending:'⏳',active:'⚡',done:'✅',error:'❌'}[item.status];
+    const info=item.status==='done'?`${item.pairs.length} pairs`:item.status==='error'?'failed':`${(item.file.size/1024).toFixed(0)} KB`;
+    el.innerHTML=`<span class="q-status">${icon}</span><span class="q-name">${item.file.name}</span><span class="q-info">${info}</span>`;
+    if(item.status==='done'&&item.pairs.length>0){
+      const dl=document.createElement('button');dl.className='q-download';dl.textContent='⬇';
+      dl.onclick=(e)=>{e.stopPropagation();autoDownloadPairs(item.pairs,item.file.name);};el.appendChild(dl);
     }
-
-    // Re-download button for completed
-    if (item.status === 'done' && item.pairs.length > 0) {
-      const dlBtn = document.createElement('button');
-      dlBtn.className = 'q-download';
-      dlBtn.textContent = '⬇';
-      dlBtn.title = 'Re-download';
-      dlBtn.onclick = (e) => { e.stopPropagation(); autoDownloadPairs(item.pairs, item.file.name); };
-      el.appendChild(dlBtn);
+    if(item.status!=='active'){
+      const rm=document.createElement('button');rm.className='q-remove';rm.textContent='×';
+      rm.onclick=(e)=>{e.stopPropagation();removeFromQueue(idx);};el.appendChild(rm);
     }
-
-    // Remove button (not while active)
-    if (item.status !== 'active') {
-      const rmBtn = document.createElement('button');
-      rmBtn.className = 'q-remove';
-      rmBtn.textContent = '×';
-      rmBtn.onclick = (e) => { e.stopPropagation(); removeFromQueue(idx); };
-      el.appendChild(rmBtn);
-    }
-
-    fileQueueDiv.appendChild(el);
+    item.el=el;fileQueueDiv.appendChild(el);
   });
 }
-
-function updateStartButton() {
-  const hasPending = fileQueue.some(q => q.status === 'pending');
-  btnStart.disabled = !hasPending || running;
-  const pendingCount = fileQueue.filter(q => q.status === 'pending').length;
-  btnStart.textContent = pendingCount > 1
-    ? `▶ Process All Files (${pendingCount} remaining)`
-    : pendingCount === 1 ? '▶ Process File' : '▶ No files pending';
+function updateStartButton(){
+  const pending=fileQueue.filter(q=>q.status==='pending').length;
+  btnStart.disabled=!pending||running;
+  btnStart.textContent=pending>1?`▶ Process ${pending} Files`:'▶ Process File';
 }
 
 // ============================================================================
-// MAIN PROCESSING LOOP
+// MAIN QUEUE PROCESSOR
 // ============================================================================
-async function processQueue() {
-  running = true;
-  abortCtrl = new AbortController();
-  btnStart.disabled = true;
-  btnStop.disabled = false;
-  btnStop.style.display = '';
-  progressArea.style.display = 'block';
+async function processQueue(){
+  running=true;abortCtrl=new AbortController();
+  btnStart.disabled=true;btnStop.disabled=false;btnStop.style.display='';
+  progressArea.style.display='block';
 
-  const model = modelSelect.value;
-  const chunkSize = parseInt($('chunk-size').value) || 500;
-  const systemPrompt = $('system-prompt').value;
-  const concurrency = parseInt($('concurrency').value) || 1;
-  const eqMode = $('equation-mode').value;
+  const model=modelSelect.value;
+  const chunkSize=parseInt($('chunk-size').value)||600;
+  const rawPrompt=$('system-prompt').value;
+  const concurrency=parseInt($('concurrency').value)||2;
+  const pairsN=parseInt($('pairs-per-chunk').value)||2;
+  const eqMode=$('equation-mode').value;
+  const systemPrompt=rawPrompt.replace('{N}',pairsN);
 
-  // Warm up model once
-  try {
-    log(`Warming up model: ${model}...`, 'info');
-    await ollamaGenerate('Hi', model);
-    log(`✓ Model loaded in VRAM`, 'ok');
-  } catch(e) {
-    log(`⚠ Warm-up failed: ${e.message}`, 'err');
-  }
+  // Warm model
+  try{log(`Warming up: ${model}...`,'info');await ollamaGenerate('Hi',model);log('✓ Model in VRAM','ok');}
+  catch(e){log(`⚠ Warm-up: ${e.message}`,'err');}
 
-  // Pre-init Tesseract if needed (once, reused for all files)
-  if (eqMode === 'render-ocr') {
-    log(`Initializing Tesseract OCR engine (one-time)...`, 'eq');
-    const w = await getTesseractWorker();
-    if (w) log(`✓ Tesseract ready (reused across all pages)`, 'ok');
-    else log(`⚠ Tesseract unavailable, falling back to text-only`, 'err');
-  }
+  for(let fi=0;fi<fileQueue.length;fi++){
+    if(!running)break;
+    const item=fileQueue[fi];if(item.status!=='pending')continue;
+    item.status='active';item.pairs=[];renderQueue();
+    resultsList.innerHTML='';resultsDiv.style.display='none';
 
-  // Process each pending file — re-check queue each iteration
-  // so newly added files are picked up
-  let fi = 0;
-  while (fi < fileQueue.length) {
-    if (!running) break;
-    const item = fileQueue[fi];
-    fi++;
-    if (item.status !== 'pending') continue;
+    log(`\n━━━ FILE ${fi+1}/${fileQueue.length}: ${item.file.name} ━━━`,'file-header');
 
-    item.status = 'active';
-    item.pairs = [];
-    item.progress = 0;
-    renderQueue();
-    resultsList.innerHTML = '';
-    resultsDiv.style.display = 'none';
+    try{
+      const parsed=await parseFile(item.file);
+      const rawText=parsed.text;
+      let chunks=chunkText(rawText,chunkSize);
+      const totalBefore=chunks.length;
+      const rawWords=rawText.split(/\s+/).filter(w=>w.length>0).length;
+      log(`📊 ${rawText.length} chars, ~${rawWords} words → ${totalBefore} chunks`,'info');
 
-    const totalFiles = fileQueue.length;
-    const doneFiles = fileQueue.filter(q => q.status === 'done').length;
-    log(`\n━━━ FILE ${doneFiles + 1}/${totalFiles}: ${item.file.name} ━━━`, 'file-header');
-
-    try {
-      // Parse
-      const parsed = await parseFile(item.file);
-      const rawText = parsed.text;
-
-      // Chunk
-      let chunks = chunkText(rawText, chunkSize);
-      const totalBefore = chunks.length;
-
-      // Diagnostic: log what we got
-      const rawWords = rawText.split(/\s+/).filter(w => w.length > 0).length;
-      const rawChars = rawText.length;
-      log(`📊 Extracted: ${rawChars} chars, ~${rawWords} words → ${totalBefore} chunks`, 'info');
-      if (totalBefore === 0 && rawChars > 0) {
-        log(`⚠ Text was extracted but no chunks formed. Possible causes:`, 'err');
-        log(`  - All text fragments < 50 chars (image-heavy PDF)`, 'err');
-        log(`  - Chunk size too large for the content density`, 'err');
-        // Try with a lower threshold as emergency fallback
-        const emergencyChunks = chunkText(rawText, Math.max(100, chunkSize));
-        if (emergencyChunks.length > 0) {
-          log(`  → Emergency re-chunk at min size found ${emergencyChunks.length} chunks`, 'info');
-          chunks = emergencyChunks;
-        }
-      }
-      if (totalBefore === 0 && rawChars < 500) {
-        log(`⚠ Very little text extracted from this file. It may be a scanned/image-only PDF.`, 'err');
+      if(totalBefore===0&&rawText.length>0){
+        log('⚠ No chunks — emergency re-chunk','err');
+        chunks=chunkText(rawText,100);
+        if(chunks.length>0)log(`  → ${chunks.length} chunks recovered`,'info');
       }
 
       // Filter
-      const stats = { skipped: 0, reasons: {} };
-      const clean = [];
-      for (const c of chunks) {
-        const r = filterChunk(c);
-        if (r.keep) clean.push(c);
-        else { stats.skipped++; stats.reasons[r.reason] = (stats.reasons[r.reason] || 0) + 1; }
-      }
-      chunks = clean;
+      const stats={skipped:0,reasons:{}};const clean=[];
+      for(const c of chunks){const r=filterChunk(c);if(r.keep)clean.push(c);else{stats.skipped++;stats.reasons[r.reason]=(stats.reasons[r.reason]||0)+1;}}
+      chunks=clean;
+      chunks=processChunksForFigures(chunks);
 
-      // Figure handling
-      chunks = processChunksForFigures(chunks);
+      if(stats.skipped>0){const reasons=Object.entries(stats.reasons).map(([r,c])=>`${r}:${c}`).join(' · ');
+      log(`🧹 Filtered ${stats.skipped}/${totalBefore} → ${reasons}`,'filter');}
+      log(`📦 ${chunks.length} chunks × ${pairsN} pairs/chunk → Ollama`,'filter');
 
-      if (stats.skipped > 0) {
-        const reasons = Object.entries(stats.reasons).map(([r,c]) => `${r}:${c}`).join(' · ');
-        log(`🧹 Filtered ${stats.skipped}/${totalBefore} → ${reasons}`, 'filter');
-      }
-      log(`📦 ${chunks.length} clean chunks → Ollama`, 'filter');
-
-      // Layer 3 equation enhancement (describe mode)
-      if (eqMode === 'describe') {
-        let eqCount = 0;
-        for (let i = 0; i < chunks.length; i++) {
-          if (!running) break;
-          if (textHasEquations(chunks[i])) {
-            chunks[i] = await describeEquationsViaOllama(chunks[i], model);
-            eqCount++;
-          }
-        }
-        if (eqCount > 0) log(`🔢 Enhanced ${eqCount} chunks with equation descriptions`, 'eq');
-      }
+      // Equation enhancement
+      if(eqMode==='describe'){let eq=0;for(let i=0;i<chunks.length;i++){if(!running)break;
+      if(textHasEquations(chunks[i])){chunks[i]=await describeEquationsViaOllama(chunks[i],model);eq++;}}
+      if(eq>0)log(`🔢 ${eq} chunks enhanced`,'eq');}
 
       // Generate pairs
-      const startTime = Date.now();
-      let completed = 0;
+      const t0=Date.now();let completed=0,rejected=0,dupes=0;
 
-      for (let i = 0; i < chunks.length; i += concurrency) {
-        if (!running) break;
-
-        const batch = chunks.slice(i, Math.min(i + concurrency, chunks.length));
-        const promises = batch.map(async (chunk) => {
-          try {
-            const prompt = `${systemPrompt}\n\nText:\n${chunk}`;
-            const response = await ollamaGenerate(prompt, model);
-            const { instruction, output } = parsePairResponse(response);
-            if (instruction.length > 5 && output.length > 5) {
-              item.pairs.push({ instruction, output });
-              addPairToUI({ instruction, output }, item.pairs.length, item.file.name);
-              log(`✓ #${item.pairs.length}: "${instruction.substring(0, 55)}..."`, 'ok');
-            } else {
-              log(`⚠ Weak response, skipped`, 'err');
+      for(let i=0;i<chunks.length;i+=concurrency){
+        if(!running)break;
+        const batch=chunks.slice(i,Math.min(i+concurrency,chunks.length));
+        const promises=batch.map(async chunk=>{
+          try{
+            const section=detectSection(chunk);
+            const hint=section?`\n[Section: ${section.number} ${section.title}]\n`:'';
+            const prompt=`${systemPrompt}${hint}\nText:\n${chunk}`;
+            const response=await ollamaGenerate(prompt,model);
+            const newPairs=parseMultiPairResponse(response);
+            for(const pair of newPairs){
+              const qc=qualityCheck(pair);if(!qc.pass){rejected++;continue;}
+              if(isDuplicate(pair,item.pairs)){dupes++;continue;}
+              item.pairs.push(pair);
+              addPairToUI(pair,item.pairs.length,item.file.name);
+              log(`✓ #${item.pairs.length}: "${pair.instruction.substring(0,55)}..."`,'ok');
             }
-          } catch(e) {
-            if (e.name === 'AbortError') throw e;
-            log(`✗ ${e.message}`, 'err');
-          }
+          }catch(e){if(e.name==='AbortError')throw e;log(`✗ ${e.message}`,'err');}
         });
-
-        try { await Promise.all(promises); }
-        catch(e) { if (e.name === 'AbortError') break; }
-
-        completed += batch.length;
-        item.progress = Math.round(completed / chunks.length * 100);
-        const pct = item.progress;
-        progressFill.style.width = pct + '%';
-        progressPct.textContent = pct + '%';
-        const elapsed = (Date.now() - startTime) / 1000;
-        const rate = completed / elapsed;
-        const rem = ((chunks.length - completed) / rate / 60).toFixed(1);
-        progressLabel.textContent = `File ${doneFiles + 1}/${totalFiles} · Chunk ${completed}/${chunks.length} · ~${rem} min`;
-        renderQueue(); // update mini progress bar
+        try{await Promise.all(promises);}catch(e){if(e.name==='AbortError')break;}
+        completed+=batch.length;
+        const pct=(completed/chunks.length*100).toFixed(0);
+        progressFill.style.width=pct+'%';progressPct.textContent=pct+'%';
+        const elapsed=(Date.now()-t0)/1000;const rate=completed/elapsed;
+        progressLabel.textContent=`File ${fi+1}/${fileQueue.length} · ${completed}/${chunks.length} · ~${((chunks.length-completed)/rate/60).toFixed(1)}m`;
       }
 
-      const totalTime = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
-      log(`✨ ${item.file.name}: ${item.pairs.length} pairs in ${totalTime} min`, 'ok');
-
-      item.status = 'done';
-      item.progress = 100;
-
-      // AUTO-DOWNLOAD immediately
-      if (item.pairs.length > 0) {
-        autoDownloadPairs(item.pairs, item.file.name);
-        log(`⬇ Auto-downloaded ${item.file.name} training data`, 'ok');
-      }
-
-    } catch(e) {
-      if (e.name === 'AbortError') {
-        item.status = 'error';
-        log(`Stopped by user`, 'err');
-        break;
-      }
-      item.status = 'error';
-      log(`✗ ${item.file.name}: ${e.message}`, 'err');
+      const totalTime=((Date.now()-t0)/1000/60).toFixed(1);
+      log(`✨ ${item.pairs.length} pairs in ${totalTime}m (rejected:${rejected} deduped:${dupes})`,'ok');
+      item.status='done';
+      if(item.pairs.length>0){autoDownloadPairs(item.pairs,item.file.name);log('⬇ Auto-downloaded','ok');}
+    }catch(e){
+      if(e.name==='AbortError'){item.status='error';log('Stopped','err');break;}
+      item.status='error';log(`✗ ${e.message}`,'err');
     }
-
     renderQueue();
-    // Update button — if user added new files while processing, they'll show as pending
-    updateStartButton();
   }
 
-  // All done
-  running = false;
-  btnStop.disabled = true;
-  btnStop.style.display = 'none';
-  updateStartButton();
-  progressFill.style.width = '100%';
-  progressPct.textContent = '✓';
-
-  const totalPairs = fileQueue.reduce((sum, q) => sum + q.pairs.length, 0);
-  const doneCount = fileQueue.filter(q => q.status === 'done').length;
-  progressLabel.textContent = `All done! ${doneCount} files · ${totalPairs} total pairs`;
-  log(`\n🎉 Queue complete: ${doneCount} files, ${totalPairs} total pairs`, 'ok');
+  running=false;btnStop.disabled=true;btnStop.style.display='none';updateStartButton();
+  progressFill.style.width='100%';progressPct.textContent='✓';
+  const totalPairs=fileQueue.reduce((s,q)=>s+q.pairs.length,0);
+  const done=fileQueue.filter(q=>q.status==='done').length;
+  progressLabel.textContent=`Done! ${done} files, ${totalPairs} pairs`;
+  log(`\n🎉 ${done} files, ${totalPairs} pairs`,'ok');
 }
 
 // ============================================================================
 // UI HELPERS
 // ============================================================================
-function log(msg, cls = '') {
-  const line = document.createElement('div');
-  line.className = cls;
-  line.textContent = msg;
-  progressLog.appendChild(line);
-  progressLog.scrollTop = progressLog.scrollHeight;
+function log(msg,cls=''){const l=document.createElement('div');l.className=cls;l.textContent=msg;progressLog.appendChild(l);progressLog.scrollTop=progressLog.scrollHeight;}
+
+function addPairToUI(pair,idx,fn){
+  if(idx>15){if(idx===16){const n=document.createElement('div');n.style.cssText='text-align:center;color:var(--text2);padding:.5rem;font-size:.8rem';n.textContent='... more in downloads ...';resultsList.appendChild(n);}return;}
+  const el=document.createElement('div');el.className='pair-card';
+  el.innerHTML=`<div class="pair-label">Instruction #${idx}</div><div class="pair-text instruction">${escHtml(pair.instruction)}</div><div class="pair-divider"></div><div class="pair-label">Output</div><div class="pair-text output">${escHtml(pair.output.substring(0,400))}${pair.output.length>400?'...':''}</div>`;
+  resultsList.appendChild(el);resultsDiv.style.display='block';resultsCount.textContent=`${idx} pairs (${fn})`;
 }
 
-function addPairToUI(pair, idx, fileName) {
-  if (idx > 15) {
-    if (idx === 16) {
-      const note = document.createElement('div');
-      note.style.cssText = 'text-align:center; color:var(--text2); padding:.5rem; font-size:.8rem;';
-      note.textContent = '... more pairs in downloaded files ...';
-      resultsList.appendChild(note);
-    }
-    return;
-  }
-  const el = document.createElement('div');
-  el.className = 'pair-card';
-  el.innerHTML = `
-    <div class="pair-label">Instruction #${idx}</div>
-    <div class="pair-text instruction">${escHtml(pair.instruction)}</div>
-    <div class="pair-divider"></div>
-    <div class="pair-label">Output</div>
-    <div class="pair-text output">${escHtml(pair.output.substring(0, 300))}${pair.output.length > 300 ? '...' : ''}</div>
-  `;
-  resultsList.appendChild(el);
-  resultsDiv.style.display = 'block';
-  resultsCount.textContent = `${idx} pairs (${fileName})`;
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // ============================================================================
-// EVENT LISTENERS
+// EVENTS
 // ============================================================================
-dropZone.addEventListener('click', () => fileInput.click());
-
-// Multi-file input — works even while processing
-fileInput.addEventListener('change', e => {
-  if (e.target.files.length > 0) {
-    addToQueue(Array.from(e.target.files));
-    fileInput.value = '';
-  }
-});
-
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files.length > 0) addToQueue(Array.from(e.dataTransfer.files));
-});
-
-btnStart.addEventListener('click', processQueue);
-btnStop.addEventListener('click', () => { running = false; abortCtrl?.abort(); });
-btnClear.addEventListener('click', () => {
-  if (running) return;
-  fileQueue = [];
-  renderQueue();
-  updateStartButton();
-  resultsDiv.style.display = 'none';
-  progressArea.style.display = 'none';
-  filterStats.style.display = 'none';
-});
+dropZone.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',e=>{if(e.target.files.length){addToQueue(Array.from(e.target.files));fileInput.value='';}});
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('dragover');if(e.dataTransfer.files.length)addToQueue(Array.from(e.dataTransfer.files));});
+btnStart.addEventListener('click',processQueue);
+btnStop.addEventListener('click',()=>{running=false;abortCtrl?.abort();});
+btnClear.addEventListener('click',()=>{if(running)return;fileQueue=[];renderQueue();updateStartButton();resultsDiv.style.display='none';progressArea.style.display='none';filterStats.style.display='none';});
 
 // ============================================================================
 // INIT
 // ============================================================================
 checkOllama();
-setInterval(() => {
-  if (!statusDot.classList.contains('ok') && !running) checkOllama();
-}, 10000);
-
+setInterval(()=>{if(!statusDot.classList.contains('ok')&&!running)checkOllama();},10000);
 </script>
 </body>
 </html>
