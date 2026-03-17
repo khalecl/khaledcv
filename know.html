@@ -3,925 +3,1459 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Ebook to Knowledge Converter (v2 - Claude Optimized)</title>
+    <title>Universal Knowledge Base Generator v3</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --text-dim: #8888a0;
+            --accent: #6c5ce7;
+            --accent2: #a29bfe;
+            --accent-glow: rgba(108, 92, 231, 0.15);
+            --success: #00b894;
+            --danger: #ff6b6b;
+            --warning: #fdcb6e;
+            --radius: 12px;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
-            padding: 20px;
+            overflow-x: hidden;
         }
 
-        .container {
-            max-width: 1400px;
+        /* Ambient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(ellipse at 30% 20%, rgba(108, 92, 231, 0.06) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 80%, rgba(162, 155, 254, 0.04) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .shell {
+            max-width: 1300px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 32px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .masthead {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .masthead h1 {
+            font-size: 2.4em;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--accent2), var(--accent), #fd79a8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .masthead p {
+            color: var(--text-dim);
+            font-size: 1em;
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--accent2);
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 0.75em;
+            font-weight: 500;
+            margin-top: 12px;
+            letter-spacing: 0.04em;
+        }
+
+        /* Layout */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 800px) {
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+        .card h3 {
+            font-size: 1em;
+            font-weight: 500;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+            letter-spacing: 0.02em;
+        }
+
+        /* Upload zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: var(--surface);
+            position: relative;
             overflow: hidden;
         }
 
-        .header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 30px 20px;
-            text-align: center;
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--accent-glow);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
-        .header h1 {
-            font-size: 2em;
-            margin-bottom: 10px;
-            font-weight: 700;
+        .drop-zone:hover::before,
+        .drop-zone.dragover::before {
+            opacity: 1;
         }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 0.95em;
+        .drop-zone:hover {
+            border-color: var(--accent);
         }
 
-        .version-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.2);
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            margin-top: 10px;
+        .drop-zone.dragover {
+            border-color: var(--accent2);
+            transform: scale(1.01);
         }
 
-        .content {
-            padding: 30px 20px;
-        }
-
-        .two-column {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .upload-section {
-            background: #f8f9ff;
-            border: 2px dashed #4facfe;
-            border-radius: 15px;
-            padding: 30px 20px;
-            text-align: center;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .upload-section:hover {
-            border-color: #00f2fe;
-            background: #f0f4ff;
-        }
-
-        .upload-section.dragover {
-            border-color: #00f2fe;
-            background: #e6f3ff;
-            transform: scale(1.02);
-        }
-
-        .upload-icon {
-            font-size: 2.5em;
-            margin-bottom: 15px;
-        }
-
-        .file-input {
-            display: none;
-        }
-
-        .upload-btn {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-size: 0.95em;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .upload-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-        }
-
-        .metadata-panel, .options-panel {
-            background: #f8f9ff;
-            border: 1px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-        }
-
-        .options-panel {
-            margin-top: 20px;
-        }
-
-        .metadata-panel h3, .options-panel h3 {
-            font-size: 1.1em;
-            margin-bottom: 15px;
-            color: #333;
-        }
-
-        .metadata-input {
+        .drop-icon {
+            font-size: 2.4em;
             margin-bottom: 12px;
-        }
-
-        .metadata-input label {
             display: block;
-            font-size: 0.85em;
-            color: #666;
-            margin-bottom: 5px;
-            font-weight: 500;
         }
 
-        .metadata-input input,
-        .metadata-input textarea {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
+        .drop-zone h2 {
+            font-size: 1.15em;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .drop-zone p {
+            color: var(--text-dim);
+            font-size: 0.85em;
+            margin-bottom: 16px;
+        }
+
+        .supported-formats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+
+        .fmt-tag {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--accent2);
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.7em;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .file-input { display: none; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            border: none;
             border-radius: 8px;
             font-family: inherit;
-            font-size: 0.9em;
+            font-size: 0.88em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
-        .metadata-input textarea {
-            min-height: 60px;
-            resize: vertical;
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
+        }
+        .btn-accent:hover:not(:disabled) {
+            background: var(--accent2);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(108, 92, 231, 0.4);
+        }
+
+        .btn-ghost {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover:not(:disabled) {
+            border-color: var(--accent);
+            color: var(--accent2);
+        }
+
+        .btn-danger {
+            background: rgba(255, 107, 107, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(255, 107, 107, 0.2);
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            padding: 12px 28px;
+            border-radius: 999px;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.35);
+        }
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.5);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* File list */
         .file-list {
-            background: #f8f9ff;
-            border: 1px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
             display: none;
+            margin-top: 16px;
         }
+        .file-list.show { display: block; }
 
-        .file-list.show {
-            display: block;
+        .file-list h3 {
+            font-size: 0.9em;
+            color: var(--text-dim);
+            margin-bottom: 10px;
         }
 
         .file-items {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 14px;
+            max-height: 240px;
+            overflow-y: auto;
         }
 
         .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            background: white;
-            border: 1px solid #e9ecef;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            font-size: 0.9em;
+            font-size: 0.85em;
+        }
+
+        .file-item-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .file-item-icon {
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .file-item-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-item-size {
+            color: var(--text-dim);
+            font-size: 0.8em;
+            font-family: 'JetBrains Mono', monospace;
         }
 
         .file-item-remove {
-            background: #ff6b6b;
-            color: white;
+            background: none;
             border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
+            color: var(--danger);
             cursor: pointer;
+            font-size: 1.1em;
+            padding: 4px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .file-item-remove:hover { opacity: 1; }
+
+        /* Inputs */
+        .field { margin-bottom: 14px; }
+
+        .field label {
+            display: block;
             font-size: 0.8em;
+            color: var(--text-dim);
+            margin-bottom: 5px;
+            font-weight: 500;
         }
 
-        .file-item-remove:hover {
-            background: #ff5252;
+        .field input, .field textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9em;
+            transition: border-color 0.2s;
         }
 
-        .batch-controls {
+        .field input:focus, .field textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .field textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+
+        .field input::placeholder, .field textarea::placeholder {
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        /* Checkboxes */
+        .checkbox-row {
             display: flex;
+            align-items: center;
             gap: 10px;
-            flex-wrap: wrap;
+            margin-bottom: 10px;
+            font-size: 0.88em;
+            color: var(--text-dim);
+            cursor: pointer;
         }
 
-        .progress-container {
+        .checkbox-row input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Progress */
+        .progress-wrap {
             display: none;
-            margin: 20px 0;
+            margin-top: 16px;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: var(--surface2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
         }
 
         .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e0e7ff;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-
-        .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #4facfe, #00f2fe);
             width: 0%;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            border-radius: 3px;
+            transition: width 0.4s ease;
         }
 
-        .progress-text {
+        .progress-label {
             text-align: center;
-            color: #666;
-            font-size: 0.9em;
+            color: var(--text-dim);
+            font-size: 0.82em;
         }
 
-        .result-section {
+        /* Results */
+        .results {
             display: none;
-            margin-top: 30px;
+            margin-top: 32px;
+            animation: fadeUp 0.5s ease;
         }
 
-        .result-header {
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-head {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .result-title {
+        .results-title {
             font-size: 1.3em;
-            font-weight: 600;
-            color: #333;
+            font-weight: 700;
         }
 
-        .stats-grid {
+        /* Stats */
+        .stats-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 24px;
         }
 
-        @media (max-width: 768px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .two-column {
-                grid-template-columns: 1fr;
-            }
+        @media (max-width: 600px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
         }
 
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
+        .stat {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
 
-        .stat-value {
-            font-size: 1.8em;
+        .stat::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+        }
+
+        .stat-val {
+            font-size: 2em;
             font-weight: 700;
-            margin-bottom: 5px;
+            color: var(--accent2);
+            line-height: 1;
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
         }
 
-        .stat-label {
-            font-size: 0.85em;
-            opacity: 0.9;
+        .stat-lbl {
+            font-size: 0.78em;
+            color: var(--text-dim);
+            letter-spacing: 0.03em;
         }
 
-        .format-tabs {
+        /* Tabs */
+        .tabs {
             display: flex;
-            gap: 5px;
+            gap: 2px;
+            border-bottom: 1px solid var(--border);
             margin-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
         }
 
-        .format-tab {
-            padding: 12px 20px;
+        .tab {
+            padding: 12px 22px;
             background: none;
             border: none;
+            font-family: inherit;
+            font-size: 0.88em;
+            color: var(--text-dim);
             cursor: pointer;
-            font-size: 0.95em;
-            color: #999;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
         }
 
-        .format-tab:hover {
-            color: #4facfe;
+        .tab:hover { color: var(--text); }
+
+        .tab.active {
+            color: var(--accent2);
+            border-bottom-color: var(--accent);
         }
 
-        .format-tab.active {
-            color: #4facfe;
-            border-bottom-color: #4facfe;
-        }
+        /* Output panels */
+        .panel { display: none; }
+        .panel.active { display: block; }
 
-        .format-contents {
-            position: relative;
-        }
-
-        .format-content {
-            display: none;
-        }
-
-        .format-content.active {
-            display: block;
-        }
-
-        .format-info {
-            background: #f0f4ff;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .text-output {
-            background: #f8f9ff;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.85em;
-            max-height: 400px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #333;
-        }
-
-        .btn {
-            padding: 10px 18px;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.9em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
-        }
-
-        .btn-secondary {
-            background: #f0f4ff;
-            color: #4facfe;
-            border: 1px solid #4facfe;
-        }
-
-        .btn-secondary:hover {
-            background: #4facfe;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #ff5252;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .alert {
+        .panel-info {
+            background: var(--surface2);
+            border: 1px solid var(--border);
             padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 10px;
-            font-size: 0.9em;
-            animation: slideIn 0.3s ease;
+            margin-bottom: 14px;
+            font-size: 0.85em;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .output-box {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8em;
+            max-height: 450px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--text);
+            line-height: 1.6;
         }
 
-        .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        .output-box::-webkit-scrollbar {
+            width: 6px;
+        }
+        .output-box::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+        .output-box::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
         }
 
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        #alertContainer {
+        /* Alerts */
+        #alertBox {
             position: fixed;
             top: 20px;
             right: 20px;
-            max-width: 400px;
-            z-index: 1000;
+            max-width: 420px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 0.88em;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(24px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .toast.success {
+            background: rgba(0, 184, 148, 0.15);
+            border: 1px solid rgba(0, 184, 148, 0.3);
+            color: var(--success);
+        }
+
+        .toast.error {
+            background: rgba(255, 107, 107, 0.15);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: var(--danger);
+        }
+
+        .toast.info {
+            background: rgba(108, 92, 231, 0.15);
+            border: 1px solid rgba(108, 92, 231, 0.3);
+            color: var(--accent2);
         }
     </style>
 </head>
 <body>
-    <div id="alertContainer"></div>
+    <div id="alertBox"></div>
 
-    <div class="container">
-        <div class="header">
-            <h1>📚 Advanced Knowledge Base Generator</h1>
-            <p>Convert multiple PDFs into unified knowledge databases optimized for AI</p>
-            <span class="version-badge">v2.1 - Multi-File Aggregation</span>
+    <div class="shell">
+        <div class="masthead">
+            <h1>Universal Knowledge Base Generator</h1>
+            <p>Convert any document into structured knowledge databases optimized for AI consumption</p>
+            <span class="badge">v3.0 — All Formats · Client-Side Processing · No Server Needed</span>
         </div>
 
-        <div class="content">
-            <div class="two-column">
-                <!-- UPLOAD SECTION -->
-                <div>
-                    <div class="upload-section" id="uploadSection">
-                        <div class="upload-icon">📄</div>
-                        <h2>Upload PDFs</h2>
-                        <p>Drag & drop or click to select multiple PDF files</p>
-                        <input class="file-input" id="fileInput" type="file" multiple accept=".pdf" />
-                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
-                            Select PDFs
-                        </button>
-                    </div>
-
-                    <div class="file-list" id="fileList">
-                        <h3>Selected Files (<span id="fileCount">0</span>)</h3>
-                        <div class="file-items" id="fileItems"></div>
-                        <div class="button-group">
-                            <button class="btn btn-primary" id="processBtn" onclick="processBatch()">
-                                🚀 Process All Files
-                            </button>
-                            <button class="btn btn-secondary" onclick="clearFiles()">
-                                Clear Files
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="progress-container" id="progressContainer">
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progressFill"></div>
-                        </div>
-                        <div class="progress-text" id="progressText">Processing...</div>
+        <div class="grid-2">
+            <!-- LEFT COLUMN -->
+            <div>
+                <div class="drop-zone" id="dropZone">
+                    <span class="drop-icon">📂</span>
+                    <h2>Drop files here</h2>
+                    <p>or click to browse — supports all major document types</p>
+                    <input class="file-input" id="fileInput" type="file" multiple
+                        accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.tsv,.pptx,.ppt,.txt,.md,.rtf,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.log,.ini,.cfg,.yaml,.yml,.tex" />
+                    <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
+                        Select Files
+                    </button>
+                    <div class="supported-formats">
+                        <span class="fmt-tag">PDF</span>
+                        <span class="fmt-tag">DOCX</span>
+                        <span class="fmt-tag">XLSX</span>
+                        <span class="fmt-tag">CSV</span>
+                        <span class="fmt-tag">PPTX</span>
+                        <span class="fmt-tag">TXT</span>
+                        <span class="fmt-tag">MD</span>
+                        <span class="fmt-tag">HTML</span>
+                        <span class="fmt-tag">RTF</span>
+                        <span class="fmt-tag">EPUB</span>
+                        <span class="fmt-tag">JSON</span>
+                        <span class="fmt-tag">XML</span>
+                        <span class="fmt-tag">ODT</span>
+                        <span class="fmt-tag">YAML</span>
+                        <span class="fmt-tag">TEX</span>
                     </div>
                 </div>
 
-                <!-- METADATA PANEL -->
-                <div>
-                    <div class="metadata-panel">
-                        <h3>📋 Batch Metadata</h3>
-                        <div class="metadata-input">
-                            <label>Collection Title</label>
-                            <input type="text" id="collectionTitle" placeholder="e.g., AI Engineering Knowledge Base" />
-                        </div>
-                        <div class="metadata-input">
-                            <label>Domain/Category</label>
-                            <input type="text" id="domain" placeholder="e.g., Machine Learning, Energy Systems" />
-                        </div>
-                        <div class="metadata-input">
-                            <label>Collection Notes</label>
-                            <textarea id="notes" placeholder="Additional context or organization notes..."></textarea>
-                        </div>
-                        <script type="text/javascript" id="mapmyvisitors" src="//mapmyvisitors.com/map.js?d=4ZvHHwuoR_IRMQg5YfStYBXhWFO0W5lc6-yTkWpTzCs&cl=ffffff&w=a"></script>
+                <div class="file-list" id="fileList">
+                    <h3>📎 Selected Files — <span id="fileCount">0</span></h3>
+                    <div class="file-items" id="fileItems"></div>
+                    <div class="btn-row">
+                        <button class="btn btn-accent" id="processBtn" onclick="processBatch()">
+                            ⚡ Process All
+                        </button>
+                        <button class="btn btn-ghost" onclick="clearFiles()">Clear</button>
                     </div>
+                </div>
 
-                    <div class="options-panel">
-                        <h3>⚙️ Output Options</h3>
-                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <input type="checkbox" id="includeMetadata" checked />
-                            Include metadata in all formats
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <input type="checkbox" id="highlightConcepts" checked />
-                            Highlight key concepts
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="aggregateConcepts" checked />
-                            Aggregate concepts across documents
-                        </label>
+                <div class="progress-wrap" id="progressWrap">
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progressBar"></div>
                     </div>
+                    <div class="progress-label" id="progressLabel">Processing…</div>
                 </div>
             </div>
 
-            <!-- RESULTS SECTION -->
-            <div class="result-section" id="resultSection">
-                <div class="result-header">
-                    <div class="result-title">📊 Knowledge Base Generated</div>
-                    <div class="button-group">
-                        <button class="btn btn-primary" onclick="downloadAllFormats()">⬇️ Download All</button>
-                        <button class="btn btn-secondary" onclick="copyText()">📋 Copy Format</button>
-                        <button class="btn btn-danger" onclick="clearResults()">🔄 Start Over</button>
+            <!-- RIGHT COLUMN -->
+            <div>
+                <div class="card">
+                    <h3>📋 Collection Metadata</h3>
+                    <div class="field">
+                        <label>Collection Title</label>
+                        <input type="text" id="collectionTitle" placeholder="e.g., AI Engineering Knowledge Base" />
+                    </div>
+                    <div class="field">
+                        <label>Domain / Category</label>
+                        <input type="text" id="domain" placeholder="e.g., Machine Learning, Energy Systems" />
+                    </div>
+                    <div class="field">
+                        <label>Notes</label>
+                        <textarea id="notes" placeholder="Additional context…"></textarea>
                     </div>
                 </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-value" id="fileCountStat">0</div>
-                        <div class="stat-label">Files Processed</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="wordCount">0</div>
-                        <div class="stat-label">Total Words</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="sectionCount">0</div>
-                        <div class="stat-label">Sections</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="conceptCount">0</div>
-                        <div class="stat-label">Unique Concepts</div>
-                    </div>
+                <div class="card" style="margin-top: 16px;">
+                    <h3>⚙️ Options</h3>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="includeMetadata" checked />
+                        Include metadata in all formats
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="highlightConcepts" checked />
+                        Extract & highlight key concepts
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="aggregateConcepts" checked />
+                        Aggregate concepts across documents
+                    </label>
+                    <label class="checkbox-row">
+                        <input type="checkbox" id="preserveStructure" checked />
+                        Preserve document structure (headings, tables)
+                    </label>
                 </div>
+            </div>
+        </div>
 
-                <div class="format-tabs">
-                    <button class="format-tab active" onclick="switchFormat(event, 'enhanced_txt')">📝 Enhanced Text</button>
-                    <button class="format-tab" onclick="switchFormat(event, 'structured_json')">🔍 Structured JSON</button>
-                    <button class="format-tab" onclick="switchFormat(event, 'jsonl')">🎓 JSONL Training</button>
+        <!-- RESULTS -->
+        <div class="results" id="resultsSection">
+            <div class="results-head">
+                <div class="results-title">📊 Knowledge Base Ready</div>
+                <div class="btn-row">
+                    <button class="btn btn-accent" onclick="downloadAllFormats()">⬇ Download All</button>
+                    <button class="btn btn-ghost" onclick="copyActiveTab()">📋 Copy</button>
+                    <button class="btn btn-danger" onclick="clearResults()">✕ Reset</button>
                 </div>
+            </div>
 
-                <div class="format-contents">
-                    <div id="format-enhanced_txt" class="format-content active">
-                        <div class="format-info">
-                            📝 Enhanced Text - Best for Claude & AI Readers
-                            <br>Includes: Metadata, structured sections, concepts & importance levels
-                            <button class="btn btn-secondary" style="float: right; margin-top: -5px;" onclick="downloadFormat('enhanced_txt')">Download</button>
-                        </div>
-                        <div class="text-output" id="output-enhanced_txt"></div>
-                    </div>
-
-                    <div id="format-structured_json" class="format-content">
-                        <div class="format-info">
-                            🔍 Structured JSON - Best for semantic search & databases
-                            <br>Includes: Hierarchical structure, cross-references, metadata
-                            <button class="btn btn-secondary" style="float: right; margin-top: -5px;" onclick="downloadFormat('structured_json')">Download</button>
-                        </div>
-                        <div class="text-output" id="output-structured_json"></div>
-                    </div>
-
-                    <div id="format-jsonl" class="format-content">
-                        <div class="format-info">
-                            🎓 JSONL - Best for fine-tuning language models on Colab
-                            <br>Includes: Instruction-output pairs ready for training
-                            <button class="btn btn-secondary" style="float: right; margin-top: -5px;" onclick="downloadFormat('jsonl')">Download</button>
-                        </div>
-                        <div class="text-output" id="output-jsonl"></div>
-                    </div>
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-val" id="statFiles">0</div>
+                    <div class="stat-lbl">Files</div>
                 </div>
+                <div class="stat">
+                    <div class="stat-val" id="statWords">0</div>
+                    <div class="stat-lbl">Words</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-val" id="statSections">0</div>
+                    <div class="stat-lbl">Sections</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-val" id="statConcepts">0</div>
+                    <div class="stat-lbl">Concepts</div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab(event,'enhanced_txt')">📝 Enhanced Text</button>
+                <button class="tab" onclick="switchTab(event,'structured_json')">🔍 Structured JSON</button>
+                <button class="tab" onclick="switchTab(event,'jsonl')">🎓 JSONL Training</button>
+            </div>
+
+            <div id="panel-enhanced_txt" class="panel active">
+                <div class="panel-info">
+                    <span>Enhanced Text — optimized for Claude & AI readers</span>
+                    <button class="btn btn-ghost" onclick="downloadFormat('enhanced_txt')">Download .txt</button>
+                </div>
+                <div class="output-box" id="out-enhanced_txt"></div>
+            </div>
+
+            <div id="panel-structured_json" class="panel">
+                <div class="panel-info">
+                    <span>Structured JSON — for semantic search & databases</span>
+                    <button class="btn btn-ghost" onclick="downloadFormat('structured_json')">Download .json</button>
+                </div>
+                <div class="output-box" id="out-structured_json"></div>
+            </div>
+
+            <div id="panel-jsonl" class="panel">
+                <div class="panel-info">
+                    <span>JSONL — instruction-output pairs for fine-tuning</span>
+                    <button class="btn btn-ghost" onclick="downloadFormat('jsonl')">Download .jsonl</button>
+                </div>
+                <div class="output-box" id="out-jsonl"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:5000';
+        // ── PDF.js setup ──
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
         let selectedFiles = [];
-        let aggregatedResults = {
-            enhanced_txt: '',
-            structured_json: { book_metadata: { concepts: [] }, sections: [] },
-            jsonl: [],
-            allConcepts: new Set()
-        };
-        let stats = {};
+        let aggregated = resetAggregated();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            initializeApp();
-            checkServerStatus();
-        });
-
-        function initializeApp() {
-            const uploadSection = document.getElementById('uploadSection');
-            const fileInput = document.getElementById('fileInput');
-
-            fileInput.addEventListener('change', (e) => {
-                selectedFiles = Array.from(e.target.files);
-                updateFileList();
-            });
-
-            uploadSection.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadSection.classList.add('dragover');
-            });
-
-            uploadSection.addEventListener('dragleave', () => {
-                uploadSection.classList.remove('dragover');
-            });
-
-            uploadSection.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadSection.classList.remove('dragover');
-                selectedFiles = Array.from(e.dataTransfer.files);
-                updateFileList();
-            });
-        }
-
-        function checkServerStatus() {
-            fetch(`${API_BASE}/health`)
-                .catch(() => {
-                    showAlert('Flask server not running. Start with: python server.py', 'error');
-                });
-        }
-
-        function updateFileList() {
-            const fileList = document.getElementById('fileList');
-            const fileItems = document.getElementById('fileItems');
-            const fileCount = document.getElementById('fileCount');
-            
-            if (selectedFiles.length === 0) {
-                fileList.classList.remove('show');
-                return;
-            }
-
-            fileItems.innerHTML = '';
-            selectedFiles.forEach((file, idx) => {
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                item.innerHTML = `
-                    <span>${file.name}</span>
-                    <button class="file-item-remove" onclick="removeFile(${idx})">Remove</button>
-                `;
-                fileItems.appendChild(item);
-            });
-
-            fileCount.textContent = selectedFiles.length;
-            fileList.classList.add('show');
-        }
-
-        function removeFile(idx) {
-            selectedFiles.splice(idx, 1);
-            updateFileList();
-        }
-
-        function clearFiles() {
-            selectedFiles = [];
-            document.getElementById('fileInput').value = '';
-            updateFileList();
-        }
-
-        async function processBatch() {
-            if (selectedFiles.length === 0) {
-                showAlert('Select files first', 'error');
-                return;
-            }
-
-            // Initialize aggregated results
-            aggregatedResults = {
+        function resetAggregated() {
+            return {
                 enhanced_txt: '',
                 structured_json: {
-                    book_metadata: {
-                        title: document.getElementById('collectionTitle').value || 'Knowledge Collection',
+                    collection_metadata: {
+                        title: '',
+                        domain: '',
+                        notes: '',
+                        generated: new Date().toISOString(),
                         concepts: []
                     },
                     sections: []
                 },
                 jsonl: [],
-                allConcepts: new Set()
+                allConcepts: new Set(),
+                totalWords: 0
             };
+        }
+
+        // ── Init ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const dz = document.getElementById('dropZone');
+            const fi = document.getElementById('fileInput');
+
+            fi.addEventListener('change', e => {
+                addFiles(Array.from(e.target.files));
+            });
+
+            dz.addEventListener('click', e => {
+                if (e.target.tagName !== 'BUTTON') fi.click();
+            });
+
+            dz.addEventListener('dragover', e => {
+                e.preventDefault();
+                dz.classList.add('dragover');
+            });
+
+            dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+
+            dz.addEventListener('drop', e => {
+                e.preventDefault();
+                dz.classList.remove('dragover');
+                addFiles(Array.from(e.dataTransfer.files));
+            });
+        });
+
+        // ── File Management ──
+        function addFiles(newFiles) {
+            const existing = new Set(selectedFiles.map(f => f.name + f.size));
+            newFiles.forEach(f => {
+                if (!existing.has(f.name + f.size)) {
+                    selectedFiles.push(f);
+                }
+            });
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const el = document.getElementById('fileList');
+            const items = document.getElementById('fileItems');
+            const count = document.getElementById('fileCount');
+
+            if (!selectedFiles.length) {
+                el.classList.remove('show');
+                return;
+            }
+
+            items.innerHTML = selectedFiles.map((f, i) => `
+                <div class="file-item">
+                    <div class="file-item-info">
+                        <span class="file-item-icon">${getFileIcon(f.name)}</span>
+                        <span class="file-item-name">${f.name}</span>
+                        <span class="file-item-size">${formatBytes(f.size)}</span>
+                    </div>
+                    <button class="file-item-remove" onclick="removeFile(${i})" title="Remove">✕</button>
+                </div>
+            `).join('');
+
+            count.textContent = selectedFiles.length;
+            el.classList.add('show');
+        }
+
+        function removeFile(i) {
+            selectedFiles.splice(i, 1);
+            renderFileList();
+        }
+
+        function clearFiles() {
+            selectedFiles = [];
+            document.getElementById('fileInput').value = '';
+            renderFileList();
+        }
+
+        function getFileIcon(name) {
+            const ext = name.split('.').pop().toLowerCase();
+            const icons = {
+                pdf: '📕', docx: '📘', doc: '📘', xlsx: '📊', xls: '📊',
+                csv: '📊', tsv: '📊', pptx: '📙', ppt: '📙', txt: '📄',
+                md: '📝', rtf: '📄', html: '🌐', htm: '🌐', xml: '🔖',
+                json: '🔧', epub: '📖', odt: '📘', ods: '📊', odp: '📙',
+                log: '📋', ini: '⚙️', cfg: '⚙️', yaml: '⚙️', yml: '⚙️',
+                tex: '📐'
+            };
+            return icons[ext] || '📄';
+        }
+
+        function formatBytes(b) {
+            if (b < 1024) return b + ' B';
+            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+            return (b / 1048576).toFixed(1) + ' MB';
+        }
+
+        // ── File Reading / Extraction ──
+
+        async function extractText(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            const buffer = await file.arrayBuffer();
+
+            try {
+                switch (ext) {
+                    case 'pdf':     return await extractPDF(buffer);
+                    case 'docx':    return await extractDOCX(buffer);
+                    case 'doc':     return await extractDOCX(buffer); // mammoth handles some .doc
+                    case 'xlsx':
+                    case 'xls':
+                    case 'ods':     return extractSpreadsheet(buffer, ext);
+                    case 'csv':
+                    case 'tsv':     return await readAsText(file);
+                    case 'pptx':
+                    case 'ppt':
+                    case 'odp':     return await extractPPTX(buffer);
+                    case 'epub':    return await extractEPUB(buffer);
+                    case 'rtf':     return extractRTF(await readAsText(file));
+                    case 'html':
+                    case 'htm':     return extractHTML(await readAsText(file));
+                    case 'md':      return extractMarkdown(await readAsText(file));
+                    case 'xml':     return extractXML(await readAsText(file));
+                    case 'json':    return extractJSON(await readAsText(file));
+                    case 'odt':     return await extractODT(buffer);
+                    case 'yaml':
+                    case 'yml':
+                    case 'tex':
+                    case 'txt':
+                    case 'log':
+                    case 'ini':
+                    case 'cfg':
+                    default:        return await readAsText(file);
+                }
+            } catch (err) {
+                console.error(`Error extracting ${file.name}:`, err);
+                // Fallback: try reading as plain text
+                try {
+                    return await readAsText(file);
+                } catch (e2) {
+                    throw new Error(`Cannot read ${file.name}: ${err.message}`);
+                }
+            }
+        }
+
+        function readAsText(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = () => reject(r.error);
+                r.readAsText(file);
+            });
+        }
+
+        // PDF extraction
+        async function extractPDF(buffer) {
+            const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+            const pages = [];
+            for (let i = 1; i <= doc.numPages; i++) {
+                const page = await doc.getPage(i);
+                const content = await page.getTextContent();
+                const text = content.items.map(item => item.str).join(' ');
+                if (text.trim()) pages.push(`[Page ${i}]\n${text}`);
+            }
+            return pages.join('\n\n');
+        }
+
+        // DOCX extraction via mammoth
+        async function extractDOCX(buffer) {
+            const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+            return result.value;
+        }
+
+        // Spreadsheet extraction via SheetJS
+        function extractSpreadsheet(buffer, ext) {
+            const wb = XLSX.read(buffer, { type: 'array' });
+            const parts = [];
+            wb.SheetNames.forEach(name => {
+                const sheet = wb.Sheets[name];
+                const csv = XLSX.utils.sheet_to_csv(sheet);
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                parts.push(`[Sheet: ${name}]`);
+                // Build a readable table
+                if (json.length > 0) {
+                    const header = json[0];
+                    parts.push(header.join(' | '));
+                    parts.push('-'.repeat(60));
+                    json.slice(1).forEach(row => {
+                        parts.push(row.join(' | '));
+                    });
+                }
+                parts.push('');
+            });
+            return parts.join('\n');
+        }
+
+        // PPTX extraction via JSZip in SheetJS
+        async function extractPPTX(buffer) {
+            // Use JSZip (bundled with SheetJS) to unzip and read slide XMLs
+            try {
+                const zip = await loadZip(buffer);
+                const slides = [];
+                const slideFiles = Object.keys(zip.files)
+                    .filter(n => n.match(/ppt\/slides\/slide\d+\.xml/))
+                    .sort((a, b) => {
+                        const na = parseInt(a.match(/slide(\d+)/)[1]);
+                        const nb = parseInt(b.match(/slide(\d+)/)[1]);
+                        return na - nb;
+                    });
+
+                for (const sf of slideFiles) {
+                    const xml = await zip.files[sf].async('string');
+                    const text = stripXMLTags(xml);
+                    const num = sf.match(/slide(\d+)/)[1];
+                    if (text.trim()) slides.push(`[Slide ${num}]\n${text}`);
+                }
+                return slides.join('\n\n');
+            } catch (e) {
+                return `[Could not extract PPTX: ${e.message}]`;
+            }
+        }
+
+        // EPUB extraction
+        async function extractEPUB(buffer) {
+            try {
+                const zip = await loadZip(buffer);
+                const htmlFiles = Object.keys(zip.files)
+                    .filter(n => n.match(/\.(x?html?|xml)$/i) && !n.includes('META-INF') && !n.includes('mimetype'))
+                    .sort();
+
+                const parts = [];
+                for (const f of htmlFiles) {
+                    const content = await zip.files[f].async('string');
+                    const text = stripHTMLTags(content);
+                    if (text.trim().length > 20) parts.push(text.trim());
+                }
+                return parts.join('\n\n---\n\n');
+            } catch (e) {
+                return `[Could not extract EPUB: ${e.message}]`;
+            }
+        }
+
+        // ODT extraction
+        async function extractODT(buffer) {
+            try {
+                const zip = await loadZip(buffer);
+                if (zip.files['content.xml']) {
+                    const xml = await zip.files['content.xml'].async('string');
+                    return stripXMLTags(xml);
+                }
+                return '[ODT: content.xml not found]';
+            } catch (e) {
+                return `[Could not extract ODT: ${e.message}]`;
+            }
+        }
+
+        // RTF: strip formatting codes
+        function extractRTF(text) {
+            return text
+                .replace(/\{\\[^{}]*\}/g, '')
+                .replace(/\\[a-z]+\d*\s?/gi, '')
+                .replace(/[{}]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // HTML: get text content
+        function extractHTML(html) {
+            return stripHTMLTags(html);
+        }
+
+        // Markdown: convert to plain text
+        function extractMarkdown(md) {
+            // Use marked to convert, then strip HTML
+            const html = marked.parse(md);
+            return stripHTMLTags(html);
+        }
+
+        // XML: strip all tags
+        function extractXML(xml) {
+            return stripXMLTags(xml);
+        }
+
+        // JSON: pretty-print or flatten
+        function extractJSON(text) {
+            try {
+                const obj = JSON.parse(text);
+                return flattenJSON(obj);
+            } catch {
+                return text;
+            }
+        }
+
+        function flattenJSON(obj, prefix = '') {
+            const lines = [];
+            if (Array.isArray(obj)) {
+                obj.forEach((item, i) => {
+                    if (typeof item === 'object' && item !== null) {
+                        lines.push(flattenJSON(item, `${prefix}[${i}]`));
+                    } else {
+                        lines.push(`${prefix}[${i}]: ${item}`);
+                    }
+                });
+            } else if (typeof obj === 'object' && obj !== null) {
+                for (const [k, v] of Object.entries(obj)) {
+                    const key = prefix ? `${prefix}.${k}` : k;
+                    if (typeof v === 'object' && v !== null) {
+                        lines.push(flattenJSON(v, key));
+                    } else {
+                        lines.push(`${key}: ${v}`);
+                    }
+                }
+            } else {
+                lines.push(`${prefix}: ${obj}`);
+            }
+            return lines.join('\n');
+        }
+
+        // ── Zip utility (using JSZip via CDN) ──
+        let JSZipLoaded = null;
+        async function loadZip(buffer) {
+            if (!JSZipLoaded) {
+                // Dynamically load JSZip
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+                JSZipLoaded = true;
+            }
+            return await JSZip.loadAsync(buffer);
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
+        // ── Text Helpers ──
+        function stripHTMLTags(html) {
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            // Remove scripts and styles
+            tmp.querySelectorAll('script, style, link, meta').forEach(el => el.remove());
+            return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function stripXMLTags(xml) {
+            return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        // ── Concept Extraction ──
+        function extractConcepts(text) {
+            // Heuristic extraction: capitalized multi-word phrases, technical terms, etc.
+            const concepts = new Set();
+            // Multi-word capitalized phrases
+            const multiWord = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g) || [];
+            multiWord.forEach(m => {
+                if (m.split(' ').length <= 5 && m.length > 5 && m.length < 60) concepts.add(m);
+            });
+
+            // ALL CAPS terms (acronyms)
+            const acronyms = text.match(/\b[A-Z]{2,8}\b/g) || [];
+            acronyms.forEach(a => {
+                if (!['THE', 'AND', 'FOR', 'NOT', 'BUT', 'ARE', 'WAS', 'HAS', 'HIS', 'HER', 'HIM',
+                       'ITS', 'YOU', 'ALL', 'CAN', 'HAD', 'HER', 'ONE', 'OUR', 'OUT', 'DAY', 'GET',
+                       'HAS', 'HIM', 'HOW', 'ITS', 'MAY', 'NEW', 'NOW', 'OLD', 'SEE', 'WAY', 'WHO',
+                       'DID', 'LET', 'SAY', 'SHE', 'TOO', 'USE', 'PDF', 'DOC', 'TXT', 'CSV'].includes(a)) {
+                    concepts.add(a);
+                }
+            });
+
+            // Technical patterns: word-word, CamelCase
+            const camel = text.match(/\b[A-Z][a-z]+[A-Z][A-Za-z]+\b/g) || [];
+            camel.forEach(c => concepts.add(c));
+
+            return Array.from(concepts).slice(0, 100);
+        }
+
+        // ── Section Splitting ──
+        function splitIntoSections(text, filename) {
+            const lines = text.split('\n');
+            const sections = [];
+            let currentTitle = filename;
+            let currentContent = [];
+            let sectionIdx = 0;
+
+            const headingRegex = /^(?:\[(?:Page|Slide|Sheet)[^\]]*\]|#{1,6}\s+.+|[A-Z][A-Z\s]{4,60}$|Chapter\s+\d+|Section\s+\d+|PART\s+[IVX\d]+)/;
+
+            lines.forEach(line => {
+                if (headingRegex.test(line.trim()) && currentContent.length > 0) {
+                    sections.push(makeSection(currentTitle, currentContent.join('\n'), filename, sectionIdx++));
+                    currentTitle = line.trim();
+                    currentContent = [];
+                } else {
+                    currentContent.push(line);
+                }
+            });
+
+            if (currentContent.length > 0) {
+                sections.push(makeSection(currentTitle, currentContent.join('\n'), filename, sectionIdx));
+            }
+
+            // If no sections detected, treat whole text as one section
+            if (sections.length === 0 && text.trim()) {
+                sections.push(makeSection(filename, text, filename, 0));
+            }
+
+            return sections;
+        }
+
+        function makeSection(title, content, filename, idx) {
+            const words = content.trim().split(/\s+/).filter(w => w.length > 0);
+            const concepts = extractConcepts(content);
+            return {
+                section_id: `${filename}:s${idx}`,
+                title: title.replace(/[\[\]#]/g, '').trim() || `Section ${idx + 1}`,
+                content: content.trim(),
+                source_file: filename,
+                metadata: {
+                    word_count: words.length,
+                    char_count: content.length,
+                    key_concepts: concepts.slice(0, 15)
+                }
+            };
+        }
+
+        // ── Format Generation ──
+        function generateEnhancedText(sections, metadata) {
+            const lines = [];
+            lines.push('=' .repeat(80));
+            lines.push('KNOWLEDGE BASE: ' + (metadata.title || 'Untitled Collection'));
+            lines.push('Domain: ' + (metadata.domain || 'General'));
+            lines.push('Generated: ' + new Date().toISOString());
+            if (metadata.notes) lines.push('Notes: ' + metadata.notes);
+            lines.push('='.repeat(80));
+            lines.push('');
+
+            let currentFile = '';
+            sections.forEach(s => {
+                if (s.source_file !== currentFile) {
+                    currentFile = s.source_file;
+                    lines.push('');
+                    lines.push('─'.repeat(70));
+                    lines.push(`SOURCE: ${currentFile}`);
+                    lines.push('─'.repeat(70));
+                }
+                lines.push('');
+                lines.push(`## ${s.title}`);
+                lines.push(`[Words: ${s.metadata.word_count} | Concepts: ${s.metadata.key_concepts.length}]`);
+                if (s.metadata.key_concepts.length > 0) {
+                    lines.push(`Key Concepts: ${s.metadata.key_concepts.join(', ')}`);
+                }
+                lines.push('');
+                lines.push(s.content);
+            });
+
+            return lines.join('\n');
+        }
+
+        function generateJSONL(sections) {
+            return sections.map(s => {
+                // Create instruction-output training pairs
+                const pairs = [];
+                // Summary pair
+                pairs.push(JSON.stringify({
+                    instruction: `Summarize the following section from "${s.source_file}": ${s.title}`,
+                    input: s.content.substring(0, 2000),
+                    output: `This section titled "${s.title}" from ${s.source_file} contains ${s.metadata.word_count} words covering: ${s.metadata.key_concepts.slice(0, 5).join(', ') || 'general content'}.`,
+                    source_file: s.source_file
+                }));
+
+                // Q&A pair
+                if (s.metadata.key_concepts.length > 0) {
+                    pairs.push(JSON.stringify({
+                        instruction: `What are the key concepts discussed in "${s.title}"?`,
+                        input: '',
+                        output: `The key concepts in "${s.title}" include: ${s.metadata.key_concepts.join(', ')}.`,
+                        source_file: s.source_file
+                    }));
+                }
+
+                return pairs.join('\n');
+            }).join('\n');
+        }
+
+        // ── Main Processing ──
+        async function processBatch() {
+            if (!selectedFiles.length) {
+                toast('Select files first', 'error');
+                return;
+            }
+
+            aggregated = resetAggregated();
+            const meta = {
+                title: document.getElementById('collectionTitle').value || 'Knowledge Collection',
+                domain: document.getElementById('domain').value || '',
+                notes: document.getElementById('notes').value || ''
+            };
+            aggregated.structured_json.collection_metadata.title = meta.title;
+            aggregated.structured_json.collection_metadata.domain = meta.domain;
+            aggregated.structured_json.collection_metadata.notes = meta.notes;
 
             showProgress();
             document.getElementById('processBtn').disabled = true;
 
+            let successCount = 0;
+
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
-                updateProgress(((i + 1) / selectedFiles.length) * 100, `Processing: ${file.name}`);
+                updateProgress(((i) / selectedFiles.length) * 100, `Extracting: ${file.name}…`);
 
                 try {
-                    const formData = new FormData();
-                    formData.append('file', file);
+                    const text = await extractText(file);
 
-                    const response = await fetch(`${API_BASE}/extract`, {
-                        method: 'POST',
-                        body: formData
+                    if (!text || text.trim().length === 0) {
+                        toast(`${file.name}: No text extracted`, 'error');
+                        continue;
+                    }
+
+                    // Split into sections
+                    const sections = splitIntoSections(text, file.name);
+
+                    // Collect concepts
+                    const fileConcepts = extractConcepts(text);
+                    fileConcepts.forEach(c => aggregated.allConcepts.add(c));
+
+                    // Add sections
+                    sections.forEach(s => {
+                        aggregated.structured_json.sections.push(s);
+                        aggregated.totalWords += s.metadata.word_count;
+                        s.metadata.key_concepts.forEach(c => aggregated.allConcepts.add(c));
                     });
 
-                    if (!response.ok) {
-                        showAlert(`Error processing ${file.name}`, 'error');
-                        continue;
-                    }
-
-                    const result = await response.json();
-                    
-                    if (result.error) {
-                        showAlert(`${file.name}: ${result.error}`, 'error');
-                        continue;
-                    }
-
-                    // Aggregate results from this file
-                    if (result.formats) {
-                        aggregateResults(result.formats, file.name);
-                        stats = result.stats;
-                    }
-
-                } catch (error) {
-                    showAlert(`Network error: ${error.message}`, 'error');
+                    successCount++;
+                } catch (err) {
+                    toast(`${file.name}: ${err.message}`, 'error');
                 }
 
+                // Allow UI to update
+                await new Promise(r => setTimeout(r, 50));
+            }
+
+            if (successCount > 0) {
+                updateProgress(100, 'Generating output formats…');
                 await new Promise(r => setTimeout(r, 100));
+
+                // Build all concepts list
+                aggregated.structured_json.collection_metadata.concepts = Array.from(aggregated.allConcepts);
+
+                // Generate enhanced text
+                aggregated.enhanced_txt = generateEnhancedText(
+                    aggregated.structured_json.sections, meta
+                );
+
+                // Generate JSONL
+                aggregated.jsonl = generateJSONL(aggregated.structured_json.sections);
+
+                displayResults(successCount);
+                toast(`Processed ${successCount} file(s) successfully!`, 'success');
+            } else {
+                toast('No files were successfully processed', 'error');
             }
 
-            displayResults();
-        }
-
-        function aggregateResults(formats, filename) {
-            // 1. Aggregate enhanced_txt
-            aggregatedResults.enhanced_txt += `\n\n${'='.repeat(80)}\nFILE: ${filename}\n${'='.repeat(80)}\n`;
-            aggregatedResults.enhanced_txt += formats.enhanced_txt;
-
-            // 2. Aggregate structured JSON
-            const jsonData = formats.structured_json;
-            
-            // Add concepts to global set
-            if (jsonData.book_metadata && jsonData.book_metadata.concepts) {
-                jsonData.book_metadata.concepts.forEach(c => aggregatedResults.allConcepts.add(c));
-            }
-
-            // Add sections with file reference
-            if (jsonData.sections) {
-                jsonData.sections.forEach(section => {
-                    const newSection = { ...section };
-                    newSection.source_file = filename;
-                    newSection.section_id = `${filename}:${section.section_id}`;
-                    aggregatedResults.structured_json.sections.push(newSection);
-                });
-            }
-
-            // 3. Aggregate JSONL
-            const jsonlLines = formats.jsonl.split('\n').filter(line => line.trim());
-            jsonlLines.forEach(line => {
-                try {
-                    const obj = JSON.parse(line);
-                    obj.source_file = filename;
-                    aggregatedResults.jsonl.push(JSON.stringify(obj));
-                } catch (e) {
-                    // Skip invalid JSONL lines
-                }
-            });
-        }
-
-        function displayResults() {
             hideProgress();
             document.getElementById('processBtn').disabled = false;
-
-            // Update global concepts
-            aggregatedResults.structured_json.book_metadata.concepts = Array.from(aggregatedResults.allConcepts);
-
-            // Update stats
-            document.getElementById('fileCountStat').textContent = selectedFiles.length;
-            document.getElementById('wordCount').textContent = calculateTotalWords().toLocaleString();
-            document.getElementById('sectionCount').textContent = aggregatedResults.structured_json.sections.length;
-            document.getElementById('conceptCount').textContent = aggregatedResults.allConcepts.size;
-
-            // Display formats
-            document.getElementById('output-enhanced_txt').textContent = aggregatedResults.enhanced_txt;
-            document.getElementById('output-structured_json').textContent = JSON.stringify(aggregatedResults.structured_json, null, 2);
-            document.getElementById('output-jsonl').textContent = aggregatedResults.jsonl.join('\n');
-
-            document.getElementById('resultSection').style.display = 'block';
-            
-            showAlert(`Successfully processed ${selectedFiles.length} file(s)! All formats generated.`, 'success');
         }
 
-        function calculateTotalWords() {
-            return aggregatedResults.structured_json.sections.reduce((sum, section) => {
-                return sum + (section.metadata?.word_count || 0);
-            }, 0);
+        function displayResults(fileCount) {
+            document.getElementById('statFiles').textContent = fileCount;
+            document.getElementById('statWords').textContent = aggregated.totalWords.toLocaleString();
+            document.getElementById('statSections').textContent = aggregated.structured_json.sections.length;
+            document.getElementById('statConcepts').textContent = aggregated.allConcepts.size;
+
+            document.getElementById('out-enhanced_txt').textContent = aggregated.enhanced_txt;
+            document.getElementById('out-structured_json').textContent =
+                JSON.stringify(aggregated.structured_json, null, 2);
+            document.getElementById('out-jsonl').textContent = aggregated.jsonl;
+
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function switchFormat(event, format) {
-            // Hide all
-            document.querySelectorAll('.format-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.format-tab').forEach(el => el.classList.remove('active'));
-
-            // Show selected
-            document.getElementById(`format-${format}`).classList.add('active');
-            event.target.classList.add('active');
+        // ── Tabs ──
+        function switchTab(e, id) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('panel-' + id).classList.add('active');
+            e.target.classList.add('active');
         }
 
-        function downloadFormat(format) {
-            let content = '';
-            let ext = '.txt';
-            
-            if (format === 'enhanced_txt') {
-                content = aggregatedResults.enhanced_txt;
-                ext = '.txt';
-            } else if (format === 'structured_json') {
-                content = JSON.stringify(aggregatedResults.structured_json, null, 2);
-                ext = '.json';
-            } else if (format === 'jsonl') {
-                content = aggregatedResults.jsonl.join('\n');
-                ext = '.jsonl';
+        // ── Download ──
+        function downloadFormat(fmt) {
+            let content, ext;
+            const stamp = new Date().toISOString().split('T')[0];
+            if (fmt === 'enhanced_txt') {
+                content = aggregated.enhanced_txt; ext = '.txt';
+            } else if (fmt === 'structured_json') {
+                content = JSON.stringify(aggregated.structured_json, null, 2); ext = '.json';
+            } else {
+                content = aggregated.jsonl; ext = '.jsonl';
             }
-
-            let filename = `knowledge-${format}-${new Date().toISOString().split('T')[0]}`;
-            downloadBlob(content, filename + ext);
+            download(content, `knowledge-${fmt}-${stamp}${ext}`);
         }
 
         function downloadAllFormats() {
-            downloadBlob(aggregatedResults.enhanced_txt, `knowledge-enhanced-${new Date().toISOString().split('T')[0]}.txt`);
-            setTimeout(() => {
-                downloadBlob(JSON.stringify(aggregatedResults.structured_json, null, 2), `knowledge-structured-${new Date().toISOString().split('T')[0]}.json`);
-            }, 500);
-            setTimeout(() => {
-                downloadBlob(aggregatedResults.jsonl.join('\n'), `knowledge-training-${new Date().toISOString().split('T')[0]}.jsonl`);
-            }, 1000);
+            downloadFormat('enhanced_txt');
+            setTimeout(() => downloadFormat('structured_json'), 400);
+            setTimeout(() => downloadFormat('jsonl'), 800);
         }
 
-        function downloadBlob(content, filename) {
-            const blob = new Blob([content], {type: 'text/plain'});
+        function download(content, filename) {
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
+            a.href = url; a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }
 
-        async function copyText() {
-            const activeTab = document.querySelector('.format-tab.active').textContent;
-            let format = 'enhanced_txt';
-            if (activeTab.includes('JSON')) format = 'structured_json';
-            if (activeTab.includes('JSONL')) format = 'jsonl';
-
-            let content = '';
-            if (format === 'enhanced_txt') {
-                content = aggregatedResults.enhanced_txt;
-            } else if (format === 'structured_json') {
-                content = JSON.stringify(aggregatedResults.structured_json, null, 2);
-            } else if (format === 'jsonl') {
-                content = aggregatedResults.jsonl.join('\n');
-            }
-
+        async function copyActiveTab() {
+            const active = document.querySelector('.panel.active .output-box');
+            if (!active) return;
             try {
-                await navigator.clipboard.writeText(content);
-                showAlert('Copied to clipboard!', 'success');
+                await navigator.clipboard.writeText(active.textContent);
+                toast('Copied to clipboard!', 'success');
             } catch {
-                showAlert('Copy failed', 'error');
+                toast('Copy failed — try downloading instead', 'error');
             }
         }
 
+        // ── Clear ──
         function clearResults() {
-            aggregatedResults = {
-                enhanced_txt: '',
-                structured_json: { book_metadata: { concepts: [] }, sections: [] },
-                jsonl: [],
-                allConcepts: new Set()
-            };
+            aggregated = resetAggregated();
             selectedFiles = [];
-            stats = {};
-            document.getElementById('resultSection').style.display = 'none';
             document.getElementById('fileInput').value = '';
-            updateFileList();
+            document.getElementById('resultsSection').style.display = 'none';
+            renderFileList();
         }
 
-        function showProgress() {
-            document.getElementById('progressContainer').style.display = 'block';
+        // ── Progress ──
+        function showProgress() { document.getElementById('progressWrap').style.display = 'block'; }
+        function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
+        function updateProgress(pct, text) {
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressLabel').textContent = text;
         }
 
-        function hideProgress() {
-            document.getElementById('progressContainer').style.display = 'none';
-        }
-
-        function updateProgress(percent, text) {
-            document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('progressText').textContent = text;
-        }
-
-        function showAlert(message, type = 'info') {
-            const container = document.getElementById('alertContainer');
-            const alert = document.createElement('div');
-            alert.className = `alert ${type}`;
-            alert.textContent = message;
-
-            container.appendChild(alert);
-
-            if (type === 'success') {
-                setTimeout(() => alert.remove(), 3000);
-            }
+        // ── Toast ──
+        function toast(msg, type = 'info') {
+            const box = document.getElementById('alertBox');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            const icons = { success: '✓', error: '✕', info: 'ℹ' };
+            el.textContent = `${icons[type] || ''} ${msg}`;
+            box.appendChild(el);
+            setTimeout(() => el.remove(), type === 'error' ? 6000 : 3000);
         }
     </script>
 </body>
