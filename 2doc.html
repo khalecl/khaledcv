@@ -858,19 +858,26 @@ graph TD
                         let imageIndex = 0;
 
                         // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
+                      // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
                         const displayLatexBlocks = [];
                         let m;
                         const displayRegex = /\$\$([\s\S]*?)\$\$/g;
+                        // Track display match ranges so inline doesn't overlap
+                        const displayRanges = [];
                         while ((m = displayRegex.exec(markdown)) !== null) {
                             const key = 'latex_display_' + imageIndex;
                             displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
+                            displayRanges.push({ start: m.index, end: m.index + m[0].length });
                             imageIndex++;
                         }
 
-                        // Extract inline LaTeX: $...$
+                        // Extract inline LaTeX: $...$ but skip anything inside a display block range
                         const inlineLatexBlocks = [];
                         const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
                         while ((m = inlineRegex.exec(markdown)) !== null) {
+                            const pos = m.index;
+                            const inDisplay = displayRanges.some(r => pos >= r.start && pos < r.end);
+                            if (inDisplay) continue;
                             const key = 'latex_inline_' + imageIndex;
                             inlineLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
                             imageIndex++;
