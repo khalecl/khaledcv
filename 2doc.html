@@ -11,10 +11,20 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+   <!-- MathJax as alternative LaTeX renderer -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+            svg: { fontCache: 'global' },
+            startup: { typeset: false }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
     <!-- Mermaid for diagrams -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <!-- html2canvas for capturing rendered elements as images -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+   
     <style>
         * {
             margin: 0;
@@ -370,6 +380,11 @@
             max-width: 100%;
             height: auto;
         }
+        .math-active {
+            background-color: #667eea !important;
+            color: white !important;
+            border-color: #667eea !important;
+        }
     </style>
 </head>
 <body>
@@ -481,6 +496,7 @@ graph TD
             <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
             <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
             <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
+            <button class="clear-btn" id="mathToggleBtn">🔢 Math: KaTeX</button>
         </div>
 
         <footer class="footer">
@@ -532,10 +548,19 @@ graph TD
             reader.readAsText(file);
         });
 
-        // Initialize mermaid
+       // Initialize mermaid
         mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
         let mermaidCounter = 0;
+        let mathRenderer = 'katex'; // 'katex' or 'mathjax'
+
+        const mathToggleBtn = document.getElementById('mathToggleBtn');
+        mathToggleBtn.addEventListener('click', () => {
+            mathRenderer = mathRenderer === 'katex' ? 'mathjax' : 'katex';
+            mathToggleBtn.textContent = '🔢 Math: ' + (mathRenderer === 'katex' ? 'KaTeX' : 'MathJax');
+            mathToggleBtn.classList.toggle('math-active', mathRenderer === 'mathjax');
+            renderPreview();
+        });
 
         async function renderPreview() {
             let md = editor.value;
@@ -548,19 +573,26 @@ graph TD
                 return '<div id="' + id + '" class="mermaid-container"></div>';
             });
 
-            // Parse markdown (marked will leave our div placeholders intact since they're HTML)
+            // Parse markdown
             preview.innerHTML = marked.parse(md);
 
-            // Render LaTeX
-            renderMathInElement(preview, {
-                delimiters: [
-                    { left: '$$', right: '$$', display: true },
-                    { left: '$', right: '$', display: false },
-                    { left: '\\(', right: '\\)', display: false },
-                    { left: '\\[', right: '\\]', display: true }
-                ],
-                throwOnError: false
-            });
+            // Render LaTeX based on selected renderer
+            if (mathRenderer === 'katex') {
+                renderMathInElement(preview, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ],
+                    throwOnError: false
+                });
+            } else {
+                // MathJax
+                if (window.MathJax && MathJax.typesetPromise) {
+                    await MathJax.typesetPromise([preview]);
+                }
+            }
 
             // Render mermaid diagrams
             for (const block of mermaidBlocks) {
@@ -578,16 +610,15 @@ graph TD
             }
         }
 
-                // Update preview
-                let previewTimeout;
-                editor.addEventListener('input', () => {
-                    clearTimeout(previewTimeout);
-                    previewTimeout = setTimeout(renderPreview, 300);
-                });
+        // Update preview
+        let previewTimeout;
+        editor.addEventListener('input', () => {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(renderPreview, 300);
+        });
 
-                // Initial preview
-                renderPreview();
-
+        // Initial preview
+        renderPreview();
         // Clear
         clearBtn.addEventListener('click', () => {
             if (confirm('Clear all content?')) {
@@ -668,15 +699,33 @@ graph TD
         // Render LaTeX string to an offscreen element and capture as PNG base64
 // Convert LaTeX to Office MathML (OMML) XML string
         function latexToOMML(latexStr) {
-            // Parse KaTeX to MathML first
-            const mathml = katex.renderToString(latexStr, { output: 'mathml', throwOnError: false });
-            // Extract just the MathML from KaTeX output
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(mathml, 'text/html');
-            const mathEl = doc.querySelector('math');
-            if (!mathEl) return null;
-            return mathMLToOMML(mathEl);
-        }
+                    try {
+                        // Try KaTeX first
+                        const mathml = katex.renderToString(latexStr, { output: 'mathml', throwOnError: true });
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(mathml, 'text/html');
+                        const mathEl = doc.querySelector('math');
+                        if (mathEl) return mathMLToOMML(mathEl);
+                    } catch(e) {
+                        // KaTeX failed, try MathJax
+                    }
+
+                    // Fallback: try MathJax MathML output
+                    try {
+                        if (window.MathJax && MathJax.tex2mml) {
+                            const mmlStr = MathJax.tex2mml(latexStr);
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(mmlStr, 'application/xml');
+                            const mathEl = doc.querySelector('math');
+                            if (mathEl) return mathMLToOMML(mathEl);
+                        }
+                    } catch(e) {
+                        // Both failed
+                    }
+
+                    // Last resort: render as plain text
+                    return '<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:r><m:t>' + escapeXml(latexStr) + '</m:t></m:r></m:oMath>';
+                }
 
         // Convert a MathML DOM element tree to OMML XML string
         function mathMLToOMML(mathEl) {
