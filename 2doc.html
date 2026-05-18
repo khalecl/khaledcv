@@ -7,6 +7,14 @@
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+   <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <!-- html2canvas for capturing rendered elements as images -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -343,6 +351,25 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .preview .katex-display {
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        .preview .katex {
+            font-size: 1.1em;
+        }
+
+        .preview .mermaid-container {
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        .preview .mermaid-container svg {
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -415,7 +442,28 @@ Normal paragraph.
 
 ---
 
-End of document.</textarea>
+End of document.
+
+#### LaTeX Equation
+
+Inline equation: $E = mc^2$
+
+Display equation:
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+
+#### Mermaid Diagram
+
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E
+```</textarea>
             </div>
 
             <div class="panel">
@@ -484,13 +532,61 @@ End of document.</textarea>
             reader.readAsText(file);
         });
 
-        // Update preview
-        editor.addEventListener('input', () => {
-            preview.innerHTML = marked.parse(editor.value);
-        });
+        // Initialize mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
-        // Initial preview
-        preview.innerHTML = marked.parse(editor.value);
+        let mermaidCounter = 0;
+
+        async function renderPreview() {
+            let md = editor.value;
+
+            // Extract mermaid blocks BEFORE marked processes them
+            const mermaidBlocks = [];
+            md = md.replace(/```mermaid\s*\n([\s\S]*?)```/g, (match, code) => {
+                const id = 'mermaid-placeholder-' + mermaidBlocks.length;
+                mermaidBlocks.push({ id, code: code.trim() });
+                return '<div id="' + id + '" class="mermaid-container"></div>';
+            });
+
+            // Parse markdown (marked will leave our div placeholders intact since they're HTML)
+            preview.innerHTML = marked.parse(md);
+
+            // Render LaTeX
+            renderMathInElement(preview, {
+                delimiters: [
+                    { left: '$$', right: '$$', display: true },
+                    { left: '$', right: '$', display: false },
+                    { left: '\\(', right: '\\)', display: false },
+                    { left: '\\[', right: '\\]', display: true }
+                ],
+                throwOnError: false
+            });
+
+            // Render mermaid diagrams
+            for (const block of mermaidBlocks) {
+                const el = document.getElementById(block.id);
+                if (el) {
+                    try {
+                        mermaidCounter++;
+                        const graphId = 'mermaid-graph-' + mermaidCounter;
+                        const { svg } = await mermaid.render(graphId, block.code);
+                        el.innerHTML = svg;
+                    } catch (e) {
+                        el.innerHTML = '<pre style="color:red;">Mermaid error: ' + e.message + '</pre>';
+                    }
+                }
+            }
+        }
+
+                // Update preview
+                let previewTimeout;
+                editor.addEventListener('input', () => {
+                    clearTimeout(previewTimeout);
+                    previewTimeout = setTimeout(renderPreview, 300);
+                });
+
+                // Initial preview
+                renderPreview();
 
         // Clear
         clearBtn.addEventListener('click', () => {
@@ -563,19 +659,278 @@ End of document.</textarea>
             }
         });
 
-        // Create valid DOCX with proper styles
-        async function markdownToDocx(markdown) {
-            const zip = new JSZip();
-
-            zip.file('[Content_Types].xml', getContentTypes());
-            zip.file('_rels/.rels', getRels());
-            zip.file('word/_rels/document.xml.rels', getDocumentRels());
-            zip.file('word/styles.xml', getStyles());
-            zip.file('word/numbering.xml', getNumbering());
-            zip.file('word/document.xml', getWordDocument(markdown));
-
-            return await zip.generateAsync({ type: 'blob' });
+// Capture a DOM element as a base64 PNG string (no data: prefix)
+        async function elementToBase64Png(element) {
+            const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
+            return canvas.toDataURL('image/png').split(',')[1];
         }
+
+        // Render LaTeX string to an offscreen element and capture as PNG base64
+// Convert LaTeX to Office MathML (OMML) XML string
+        function latexToOMML(latexStr) {
+            // Parse KaTeX to MathML first
+            const mathml = katex.renderToString(latexStr, { output: 'mathml', throwOnError: false });
+            // Extract just the MathML from KaTeX output
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(mathml, 'text/html');
+            const mathEl = doc.querySelector('math');
+            if (!mathEl) return null;
+            return mathMLToOMML(mathEl);
+        }
+
+        // Convert a MathML DOM element tree to OMML XML string
+        function mathMLToOMML(mathEl) {
+            let omml = '<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">';
+            omml += convertMathMLChildren(mathEl);
+            omml += '</m:oMath>';
+            return omml;
+        }
+
+        function convertMathMLChildren(node) {
+            let omml = '';
+            for (const child of node.childNodes) {
+                omml += convertMathMLNode(child);
+            }
+            return omml;
+        }
+
+        function convertMathMLNode(node) {
+            if (node.nodeType === 3) {
+                // Text node
+                const text = node.textContent.trim();
+                if (!text) return '';
+                return wrapOMMLRun(text);
+            }
+            if (node.nodeType !== 1) return '';
+
+            const tag = node.tagName.toLowerCase();
+
+            switch (tag) {
+                case 'semantics':
+                    // Process first child (presentation MathML)
+                    if (node.firstElementChild) return convertMathMLNode(node.firstElementChild);
+                    return '';
+                case 'annotation':
+                    return '';
+                case 'math':
+                    return convertMathMLChildren(node);
+                case 'mrow':
+                    return convertMathMLChildren(node);
+                case 'mi': {
+                    const text = node.textContent.trim();
+                    // Italic for single-char identifiers
+                    if (text.length === 1 && text.match(/[a-zA-Z]/)) {
+                        return '<m:r><m:rPr><m:sty m:val="i"/></m:rPr><m:t>' + escapeXml(text) + '</m:t></m:r>';
+                    }
+                    return wrapOMMLRun(text);
+                }
+                case 'mn':
+                    return wrapOMMLRun(node.textContent.trim());
+                case 'mo':
+                    return wrapOMMLRun(node.textContent.trim());
+                case 'mtext':
+                    return '<m:r><m:rPr><m:sty m:val="p"/></m:rPr><m:t>' + escapeXml(node.textContent) + '</m:t></m:r>';
+                case 'msup': {
+                    const base = node.children[0];
+                    const sup = node.children[1];
+                    if (!base || !sup) return convertMathMLChildren(node);
+                    return '<m:sSup><m:e>' + convertMathMLNode(base) + '</m:e><m:sup>' + convertMathMLNode(sup) + '</m:sup></m:sSup>';
+                }
+                case 'msub': {
+                    const base = node.children[0];
+                    const sub = node.children[1];
+                    if (!base || !sub) return convertMathMLChildren(node);
+                    return '<m:sSub><m:e>' + convertMathMLNode(base) + '</m:e><m:sub>' + convertMathMLNode(sub) + '</m:sub></m:sSub>';
+                }
+                case 'msubsup': {
+                    const base = node.children[0];
+                    const sub = node.children[1];
+                    const sup = node.children[2];
+                    if (!base || !sub || !sup) return convertMathMLChildren(node);
+                    return '<m:sSubSup><m:e>' + convertMathMLNode(base) + '</m:e><m:sub>' + convertMathMLNode(sub) + '</m:sub><m:sup>' + convertMathMLNode(sup) + '</m:sup></m:sSubSup>';
+                }
+                case 'mfrac': {
+                    const num = node.children[0];
+                    const den = node.children[1];
+                    if (!num || !den) return convertMathMLChildren(node);
+                    return '<m:f><m:num>' + convertMathMLNode(num) + '</m:num><m:den>' + convertMathMLNode(den) + '</m:den></m:f>';
+                }
+                case 'msqrt':
+                    return '<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>' + convertMathMLChildren(node) + '</m:e></m:rad>';
+                case 'mroot': {
+                    const base = node.children[0];
+                    const idx = node.children[1];
+                    if (!base || !idx) return convertMathMLChildren(node);
+                    return '<m:rad><m:deg>' + convertMathMLNode(idx) + '</m:deg><m:e>' + convertMathMLNode(base) + '</m:e></m:rad>';
+                }
+                case 'mover': {
+                    const base = node.children[0];
+                    const over = node.children[1];
+                    if (!base || !over) return convertMathMLChildren(node);
+                    const overText = over.textContent.trim();
+                    // Common accents
+                    if (overText === '¯' || overText === '‾') {
+                        return '<m:bar><m:barPr><m:pos m:val="top"/></m:barPr><m:e>' + convertMathMLNode(base) + '</m:e></m:bar>';
+                    }
+                    return '<m:limUpp><m:e>' + convertMathMLNode(base) + '</m:e><m:lim>' + convertMathMLNode(over) + '</m:lim></m:limUpp>';
+                }
+                case 'munder': {
+                    const base = node.children[0];
+                    const under = node.children[1];
+                    if (!base || !under) return convertMathMLChildren(node);
+                    return '<m:limLow><m:e>' + convertMathMLNode(base) + '</m:e><m:lim>' + convertMathMLNode(under) + '</m:lim></m:limLow>';
+                }
+                case 'munderover': {
+                    const base = node.children[0];
+                    const under = node.children[1];
+                    const over = node.children[2];
+                    if (!base || !under || !over) return convertMathMLChildren(node);
+                    // Check if base is an integral/sum operator
+                    const baseText = base.textContent.trim();
+                    if ('∫∬∮∑∏'.includes(baseText)) {
+                        return '<m:nary><m:naryPr><m:chr m:val="' + escapeXml(baseText) + '"/></m:naryPr><m:sub>' + convertMathMLNode(under) + '</m:sub><m:sup>' + convertMathMLNode(over) + '</m:sup><m:e></m:e></m:nary>';
+                    }
+                    return '<m:limLow><m:e><m:limUpp><m:e>' + convertMathMLNode(base) + '</m:e><m:lim>' + convertMathMLNode(over) + '</m:lim></m:limUpp></m:e><m:lim>' + convertMathMLNode(under) + '</m:lim></m:limLow>';
+                }
+                case 'mtable': {
+                    let omml = '<m:m>';
+                    for (const row of node.children) {
+                        if (row.tagName.toLowerCase() === 'mtr') {
+                            omml += '<m:mr>';
+                            for (const cell of row.children) {
+                                omml += '<m:e>' + convertMathMLChildren(cell) + '</m:e>';
+                            }
+                            omml += '</m:mr>';
+                        }
+                    }
+                    omml += '</m:m>';
+                    return omml;
+                }
+                case 'mtr':
+                case 'mtd':
+                    return convertMathMLChildren(node);
+                case 'mspace':
+                    return '';
+                case 'mpadded':
+                    return convertMathMLChildren(node);
+                case 'mstyle':
+                    return convertMathMLChildren(node);
+                case 'menclose':
+                    return convertMathMLChildren(node);
+                case 'mphantom':
+                    return '';
+                default:
+                    return convertMathMLChildren(node);
+            }
+        }
+
+        function wrapOMMLRun(text) {
+            return '<m:r><m:t>' + escapeXml(text) + '</m:t></m:r>';
+        }
+
+        // Render mermaid code to offscreen SVG and capture as PNG base64
+        async function mermaidToBase64Png(code) {
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;background:#fff;padding:20px;';
+            document.body.appendChild(container);
+            mermaidCounter++;
+            const graphId = 'mermaid-export-' + mermaidCounter;
+            try {
+                const { svg } = await mermaid.render(graphId, code);
+                container.innerHTML = svg;
+                // Wait for SVG to layout
+                await new Promise(r => setTimeout(r, 100));
+                const base64 = await elementToBase64Png(container);
+                const width = container.offsetWidth;
+                const height = container.offsetHeight;
+                document.body.removeChild(container);
+                return { base64, width, height };
+            } catch (e) {
+                document.body.removeChild(container);
+                return null;
+            }
+        }
+            async function markdownToDocx(markdown) {
+                        const zip = new JSZip();
+
+                        // Pre-render Mermaid blocks to images only (LaTeX will be native OMML)
+                        const imageMap = {};
+                        let imageIndex = 0;
+
+                        // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
+                        const displayLatexBlocks = [];
+                        let m;
+                        const displayRegex = /\$\$([\s\S]*?)\$\$/g;
+                        while ((m = displayRegex.exec(markdown)) !== null) {
+                            const key = 'latex_display_' + imageIndex;
+                            displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
+                            imageIndex++;
+                        }
+
+                        // Extract inline LaTeX: $...$
+                        const inlineLatexBlocks = [];
+                        const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
+                        while ((m = inlineRegex.exec(markdown)) !== null) {
+                            const key = 'latex_inline_' + imageIndex;
+                            inlineLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
+                            imageIndex++;
+                        }
+
+                        // Extract mermaid blocks — these still need images
+                        const mermaidBlocksList = [];
+                        const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
+                        while ((m = mermaidRegex.exec(markdown)) !== null) {
+                            const key = 'mermaid_' + imageIndex;
+                            mermaidBlocksList.push({ key, code: m[1].trim(), fullMatch: m[0] });
+                            imageIndex++;
+                        }
+
+                        setProgress(20);
+
+                        // Build OMML map for LaTeX
+                        const ommlMap = {};
+                        for (const block of displayLatexBlocks) {
+                            ommlMap[block.key] = latexToOMML(block.latex);
+                        }
+                        for (const block of inlineLatexBlocks) {
+                            ommlMap[block.key] = latexToOMML(block.latex);
+                        }
+
+                        // Render mermaid to images
+                        for (const block of mermaidBlocksList) {
+                            const result = await mermaidToBase64Png(block.code);
+                            if (result) imageMap[block.key] = result;
+                        }
+
+                        setProgress(50);
+
+                        // Add mermaid images to zip and build relationships
+                        const imageRels = [];
+                        let relId = 10;
+                        const imageRelMap = {};
+
+                        for (const [key, imgData] of Object.entries(imageMap)) {
+                            const rId = 'rId' + relId;
+                            const filename = 'media/' + key + '.png';
+                            zip.file('word/' + filename, imgData.base64, { base64: true });
+                            imageRels.push({ rId, target: filename });
+                            imageRelMap[key] = { rId, width: imgData.width, height: imgData.height };
+                            relId++;
+                        }
+
+                        setProgress(60);
+
+                        const docXml = getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
+
+                        zip.file('[Content_Types].xml', getContentTypesWithImages());
+                        zip.file('_rels/.rels', getRels());
+                        zip.file('word/_rels/document.xml.rels', getDocumentRelsWithImages(imageRels));
+                        zip.file('word/styles.xml', getStyles());
+                        zip.file('word/numbering.xml', getNumbering());
+                        zip.file('word/document.xml', docXml);
+
+                        return await zip.generateAsync({ type: 'blob' });
+                    }
 
         function escapeXml(str) {
             return String(str)
@@ -670,6 +1025,18 @@ End of document.</textarea>
 
         function getContentTypes() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
+        }
+        function getContentTypesWithImages() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
+        }
+
+        function getDocumentRelsWithImages(imageRels) {
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
+            for (const rel of imageRels) {
+                xml += '<Relationship Id="' + rel.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + rel.target + '"/>';
+            }
+            xml += '</Relationships>';
+            return xml;
         }
 
         function getRels() {
@@ -818,6 +1185,159 @@ End of document.</textarea>
             }
             return null;
         }
+
+        function buildImageXml(rId, widthPx, heightPx, isInline) {
+            // Convert pixels to EMUs (1 px = 9525 EMU), scale x2 render down
+            const scale = 0.5;
+            let emuW = Math.round(widthPx * 9525 * scale);
+            let emuH = Math.round(heightPx * 9525 * scale);
+            // Cap max width at 15cm (5400000 EMU)
+            const maxW = 5400000;
+            if (emuW > maxW) {
+                const ratio = maxW / emuW;
+                emuW = maxW;
+                emuH = Math.round(emuH * ratio);
+            }
+            const drawingType = isInline ? 'inline' : 'inline'; // both use inline in OOXML
+            return '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + Math.floor(Math.random()*100000) + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
+        }
+
+       function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
+            let processed = markdown;
+            for (const block of mermaidBlocksList) {
+                processed = processed.replace(block.fullMatch, '::mermaid_image::' + block.key + '::');
+            }
+            for (const block of displayLatexBlocks) {
+                processed = processed.replace(block.fullMatch, '::latex_display::' + block.key + '::');
+            }
+            for (const block of inlineLatexBlocks) {
+                processed = processed.replace(block.fullMatch, '::latex_inline::' + block.key + '::');
+            }
+
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
+
+            const lines = processed.split('\n');
+            let inTable = false;
+            let tableLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                if (inTable && !line.includes('|')) {
+                    xml += buildTable(tableLines);
+                    tableLines = [];
+                    inTable = false;
+                }
+
+                // Mermaid image placeholder
+                if (line.match(/^::mermaid_image::(.+)::$/)) {
+                    const key = line.match(/^::mermaid_image::(.+)::$/)[1];
+                    const img = imageRelMap[key];
+                    if (img) {
+                        xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>' + buildImageXml(img.rId, img.width, img.height, false) + '</w:r></w:p>';
+                    }
+                    continue;
+                }
+
+                // Display LaTeX → native OMML equation paragraph
+                if (line.match(/^::latex_display::(.+)::$/)) {
+                    const key = line.match(/^::latex_display::(.+)::$/)[1];
+                    const omml = ommlMap[key];
+                    if (omml) {
+                        xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><m:oMathPara><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr>' + omml + '</m:oMathPara></w:p>';
+                    }
+                    continue;
+                }
+
+                // Check for custom indent syntax
+                const customIndent = getParagraphIndent(line);
+                if (customIndent) {
+                    const indentValue = getIndentValue(customIndent.indent);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:ind w:left="' + indentValue + '"/></w:pPr>' + formatTextWithInlineOmml(customIndent.text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^#\s/)) {
+                    const text = line.replace(/^#\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^##\s/)) {
+                    const text = line.replace(/^##\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^###\s/)) {
+                    const text = line.replace(/^###\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^####\s/)) {
+                    const text = line.replace(/^####\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^\s*\d+\.\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^\d+\.\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^>\s/)) {
+                    const text = line.replace(/^>\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.trim().startsWith('```')) {
+                    i++;
+                    const code = [];
+                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                        code.push(escapeXml(lines[i]));
+                        i++;
+                    }
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
+                }
+                else if (line.includes('|')) {
+                    inTable = true;
+                    tableLines.push(line);
+                }
+                else if (line.match(/^---+$/)) {
+                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
+                }
+                else if (line.trim()) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextWithInlineOmml(line, ommlMap) + '</w:p>';
+                }
+            }
+
+            if (inTable && tableLines.length > 0) {
+                xml += buildTable(tableLines);
+            }
+
+            xml += '</w:body></w:document>';
+            return xml;
+        }
+
+                // Handle inline LaTeX as native OMML equations within text
+                function formatTextWithInlineOmml(text, ommlMap) {
+                    if (!text.includes('::latex_inline::')) {
+                        return formatTextToXml(text);
+                    }
+
+                    const parts = text.split(/(::latex_inline::[^:]+::)/);
+                    let xml = '';
+                    for (const part of parts) {
+                        const match = part.match(/^::latex_inline::(.+)::$/);
+                        if (match) {
+                            const key = match[1];
+                            const omml = ommlMap[key];
+                            if (omml) {
+                                xml += omml;
+                            }
+                        } else {
+                            xml += formatTextToXml(part);
+                        }
+                    }
+                    return xml;
+                }
 
         function getWordDocument(markdown) {
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>';
