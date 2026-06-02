@@ -690,6 +690,17 @@ graph TD
             }
         });
 
+        // Yield control to browser to prevent UI blocking
+        function yieldToBrowser() {
+            return new Promise(resolve => {
+                if (typeof requestIdleCallback !== 'undefined') {
+                    requestIdleCallback(resolve, { timeout: 50 });
+                } else {
+                    setTimeout(resolve, 0);
+                }
+            });
+        }
+
 // Capture a DOM element as a base64 PNG string (no data: prefix)
         async function elementToBase64Png(element) {
             const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
@@ -899,7 +910,7 @@ graph TD
                 return null;
             }
         }
-            async function markdownToDocx(markdown) {
+        async function markdownToDocx(markdown) {
                         const zip = new JSZip();
 
                         // Pre-render Mermaid blocks to images only (LaTeX will be native OMML)
@@ -907,7 +918,6 @@ graph TD
                         let imageIndex = 0;
 
                         // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
-                      // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
                         const displayLatexBlocks = [];
                         let m;
                         const displayRegex = /\$\$([\s\S]*?)\$\$/g;
@@ -919,10 +929,12 @@ graph TD
                             displayRanges.push({ start: m.index, end: m.index + m[0].length });
                             imageIndex++;
                         }
+                        await yieldToBrowser();
 
                         // Extract inline LaTeX: $...$ but skip anything inside a display block range
                         const inlineLatexBlocks = [];
-                        const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
+                        // Safer regex: avoid backtracking with explicit non-$ char match
+                        const inlineRegex = /(?<!\$)\$([^\$]+?)\$(?!\$)/g;
                         while ((m = inlineRegex.exec(markdown)) !== null) {
                             const pos = m.index;
                             const inDisplay = displayRanges.some(r => pos >= r.start && pos < r.end);
@@ -931,6 +943,7 @@ graph TD
                             inlineLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
                             imageIndex++;
                         }
+                        await yieldToBrowser();
 
                         // Extract mermaid blocks — these still need images
                         const mermaidBlocksList = [];
@@ -943,19 +956,26 @@ graph TD
 
                         setProgress(20);
 
-                        // Build OMML map for LaTeX
+                        // Build OMML map for LaTeX in batches to avoid blocking
                         const ommlMap = {};
-                        for (const block of displayLatexBlocks) {
-                            ommlMap[block.key] = latexToOMML(block.latex);
-                        }
-                        for (const block of inlineLatexBlocks) {
-                            ommlMap[block.key] = latexToOMML(block.latex);
+                        const latexBlocks = [...displayLatexBlocks, ...inlineLatexBlocks];
+                        const batchSize = 10;
+                        for (let i = 0; i < latexBlocks.length; i += batchSize) {
+                            const batch = latexBlocks.slice(i, i + batchSize);
+                            for (const block of batch) {
+                                ommlMap[block.key] = latexToOMML(block.latex);
+                            }
+                            if (i + batchSize < latexBlocks.length) {
+                                await yieldToBrowser();
+                            }
                         }
 
-                        // Render mermaid to images
-                        for (const block of mermaidBlocksList) {
+                        // Render mermaid to images in batches
+                        for (let i = 0; i < mermaidBlocksList.length; i++) {
+                            const block = mermaidBlocksList[i];
                             const result = await mermaidToBase64Png(block.code);
                             if (result) imageMap[block.key] = result;
+                            if (i % 2 === 0) await yieldToBrowser();
                         }
 
                         setProgress(50);
@@ -976,7 +996,7 @@ graph TD
 
                         setProgress(60);
 
-                        const docXml = getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
+                        const docXml = await getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
 
                         zip.file('[Content_Types].xml', getContentTypesWithImages());
                         zip.file('_rels/.rels', getRels());
@@ -1258,16 +1278,25 @@ graph TD
             return '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + Math.floor(Math.random()*100000) + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
         }
 
-       function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
+ function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
             let processed = markdown;
+            // Sort blocks by position descending to replace from end to start (no index shifting)
+            const allBlocks = [
+                ...mermaidBlocksList.map(b => ({ ...b, type: 'mermaid' })),
+                ...displayLatexBlocks.map(b => ({ ...b, type: 'display' })),
+                ...inlineLatexBlocks.map(b => ({ ...b, type: 'inline' }))
+            ];
+            // We need to track positions; rebuild using index tracking instead of replace
+            // Use a simpler approach: split and rebuild, or use split with known substrings
+            // Actually, use global replace with unique placeholders since keys are unique
             for (const block of mermaidBlocksList) {
-                processed = processed.replace(block.fullMatch, '::mermaid_image::' + block.key + '::');
+                processed = processed.split(block.fullMatch).join('::mermaid_image::' + block.key + '::');
             }
             for (const block of displayLatexBlocks) {
-                processed = processed.replace(block.fullMatch, '::latex_display::' + block.key + '::');
+                processed = processed.split(block.fullMatch).join('::latex_display::' + block.key + '::');
             }
             for (const block of inlineLatexBlocks) {
-                processed = processed.replace(block.fullMatch, '::latex_inline::' + block.key + '::');
+                processed = processed.split(block.fullMatch).Highlightedjoin('::latex_inline::' + block.key + '::');
             }
 
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
