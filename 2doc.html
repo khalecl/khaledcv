@@ -23,7 +23,7 @@
     <!-- Mermaid for diagrams -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <!-- html2canvas for capturing rendered elements as images -->
-    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
    
     <style>
         * {
@@ -515,125 +515,6 @@ graph TD
         const mdFile = document.getElementById('mdFile');
         const progressContainer = document.getElementById('progressContainer');
         const progressBar = document.getElementById('progressBar');
-        // IndexedDB configuration
-                const DB_NAME = 'MarkdownDocxDB';
-                const DB_VERSION = 1;
-                const STORE_NAME = 'content';
-                const CHUNK_SIZE = 50000; // ~50KB chunks for processing
-                const MAX_MEMORY_LENGTH = 100000; // Switch to IndexedDB above this
-                    function openDB() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onerror = () => reject(req.error);
-                req.onsuccess = () => resolve(req.result);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME);
-                    }
-                };
-            });
-        }
-                async function saveToIndexedDB(key, data) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                const chunks = [];
-                for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-                    chunks.push(data.substring(i, i + CHUNK_SIZE));
-                }
-                const entry = { chunks, length: data.length, timestamp: Date.now() };
-                const req = store.put(entry, key);
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        }
-                     async function loadFromIndexedDB(key) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const req = store.get(key);
-                req.onsuccess = () => {
-                    const entry = req.result;
-                    if (!entry) return resolve(null);
-                    const data = entry.chunks.join('');
-                    resolve(data);
-                };
-                req.onerror = () => reject(req.error);
-            });
-        }
-
-        async function clearIndexedDB() {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                const req = store.clear();
-                req.onsuccess = () => resolve();
-                req.onerror = () => reject(req.error);
-            });
-        }
-
-        // Content manager with automatic storage switching
-        const contentStore = {
-            _memory: null,
-            _key: 'editor_content',
-            _isLarge: false,
-
-            async set(value) {
-                this._memory = value;
-                this._isLarge = value.length > MAX_MEMORY_LENGTH;
-                if (this._isLarge) {
-                    await saveToIndexedDB(this._key, value);
-                    this._memory = null; // Free memory
-                }
-            },
-
-            async get() {
-                if (this._isLarge) {
-                    return await loadFromIndexedDB(this._key);
-                }
-                return this._memory || '';
-            },
-
-            async clear() {
-                this._memory = null;
-                this._isLarge = false;
-                await clearIndexedDB();
-            }
-        };
-
-        // Chunked processing for large documents
-        async function processInChunks(text, processor, onProgress) {
-            const lines = text.split('\n');
-            const results = [];
-            const chunkLineCount = 500; // Process ~500 lines at a time
-            let currentChunk = [];
-            let processedLines = 0;
-
-            for (let i = 0; i < lines.length; i++) {
-                currentChunk.push(lines[i]);
-                
-                if (currentChunk.length >= chunkLineCount || i === lines.length - 1) {
-                    const chunkText = currentChunk.join('\n');
-                    const result = await processor(chunkText);
-                    results.push(result);
-                    
-                    processedLines += currentChunk.length;
-                    if (onProgress) {
-                        onProgress(processedLines / lines.length);
-                    }
-                    
-                    // Yield to event loop
-                    await new Promise(r => requestAnimationFrame(r));
-                    currentChunk = [];
-                }
-            }
-            
-            return results;
-        }
 
         function setProgress(percent) {
             progressBar.style.width = percent + '%';
@@ -811,8 +692,8 @@ graph TD
 
 // Capture a DOM element as a base64 PNG string (no data: prefix)
         async function elementToBase64Png(element) {
-            const dataUrl = await htmlToImage.toPng(element, { backgroundColor: '#ffffff', pixelRatio: 1, useCORS: true, logging: false });
-            return dataUrl.split(',')[1];
+            const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
+            return canvas.toDataURL('image/png').split(',')[1];
         }
 
         // Render LaTeX string to an offscreen element and capture as PNG base64
@@ -1007,7 +888,7 @@ graph TD
                 const { svg } = await mermaid.render(graphId, code);
                 container.innerHTML = svg;
                 // Wait for SVG to layout
-                await new Promise(r => setTimeout(r, 120));
+                await new Promise(r => setTimeout(r, 100));
                 const base64 = await elementToBase64Png(container);
                 const width = container.offsetWidth;
                 const height = container.offsetHeight;
@@ -1071,14 +952,11 @@ graph TD
                             ommlMap[block.key] = latexToOMML(block.latex);
                         }
 
-                          // Render mermaid to images
-                                const totalMermaids = mermaidBlocksList.length;
-                                for (let idx = 0; idx < totalMermaids; idx++) {
-                                    const block = mermaidBlocksList[idx];
-                                    const result = await mermaidToBase64Png(block.code);
-                                    if (result) imageMap[block.key] = result;
-                                    setProgress(40 + Math.floor(10 * (idx + 1) / totalMermaids));
-                                }
+                        // Render mermaid to images
+                        for (const block of mermaidBlocksList) {
+                            const result = await mermaidToBase64Png(block.code);
+                            if (result) imageMap[block.key] = result;
+                        }
 
                         setProgress(50);
 
