@@ -23,7 +23,7 @@
     <!-- Mermaid for diagrams -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <!-- html2canvas for capturing rendered elements as images -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js"></script>
    
     <style>
         * {
@@ -692,8 +692,8 @@ graph TD
 
 // Capture a DOM element as a base64 PNG string (no data: prefix)
         async function elementToBase64Png(element) {
-            const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
-            return canvas.toDataURL('image/png').split(',')[1];
+            const dataUrl = await htmlToImage.toPng(element, { backgroundColor: '#ffffff', pixelRatio: 2 });
+            return dataUrl.split(',')[1];
         }
 
         // Render LaTeX string to an offscreen element and capture as PNG base64
@@ -952,11 +952,14 @@ graph TD
                             ommlMap[block.key] = latexToOMML(block.latex);
                         }
 
-                        // Render mermaid to images
-                        for (const block of mermaidBlocksList) {
-                            const result = await mermaidToBase64Png(block.code);
-                            if (result) imageMap[block.key] = result;
-                        }
+                          // Render mermaid to images
+                                const totalMermaids = mermaidBlocksList.length;
+                                for (let idx = 0; idx < totalMermaids; idx++) {
+                                    const block = mermaidBlocksList[idx];
+                                    const result = await mermaidToBase64Png(block.code);
+                                    if (result) imageMap[block.key] = result;
+                                    setProgress(40 + Math.floor(10 * (idx + 1) / totalMermaids));
+                                }
 
                         setProgress(50);
 
