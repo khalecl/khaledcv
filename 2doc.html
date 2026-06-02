@@ -1296,7 +1296,7 @@ graph TD
                 processed = processed.split(block.fullMatch).join('::latex_display::' + block.key + '::');
             }
             for (const block of inlineLatexBlocks) {
-                processed = processed.split(block.fullMatch).Highlightedjoin('::latex_inline::' + block.key + '::');
+                 processed = processed.split(block.fullMatch).join('::latex_inline::' + block.key + '::');
             }
 
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
