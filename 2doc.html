@@ -7,11 +7,11 @@
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-   <!-- KaTeX for LaTeX rendering -->
+    <!-- KaTeX for LaTeX rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
-   <!-- MathJax as alternative LaTeX renderer -->
+    <!-- MathJax as alternative LaTeX renderer -->
     <script>
         window.MathJax = {
             tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
@@ -24,7 +24,6 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <!-- html2canvas for capturing rendered elements as images -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-   
     <style>
         * {
             margin: 0;
@@ -361,7 +360,6 @@
                 grid-template-columns: 1fr;
             }
         }
-
         .preview .katex-display {
             margin: 16px 0;
             overflow-x: auto;
@@ -478,7 +476,8 @@ graph TD
     B -->|No| D[Action 2]
     C --> E[End]
     D --> E
-```</textarea>
+```
+</textarea>
             </div>
 
             <div class="panel">
@@ -496,7 +495,7 @@ graph TD
             <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
             <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
             <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
-            <button class="clear-btn" id="mathToggleBtn">🔢 Math: KaTeX</button>
+              <button class="clear-btn" id="mathToggleBtn">🔢 Math: KaTeX</button>
         </div>
 
         <footer class="footer">
@@ -548,7 +547,7 @@ graph TD
             reader.readAsText(file);
         });
 
-       // Initialize mermaid
+// Initialize mermaid
         mermaid.initialize({ startOnLoad: false, theme: 'default' });
 
         let mermaidCounter = 0;
@@ -619,6 +618,7 @@ graph TD
 
         // Initial preview
         renderPreview();
+
         // Clear
         clearBtn.addEventListener('click', () => {
             if (confirm('Clear all content?')) {
@@ -689,26 +689,13 @@ graph TD
                 convertBtn.textContent = '⬇️ Download as DOCX';
             }
         });
-
-        // Yield control to browser to prevent UI blocking
-        function yieldToBrowser() {
-            return new Promise(resolve => {
-                if (typeof requestIdleCallback !== 'undefined') {
-                    requestIdleCallback(resolve, { timeout: 50 });
-                } else {
-                    setTimeout(resolve, 0);
-                }
-            });
-        }
-
 // Capture a DOM element as a base64 PNG string (no data: prefix)
         async function elementToBase64Png(element) {
             const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
             return canvas.toDataURL('image/png').split(',')[1];
         }
 
-        // Render LaTeX string to an offscreen element and capture as PNG base64
-// Convert LaTeX to Office MathML (OMML) XML string
+ // Convert LaTeX to Office MathML (OMML) XML string
         function latexToOMML(latexStr) {
                     try {
                         // Try KaTeX first
@@ -910,104 +897,95 @@ graph TD
                 return null;
             }
         }
-        async function markdownToDocx(markdown) {
-                        const zip = new JSZip();
+        // Create valid DOCX with proper styles
 
-                        // Pre-render Mermaid blocks to images only (LaTeX will be native OMML)
-                        const imageMap = {};
-                        let imageIndex = 0;
+async function markdownToDocx(markdown) {
+            const zip = new JSZip();
 
-                        // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
-                        const displayLatexBlocks = [];
-                        let m;
-                        const displayRegex = /\$\$([\s\S]*?)\$\$/g;
-                        // Track display match ranges so inline doesn't overlap
-                        const displayRanges = [];
-                        while ((m = displayRegex.exec(markdown)) !== null) {
-                            const key = 'latex_display_' + imageIndex;
-                            displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
-                            displayRanges.push({ start: m.index, end: m.index + m[0].length });
-                            imageIndex++;
-                        }
-                        await yieldToBrowser();
+            // Pre-render Mermaid blocks to images only (LaTeX will be native OMML)
+            const imageMap = {};
+            let imageIndex = 0;
 
-                        // Extract inline LaTeX: $...$ but skip anything inside a display block range
-                        const inlineLatexBlocks = [];
-                        // Safer regex: avoid backtracking with explicit non-$ char match
-                        const inlineRegex = /(?<!\$)\$([^\$]+?)\$(?!\$)/g;
-                        while ((m = inlineRegex.exec(markdown)) !== null) {
-                            const pos = m.index;
-                            const inDisplay = displayRanges.some(r => pos >= r.start && pos < r.end);
-                            if (inDisplay) continue;
-                            const key = 'latex_inline_' + imageIndex;
-                            inlineLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
-                            imageIndex++;
-                        }
-                        await yieldToBrowser();
+              // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
+                const displayLatexBlocks = [];
+                let m;
+                const displayRegex = /\$\$([\s\S]*?)\$\$/g;
+                // Track display match ranges so inline doesn't overlap
+                const displayRanges = [];
+                while ((m = displayRegex.exec(markdown)) !== null) {
+                    const key = 'latex_display_' + imageIndex;
+                    displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
+                    displayRanges.push({ start: m.index, end: m.index + m[0].length });
+                    imageIndex++;
+                }
 
-                        // Extract mermaid blocks — these still need images
-                        const mermaidBlocksList = [];
-                        const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
-                        while ((m = mermaidRegex.exec(markdown)) !== null) {
-                            const key = 'mermaid_' + imageIndex;
-                            mermaidBlocksList.push({ key, code: m[1].trim(), fullMatch: m[0] });
-                            imageIndex++;
-                        }
+                // Extract inline LaTeX: $...$ but skip anything inside a display block range
+                const inlineLatexBlocks = [];
+                const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
+                while ((m = inlineRegex.exec(markdown)) !== null) {
+                    const pos = m.index;
+                    const inDisplay = displayRanges.some(r => pos >= r.start && pos < r.end);
+                    if (inDisplay) continue;
+                    const key = 'latex_inline_' + imageIndex;
+                    inlineLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
+                    imageIndex++;
+                }
 
-                        setProgress(20);
+            // Extract mermaid blocks — these still need images
+            const mermaidBlocksList = [];
+            const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
+            while ((m = mermaidRegex.exec(markdown)) !== null) {
+                const key = 'mermaid_' + imageIndex;
+                mermaidBlocksList.push({ key, code: m[1].trim(), fullMatch: m[0] });
+                imageIndex++;
+            }
 
-                        // Build OMML map for LaTeX in batches to avoid blocking
-                        const ommlMap = {};
-                        const latexBlocks = [...displayLatexBlocks, ...inlineLatexBlocks];
-                        const batchSize = 10;
-                        for (let i = 0; i < latexBlocks.length; i += batchSize) {
-                            const batch = latexBlocks.slice(i, i + batchSize);
-                            for (const block of batch) {
-                                ommlMap[block.key] = latexToOMML(block.latex);
-                            }
-                            if (i + batchSize < latexBlocks.length) {
-                                await yieldToBrowser();
-                            }
-                        }
+            setProgress(20);
 
-                        // Render mermaid to images in batches
-                        for (let i = 0; i < mermaidBlocksList.length; i++) {
-                            const block = mermaidBlocksList[i];
-                            const result = await mermaidToBase64Png(block.code);
-                            if (result) imageMap[block.key] = result;
-                            if (i % 2 === 0) await yieldToBrowser();
-                        }
+            // Build OMML map for LaTeX
+            const ommlMap = {};
+            for (const block of displayLatexBlocks) {
+                ommlMap[block.key] = latexToOMML(block.latex);
+            }
+            for (const block of inlineLatexBlocks) {
+                ommlMap[block.key] = latexToOMML(block.latex);
+            }
 
-                        setProgress(50);
+            // Render mermaid to images
+            for (const block of mermaidBlocksList) {
+                const result = await mermaidToBase64Png(block.code);
+                if (result) imageMap[block.key] = result;
+            }
 
-                        // Add mermaid images to zip and build relationships
-                        const imageRels = [];
-                        let relId = 10;
-                        const imageRelMap = {};
+            setProgress(50);
 
-                        for (const [key, imgData] of Object.entries(imageMap)) {
-                            const rId = 'rId' + relId;
-                            const filename = 'media/' + key + '.png';
-                            zip.file('word/' + filename, imgData.base64, { base64: true });
-                            imageRels.push({ rId, target: filename });
-                            imageRelMap[key] = { rId, width: imgData.width, height: imgData.height };
-                            relId++;
-                        }
+            // Add mermaid images to zip and build relationships
+            const imageRels = [];
+            let relId = 10;
+            const imageRelMap = {};
 
-                        setProgress(60);
+            for (const [key, imgData] of Object.entries(imageMap)) {
+                const rId = 'rId' + relId;
+                const filename = 'media/' + key + '.png';
+                zip.file('word/' + filename, imgData.base64, { base64: true });
+                imageRels.push({ rId, target: filename });
+                imageRelMap[key] = { rId, width: imgData.width, height: imgData.height };
+                relId++;
+            }
 
-                        const docXml = await getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
+            setProgress(60);
 
-                        zip.file('[Content_Types].xml', getContentTypesWithImages());
-                        zip.file('_rels/.rels', getRels());
-                        zip.file('word/_rels/document.xml.rels', getDocumentRelsWithImages(imageRels));
-                        zip.file('word/styles.xml', getStyles());
-                        zip.file('word/numbering.xml', getNumbering());
-                        zip.file('word/document.xml', docXml);
+            const docXml = getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
 
-                        return await zip.generateAsync({ type: 'blob' });
-                    }
+            zip.file('[Content_Types].xml', getContentTypesWithImages());
+            zip.file('_rels/.rels', getRels());
+            zip.file('word/_rels/document.xml.rels', getDocumentRelsWithImages(imageRels));
+            zip.file('word/styles.xml', getStyles());
+            zip.file('word/numbering.xml', getNumbering());
+            zip.file('word/document.xml', docXml);
 
+            return await zip.generateAsync({ type: 'blob' });
+        }
         function escapeXml(str) {
             return String(str)
                 .replace(/&/g, '&amp;')
@@ -1098,21 +1076,11 @@ graph TD
             }
             return xml;
         }
-
+        function getContentTypesWithImages() {
+                    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
+                }
         function getContentTypes() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
-        }
-        function getContentTypesWithImages() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
-        }
-
-        function getDocumentRelsWithImages(imageRels) {
-            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
-            for (const rel of imageRels) {
-                xml += '<Relationship Id="' + rel.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + rel.target + '"/>';
-            }
-            xml += '</Relationships>';
-            return xml;
         }
 
         function getRels() {
@@ -1121,6 +1089,14 @@ graph TD
 
         function getDocumentRels() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>';
+        }
+        function getDocumentRelsWithImages(imageRels) {
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>';
+            for (const rel of imageRels) {
+                xml += '<Relationship Id="' + rel.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + rel.target + '"/>';
+            }
+            xml += '</Relationships>';
+            return xml;
         }
 
         function getNumbering() {
@@ -1261,8 +1237,7 @@ graph TD
             }
             return null;
         }
-
-        function buildImageXml(rId, widthPx, heightPx, isInline) {
+function buildImageXml(rId, widthPx, heightPx, isInline) {
             // Convert pixels to EMUs (1 px = 9525 EMU), scale x2 render down
             const scale = 0.5;
             let emuW = Math.round(widthPx * 9525 * scale);
@@ -1277,26 +1252,111 @@ graph TD
             const drawingType = isInline ? 'inline' : 'inline'; // both use inline in OOXML
             return '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + Math.floor(Math.random()*100000) + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
         }
+        function getWordDocument(markdown) {
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>';
 
- function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
+            const lines = markdown.split('\n');
+            let inTable = false;
+            let tableLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // Flush table if we were building one and hit non-table line
+                if (inTable && !line.includes('|')) {
+                    xml += buildTable(tableLines);
+                    tableLines = [];
+                    inTable = false;
+                }
+
+                // Check for custom indent syntax
+                const customIndent = getParagraphIndent(line);
+                if (customIndent) {
+                    const indentValue = getIndentValue(customIndent.indent);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:ind w:left="' + indentValue + '"/></w:pPr>' + formatTextToXml(customIndent.text) + '</w:p>';
+                }
+                // Title (#)
+                else if (line.match(/^#\s/)) {
+                    const text = line.replace(/^#\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Heading 1 (##)
+                else if (line.match(/^##\s/)) {
+                    const text = line.replace(/^##\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Heading 2 (###)
+                else if (line.match(/^###\s/)) {
+                    const text = line.replace(/^###\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Heading 3 (####)
+                else if (line.match(/^####\s/)) {
+                    const text = line.replace(/^####\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Ordered lists with multi-level support
+                else if (line.match(/^\s*\d+\.\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^\d+\.\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Unordered lists with multi-level support
+                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Blockquotes
+                else if (line.match(/^>\s/)) {
+                    const text = line.replace(/^>\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
+                }
+                // Code blocks
+                else if (line.trim().startsWith('```')) {
+                    i++;
+                    const code = [];
+                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                        code.push(escapeXml(lines[i]));
+                        i++;
+                    }
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
+                }
+                // Tables - collect all table lines
+                else if (line.includes('|')) {
+                    inTable = true;
+                    tableLines.push(line);
+                }
+                // Horizontal rule
+                else if (line.match(/^---+$/)) {
+                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
+                }
+                // Normal paragraph
+                else if (line.trim()) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextToXml(line) + '</w:p>';
+                }
+            }
+
+            // Flush remaining table
+            if (inTable && tableLines.length > 0) {
+                xml += buildTable(tableLines);
+            }
+
+            xml += '</w:body></w:document>';
+            return xml;
+        }
+      function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
             let processed = markdown;
-            // Sort blocks by position descending to replace from end to start (no index shifting)
-            const allBlocks = [
-                ...mermaidBlocksList.map(b => ({ ...b, type: 'mermaid' })),
-                ...displayLatexBlocks.map(b => ({ ...b, type: 'display' })),
-                ...inlineLatexBlocks.map(b => ({ ...b, type: 'inline' }))
-            ];
-            // We need to track positions; rebuild using index tracking instead of replace
-            // Use a simpler approach: split and rebuild, or use split with known substrings
-            // Actually, use global replace with unique placeholders since keys are unique
             for (const block of mermaidBlocksList) {
-                processed = processed.split(block.fullMatch).join('::mermaid_image::' + block.key + '::');
+                processed = processed.replace(block.fullMatch, '::mermaid_image::' + block.key + '::');
             }
             for (const block of displayLatexBlocks) {
-                processed = processed.split(block.fullMatch).join('::latex_display::' + block.key + '::');
+                processed = processed.replace(block.fullMatch, '::latex_display::' + block.key + '::');
             }
             for (const block of inlineLatexBlocks) {
-                 processed = processed.split(block.fullMatch).join('::latex_inline::' + block.key + '::');
+                processed = processed.replace(block.fullMatch, '::latex_inline::' + block.key + '::');
             }
 
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
@@ -1401,122 +1461,27 @@ graph TD
             return xml;
         }
 
-                // Handle inline LaTeX as native OMML equations within text
-                function formatTextWithInlineOmml(text, ommlMap) {
-                    if (!text.includes('::latex_inline::')) {
-                        return formatTextToXml(text);
-                    }
-
-                    const parts = text.split(/(::latex_inline::[^:]+::)/);
-                    let xml = '';
-                    for (const part of parts) {
-                        const match = part.match(/^::latex_inline::(.+)::$/);
-                        if (match) {
-                            const key = match[1];
-                            const omml = ommlMap[key];
-                            if (omml) {
-                                xml += omml;
-                            }
-                        } else {
-                            xml += formatTextToXml(part);
-                        }
-                    }
-                    return xml;
-                }
-
-        function getWordDocument(markdown) {
-            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>';
-
-            const lines = markdown.split('\n');
-            let inTable = false;
-            let tableLines = [];
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-
-                // Flush table if we were building one and hit non-table line
-                if (inTable && !line.includes('|')) {
-                    xml += buildTable(tableLines);
-                    tableLines = [];
-                    inTable = false;
-                }
-
-                // Check for custom indent syntax
-                const customIndent = getParagraphIndent(line);
-                if (customIndent) {
-                    const indentValue = getIndentValue(customIndent.indent);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:ind w:left="' + indentValue + '"/></w:pPr>' + formatTextToXml(customIndent.text) + '</w:p>';
-                }
-                // Title (#)
-                else if (line.match(/^#\s/)) {
-                    const text = line.replace(/^#\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Heading 1 (##)
-                else if (line.match(/^##\s/)) {
-                    const text = line.replace(/^##\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Heading 2 (###)
-                else if (line.match(/^###\s/)) {
-                    const text = line.replace(/^###\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Heading 3 (####)
-                else if (line.match(/^####\s/)) {
-                    const text = line.replace(/^####\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Ordered lists with multi-level support
-                else if (line.match(/^\s*\d+\.\s/)) {
-                    const { level, trimmedLine } = detectListLevel(line);
-                    const text = trimmedLine.replace(/^\d+\.\s/, '');
-                    const indent = getIndentValue(level);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Unordered lists with multi-level support
-                else if (line.match(/^\s*[\*\-\+]\s/)) {
-                    const { level, trimmedLine } = detectListLevel(line);
-                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
-                    const indent = getIndentValue(level);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Blockquotes
-                else if (line.match(/^>\s/)) {
-                    const text = line.replace(/^>\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Code blocks
-                else if (line.trim().startsWith('```')) {
-                    i++;
-                    const code = [];
-                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
-                        code.push(escapeXml(lines[i]));
-                        i++;
-                    }
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
-                }
-                // Tables - collect all table lines
-                else if (line.includes('|')) {
-                    inTable = true;
-                    tableLines.push(line);
-                }
-                // Horizontal rule
-                else if (line.match(/^---+$/)) {
-                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
-                }
-                // Normal paragraph
-                else if (line.trim()) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextToXml(line) + '</w:p>';
-                }
+        // Like formatTextToXml but also handles inline LaTeX image placeholders
+        // Handle inline LaTeX as native OMML equations within text
+        function formatTextWithInlineOmml(text, ommlMap) {
+            if (!text.includes('::latex_inline::')) {
+                return formatTextToXml(text);
             }
 
-            // Flush remaining table
-            if (inTable && tableLines.length > 0) {
-                xml += buildTable(tableLines);
+            const parts = text.split(/(::latex_inline::[^:]+::)/);
+            let xml = '';
+            for (const part of parts) {
+                const match = part.match(/^::latex_inline::(.+)::$/);
+                if (match) {
+                    const key = match[1];
+                    const omml = ommlMap[key];
+                    if (omml) {
+                        xml += omml;
+                    }
+                } else {
+                    xml += formatTextToXml(part);
+                }
             }
-
-            xml += '</w:body></w:document>';
             return xml;
         }
     </script>
