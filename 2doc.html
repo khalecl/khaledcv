@@ -695,7 +695,7 @@ graph TD
             return canvas.toDataURL('image/png').split(',')[1];
         }
 
- // Convert LaTeX to Office MathML (OMML) XML string
+        // Convert LaTeX to Office MathML (OMML) XML string
         function latexToOMML(latexStr) {
                     try {
                         // Try KaTeX first
@@ -710,12 +710,16 @@ graph TD
 
                     // Fallback: try MathJax MathML output
                     try {
-                        if (window.MathJax && MathJax.tex2mml) {
-                            const mmlStr = MathJax.tex2mml(latexStr);
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(mmlStr, 'application/xml');
-                            const mathEl = doc.querySelector('math');
-                            if (mathEl) return mathMLToOMML(mathEl);
+                        if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+                            // MathJax 3 uses async loading; tex2mml is not directly available
+                            // Use the MathJax global if available after startup
+                            const mmlStr = MathJax.tex2mml ? MathJax.tex2mml(latexStr) : null;
+                            if (mmlStr) {
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(mmlStr, 'application/xml');
+                                const mathEl = doc.querySelector('math');
+                                if (mathEl) return mathMLToOMML(mathEl);
+                            }
                         }
                     } catch(e) {
                         // Both failed
@@ -890,11 +894,14 @@ graph TD
                 const base64 = await elementToBase64Png(container);
                 const width = container.offsetWidth;
                 const height = container.offsetHeight;
-                document.body.removeChild(container);
                 return { base64, width, height };
             } catch (e) {
-                document.body.removeChild(container);
+                console.error('Mermaid render error:', e);
                 return null;
+            } finally {
+                if (container.parentNode) {
+                    document.body.removeChild(container);
+                }
             }
         }
         // Create valid DOCX with proper styles
@@ -953,8 +960,12 @@ async function markdownToDocx(markdown) {
 
             // Render mermaid to images
             for (const block of mermaidBlocksList) {
-                const result = await mermaidToBase64Png(block.code);
-                if (result) imageMap[block.key] = result;
+                try {
+                    const result = await mermaidToBase64Png(block.code);
+                    if (result) imageMap[block.key] = result;
+                } catch (e) {
+                    console.error('Failed to render mermaid diagram:', e);
+                }
             }
 
             setProgress(50);
@@ -995,11 +1006,10 @@ async function markdownToDocx(markdown) {
                 .replace(/'/g, '&apos;');
         }
 
-        function parseTextFormatting(text) {
+          function parseTextFormatting(text) {
             let result = [];
             let i = 0;
-            
-            while (i < text.length) {
+                        while (i < text.length) {
                 // Bold (**text**)
                 if (text.substring(i, i + 2) === '**') {
                     const endIdx = text.indexOf('**', i + 2);
@@ -1007,6 +1017,11 @@ async function markdownToDocx(markdown) {
                         const boldText = text.substring(i + 2, endIdx);
                         result.push({ type: 'bold', text: boldText });
                         i = endIdx + 2;
+                        continue;
+                    } else {
+                        // No closing **, treat as regular text
+                        result.push({ type: 'text', text: text[i] });
+                        i++;
                         continue;
                     }
                 }
@@ -1018,6 +1033,11 @@ async function markdownToDocx(markdown) {
                         result.push({ type: 'italic', text: italicText });
                         i = endIdx + 1;
                         continue;
+                    } else {
+                        // No closing * or followed by *, treat as regular text
+                        result.push({ type: 'text', text: text[i] });
+                        i++;
+                        continue;
                     }
                 }
                 // Italic (_text_)
@@ -1027,6 +1047,10 @@ async function markdownToDocx(markdown) {
                         const italicText = text.substring(i + 1, endIdx);
                         result.push({ type: 'italic', text: italicText });
                         i = endIdx + 1;
+                        continue;
+                    } else {
+                        result.push({ type: 'text', text: text[i] });
+                        i++;
                         continue;
                     }
                 }
@@ -1038,13 +1062,18 @@ async function markdownToDocx(markdown) {
                         result.push({ type: 'code', text: codeText });
                         i = endIdx + 1;
                         continue;
+                    } else {
+                        result.push({ type: 'text', text: text[i] });
+                        i++;
+                        continue;
                     }
                 }
                 // Regular text (up to next formatting marker)
                 let regularText = '';
                 while (i < text.length && 
-                       !(text[i] === '*' && (text[i + 1] === '*' || (i + 1 < text.length && text[i + 1] !== '*'))) &&
-                       !(text[i] === '_' && (text[i + 1] === '_' || (i + 1 < text.length && text[i + 1] !== '_'))) &&
+                       !(text.substring(i, i + 2) === '**') &&
+                       !(text[i] === '*' && i + 1 < text.length && text[i + 1] !== '*') &&
+                       !(text[i] === '_' && i + 1 < text.length && text[i + 1] !== '_') &&
                        text[i] !== '`') {
                     regularText += text[i];
                     i++;
@@ -1054,7 +1083,7 @@ async function markdownToDocx(markdown) {
                 }
             }
             return result;
-        }
+          }
 
         function formatTextToXml(text) {
             const parts = parseTextFormatting(text);
@@ -1175,13 +1204,13 @@ async function markdownToDocx(markdown) {
                 xml += '<w:trHeight w:val="400" w:type="auto"/>';
                 xml += '</w:trPr>';
                 
-                const cells = row.cells;
-                // Pad row to match column count
+                // Pad row to match column count (copy to avoid mutating original)
+                const cells = [...row.cells];
                 while (cells.length < colCount) {
                     cells.push('');
                 }
                 
-                cells.forEach(cell => {
+                cells.slice(0, colCount).forEach(cell => {
                     const isHeader = row.isHeader;
                     const shading = isHeader ? '<w:shd w:fill="4472C4"/>' : '<w:shd w:fill="FFFFFF"/>';
                     const textColor = isHeader ? '<w:color w:val="FFFFFF"/>' : '';
@@ -1252,101 +1281,7 @@ function buildImageXml(rId, widthPx, heightPx, isInline) {
             const drawingType = isInline ? 'inline' : 'inline'; // both use inline in OOXML
             return '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + Math.floor(Math.random()*100000) + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
         }
-        function getWordDocument(markdown) {
-            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>';
 
-            const lines = markdown.split('\n');
-            let inTable = false;
-            let tableLines = [];
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-
-                // Flush table if we were building one and hit non-table line
-                if (inTable && !line.includes('|')) {
-                    xml += buildTable(tableLines);
-                    tableLines = [];
-                    inTable = false;
-                }
-
-                // Check for custom indent syntax
-                const customIndent = getParagraphIndent(line);
-                if (customIndent) {
-                    const indentValue = getIndentValue(customIndent.indent);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:ind w:left="' + indentValue + '"/></w:pPr>' + formatTextToXml(customIndent.text) + '</w:p>';
-                }
-                // Title (#)
-                else if (line.match(/^#\s/)) {
-                    const text = line.replace(/^#\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Heading 1 (##)
-                else if (line.match(/^##\s/)) {
-                    const text = line.replace(/^##\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Heading 2 (###)
-                else if (line.match(/^###\s/)) {
-                    const text = line.replace(/^###\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Heading 3 (####)
-                else if (line.match(/^####\s/)) {
-                    const text = line.replace(/^####\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Ordered lists with multi-level support
-                else if (line.match(/^\s*\d+\.\s/)) {
-                    const { level, trimmedLine } = detectListLevel(line);
-                    const text = trimmedLine.replace(/^\d+\.\s/, '');
-                    const indent = getIndentValue(level);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Unordered lists with multi-level support
-                else if (line.match(/^\s*[\*\-\+]\s/)) {
-                    const { level, trimmedLine } = detectListLevel(line);
-                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
-                    const indent = getIndentValue(level);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Blockquotes
-                else if (line.match(/^>\s/)) {
-                    const text = line.replace(/^>\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextToXml(text) + '</w:p>';
-                }
-                // Code blocks
-                else if (line.trim().startsWith('```')) {
-                    i++;
-                    const code = [];
-                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
-                        code.push(escapeXml(lines[i]));
-                        i++;
-                    }
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Courier New"/></w:rPr><w:t>' + code.join('\n') + '</w:t></w:r></w:p>';
-                }
-                // Tables - collect all table lines
-                else if (line.includes('|')) {
-                    inTable = true;
-                    tableLines.push(line);
-                }
-                // Horizontal rule
-                else if (line.match(/^---+$/)) {
-                    xml += '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:p>';
-                }
-                // Normal paragraph
-                else if (line.trim()) {
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextToXml(line) + '</w:p>';
-                }
-            }
-
-            // Flush remaining table
-            if (inTable && tableLines.length > 0) {
-                xml += buildTable(tableLines);
-            }
-
-            xml += '</w:body></w:document>';
-            return xml;
-        }
       function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
             let processed = markdown;
             for (const block of mermaidBlocksList) {
