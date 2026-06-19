@@ -906,82 +906,90 @@ graph TD
         }
         // Create valid DOCX with proper styles
 
-async function markdownToDocx(markdown) {
+	async function markdownToDocx(markdown) {
             const zip = new JSZip();
-
-            // Pre-render Mermaid blocks to images only (LaTeX will be native OMML)
             const imageMap = {};
             let imageIndex = 0;
 
-              // Extract display LaTeX: $$...$$ — convert to OMML (no image needed)
-                const displayLatexBlocks = [];
-                let m;
-                const displayRegex = /\$\$([\s\S]*?)\$\$/g;
-                // Track display match ranges so inline doesn't overlap
-                const displayRanges = [];
-                while ((m = displayRegex.exec(markdown)) !== null) {
-                    const key = 'latex_display_' + imageIndex;
-                    displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
-                    displayRanges.push({ start: m.index, end: m.index + m[0].length });
-                    imageIndex++;
-                }
-
-                // Extract inline LaTeX: $...$ but skip anything inside a display block range
-                const inlineLatexBlocks = [];
-                const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
-                while ((m = inlineRegex.exec(markdown)) !== null) {
-                    const pos = m.index;
-                    const inDisplay = displayRanges.some(r => pos >= r.start && pos < r.end);
-                    if (inDisplay) continue;
-                    const key = 'latex_inline_' + imageIndex;
-                    inlineLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0] });
-                    imageIndex++;
-                }
-
-            // Extract mermaid blocks — these still need images
-            const mermaidBlocksList = [];
+            // Pre-compile regexes once
+            const displayRegex = /\$\$([\s\S]*?)\$\$/g;
+            const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
             const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
-            while ((m = mermaidRegex.exec(markdown)) !== null) {
-                const key = 'mermaid_' + imageIndex;
-                mermaidBlocksList.push({ key, code: m[1].trim(), fullMatch: m[0] });
-                imageIndex++;
+
+            // Extract display LaTeX
+            const displayLatexBlocks = [];
+            const displayRanges = [];
+            let m;
+            while ((m = displayRegex.exec(markdown)) !== null) {
+                const key = 'latex_display_' + imageIndex++;
+                displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0], start: m.index, end: m.index + m[0].length });
+            }
+
+            // Build display range set for O(1) lookup
+            const displayRangeSet = new Set();
+            for (const block of displayLatexBlocks) {
+                for (let i = block.start; i < block.end; i++) displayRangeSet.add(i);
+            }
+
+            // Extract inline LaTeX (skip positions inside display blocks)
+            const inlineLatexBlocks = [];
+            let im;
+            while ((im = inlineRegex.exec(markdown)) !== null) {
+                if (displayRangeSet.has(im.index)) continue;
+                const key = 'latex_inline_' + imageIndex++;
+                inlineLatexBlocks.push({ key, latex: im[1].trim(), fullMatch: im[0] });
+            }
+
+            // Extract mermaid blocks
+            const mermaidBlocksList = [];
+            let mm;
+            while ((mm = mermaidRegex.exec(markdown)) !== null) {
+                const key = 'mermaid_' + imageIndex++;
+                mermaidBlocksList.push({ key, code: mm[1].trim(), fullMatch: mm[0] });
             }
 
             setProgress(20);
 
-            // Build OMML map for LaTeX
-            const ommlMap = {};
+            // Build OMML map for LaTeX in parallel
+            const ommlPromises = [];
             for (const block of displayLatexBlocks) {
-                ommlMap[block.key] = latexToOMML(block.latex);
+                ommlPromises.push(Promise.resolve().then(() => {
+                    block.omml = latexToOMML(block.latex);
+                }));
             }
             for (const block of inlineLatexBlocks) {
-                ommlMap[block.key] = latexToOMML(block.latex);
+                ommlPromises.push(Promise.resolve().then(() => {
+                    block.omml = latexToOMML(block.latex);
+                }));
             }
+            await Promise.all(ommlPromises);
 
-            // Render mermaid to images
-            for (const block of mermaidBlocksList) {
-                try {
-                    const result = await mermaidToBase64Png(block.code);
-                    if (result) imageMap[block.key] = result;
-                } catch (e) {
-                    console.error('Failed to render mermaid diagram:', e);
+            const ommlMap = {};
+            for (const block of displayLatexBlocks) ommlMap[block.key] = block.omml;
+            for (const block of inlineLatexBlocks) ommlMap[block.key] = block.omml;
+
+            // Render mermaid diagrams in parallel
+            const mermaidResults = await Promise.allSettled(
+                mermaidBlocksList.map(block => mermaidToBase64Png(block.code).then(result => ({ block, result })))
+            );
+            for (const { status, value } of mermaidResults) {
+                if (status === 'fulfilled' && value.result) {
+                    imageMap[value.block.key] = value.result;
                 }
             }
 
             setProgress(50);
 
-            // Add mermaid images to zip and build relationships
+            // Build image relationships
             const imageRels = [];
             let relId = 10;
             const imageRelMap = {};
-
             for (const [key, imgData] of Object.entries(imageMap)) {
-                const rId = 'rId' + relId;
+                const rId = 'rId' + relId++;
                 const filename = 'media/' + key + '.png';
                 zip.file('word/' + filename, imgData.base64, { base64: true });
                 imageRels.push({ rId, target: filename });
                 imageRelMap[key] = { rId, width: imgData.width, height: imgData.height };
-                relId++;
             }
 
             setProgress(60);
@@ -1006,84 +1014,57 @@ async function markdownToDocx(markdown) {
                 .replace(/'/g, '&apos;');
         }
 
-          function parseTextFormatting(text) {
-            let result = [];
-            let i = 0;
-                        while (i < text.length) {
-                // Bold (**text**)
-                if (text.substring(i, i + 2) === '**') {
-                    const endIdx = text.indexOf('**', i + 2);
-                    if (endIdx !== -1) {
-                        const boldText = text.substring(i + 2, endIdx);
-                        result.push({ type: 'bold', text: boldText });
-                        i = endIdx + 2;
-                        continue;
-                    } else {
-                        // No closing **, treat as regular text
-                        result.push({ type: 'text', text: text[i] });
-                        i++;
-                        continue;
-                    }
-                }
-                // Italic (*text*) - but not ** which is bold
-                if (text[i] === '*' && i + 1 < text.length && text[i + 1] !== '*') {
-                    const endIdx = text.indexOf('*', i + 1);
-                    if (endIdx !== -1 && text[endIdx + 1] !== '*') {
-                        const italicText = text.substring(i + 1, endIdx);
-                        result.push({ type: 'italic', text: italicText });
-                        i = endIdx + 1;
-                        continue;
-                    } else {
-                        // No closing * or followed by *, treat as regular text
-                        result.push({ type: 'text', text: text[i] });
-                        i++;
-                        continue;
-                    }
-                }
-                // Italic (_text_)
-                if (text[i] === '_' && i + 1 < text.length && text[i + 1] !== '_') {
-                    const endIdx = text.indexOf('_', i + 1);
-                    if (endIdx !== -1 && text[endIdx + 1] !== '_') {
-                        const italicText = text.substring(i + 1, endIdx);
-                        result.push({ type: 'italic', text: italicText });
-                        i = endIdx + 1;
-                        continue;
-                    } else {
-                        result.push({ type: 'text', text: text[i] });
-                        i++;
-                        continue;
-                    }
-                }
-                // Inline code (`text`)
-                if (text[i] === '`') {
-                    const endIdx = text.indexOf('`', i + 1);
-                    if (endIdx !== -1) {
-                        const codeText = text.substring(i + 1, endIdx);
-                        result.push({ type: 'code', text: codeText });
-                        i = endIdx + 1;
-                        continue;
-                    } else {
-                        result.push({ type: 'text', text: text[i] });
-                        i++;
-                        continue;
-                    }
-                }
-                // Regular text (up to next formatting marker)
-                let regularText = '';
-                while (i < text.length && 
-                       !(text.substring(i, i + 2) === '**') &&
-                       !(text[i] === '*' && i + 1 < text.length && text[i + 1] !== '*') &&
-                       !(text[i] === '_' && i + 1 < text.length && text[i + 1] !== '_') &&
-                       text[i] !== '`') {
-                    regularText += text[i];
-                    i++;
-                }
-                if (regularText) {
-                    result.push({ type: 'text', text: regularText });
+            // Pre-compile regex for faster text formatting parsing
+        const BOLD_REGEX = /\*\*([^*]+?)\*\*/g;
+        const ITALIC_REGEX = /(?<!\*)\*([^*]+?)\*(?!\*)/g;
+        const ITALIC_UNDERSCORE_REGEX = /(?<![A-Za-z0-9])_([^_]+?)_(?![A-Za-z0-9])/g;
+        const CODE_REGEX = /`([^`]+?)`/g;
+        
+        function parseTextFormatting(text) {
+            const result = [];
+            let lastIndex = 0;
+            const markers = [];
+            
+            // Collect all formatting markers with positions
+            let m;
+            while ((m = BOLD_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'bold', text: m[1] });
+            }
+            while ((m = ITALIC_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'italic', text: m[1] });
+            }
+            while ((m = ITALIC_UNDERSCORE_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'italic', text: m[1] });
+            }
+            while ((m = CODE_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'code', text: m[1] });
+            }
+            
+            // Sort by position and filter overlapping markers (prefer longer matches)
+            markers.sort((a, b) => a.start - b.start);
+            const filtered = [];
+            let lastEnd = -1;
+            for (const marker of markers) {
+                if (marker.start >= lastEnd) {
+                    filtered.push(marker);
+                    lastEnd = marker.end;
                 }
             }
-            return result;
-          }
+            
+            // Build result array
+            for (const marker of filtered) {
+                if (marker.start > lastIndex) {
+                    result.push({ type: 'text', text: text.substring(lastIndex, marker.start) });
+                }
+                result.push({ type: marker.type, text: marker.text });
+                lastIndex = marker.end;
+            }
+            if (lastIndex < text.length) {
+                result.push({ type: 'text', text: text.substring(lastIndex) });
+            }
+            
+            return result.length ? result : [{ type: 'text', text }];
+        }
 
         function formatTextToXml(text) {
             const parts = parseTextFormatting(text);
@@ -1136,6 +1117,9 @@ async function markdownToDocx(markdown) {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults><w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="0" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="Heading 1"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/><w:color w:val="2F5496"/></w:rPr><w:pPr><w:spacing w:before="120" w:after="80" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="Heading 2"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="28"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="100" w:after="60" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="Heading 3"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="26"/><w:color w:val="44546A"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="40" w:line="240" w:lineRule="auto"/></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:rPr><w:i/><w:color w:val="404040"/></w:rPr><w:pPr><w:ind w:left="720"/><w:spacing w:before="60" w:after="60" w:line="240" w:lineRule="auto"/><w:pBdr><w:left w:val="single" w:sz="12" w:space="1" w:color="C0C0C0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="C65911"/><w:sz w:val="20"/></w:rPr><w:pPr><w:spacing w:before="80" w:after="80" w:line="240" w:lineRule="auto"/><w:shd w:fill="F2F2F2"/><w:pBdr><w:top w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:bottom w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:left w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/><w:right w:val="single" w:sz="6" w:space="1" w:color="E0E0E0"/></w:pBdr></w:pPr></w:style><w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:line="240" w:lineRule="auto"/></w:pPr></w:style></w:styles>';
         }
 
+	        // Pre-compile table separator regex
+        const TABLE_SEPARATOR_REGEX = /^\s*\|\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
+        
         function parseTableRows(tableLines) {
             const dataRows = [];
             let headerFound = false;
@@ -1144,8 +1128,7 @@ async function markdownToDocx(markdown) {
                 const line = tableLines[i];
                 
                 // Check if this is a separator row (only pipes and dashes)
-                if (line.match(/^\s*\|\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/)) {
-                    // If we just added a row and now we see a separator, mark the previous row as header
+                if (TABLE_SEPARATOR_REGEX.test(line)) {
                     if (dataRows.length === 1 && !headerFound) {
                         dataRows[0].isHeader = true;
                         headerFound = true;
@@ -1153,18 +1136,19 @@ async function markdownToDocx(markdown) {
                     continue;
                 }
                 
-                // Parse cells from line
-                let cells = line.split('|');
-                // Remove empty strings from edges if they exist
-                cells = cells.filter(c => c.trim().length > 0);
-                cells = cells.map(c => c.trim());
+                // Parse cells efficiently: split, trim, filter in one pass
+                const rawCells = line.split('|');
+                const cells = [];
+                for (let j = 0; j < rawCells.length; j++) {
+                    const trimmed = rawCells[j].trim();
+                    if (trimmed.length > 0) cells.push(trimmed);
+                }
                 
                 if (cells.length > 0) {
-                    dataRows.push({ cells: cells, isHeader: false });
+                    dataRows.push({ cells, isHeader: false });
                 }
             }
             
-            // If no separator was found, treat the first row as header
             if (!headerFound && dataRows.length > 0) {
                 dataRows[0].isHeader = true;
             }
@@ -1266,7 +1250,13 @@ async function markdownToDocx(markdown) {
             }
             return null;
         }
-function buildImageXml(rId, widthPx, heightPx, isInline) {
+	// Cache for repeated string building
+        const imageXmlCache = new Map();
+        
+        function buildImageXml(rId, widthPx, heightPx, isInline) {
+            const cacheKey = rId + '-' + widthPx + '-' + heightPx;
+            if (imageXmlCache.has(cacheKey)) return imageXmlCache.get(cacheKey);
+            
             // Convert pixels to EMUs (1 px = 9525 EMU), scale x2 render down
             const scale = 0.5;
             let emuW = Math.round(widthPx * 9525 * scale);
@@ -1278,8 +1268,11 @@ function buildImageXml(rId, widthPx, heightPx, isInline) {
                 emuW = maxW;
                 emuH = Math.round(emuH * ratio);
             }
-            const drawingType = isInline ? 'inline' : 'inline'; // both use inline in OOXML
-            return '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + Math.floor(Math.random()*100000) + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
+            const id = Math.floor(Math.random() * 100000);
+            const result = '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + id + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
+            
+            imageXmlCache.set(cacheKey, result);
+            return result;
         }
 
       function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
