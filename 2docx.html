@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to DOCX Converter</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+    <!-- MathJax as alternative LaTeX renderer -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$','$']], displayMath: [['$$','$$']] },
+            svg: { fontCache: 'global' },
+            startup: { typeset: false }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <!-- html2canvas for capturing rendered elements as images -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #056608 0%, #33A036 50%, #52C755 100%);
+            color: white;
+            padding: 50px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 40px;
+            font-weight: 700;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background-color: #e0e0e0;
+            position: relative;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e8eef7;
+            background-color: #fafbfc;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .panel-header .info {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .upload-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .upload-btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 20px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            border: none;
+            outline: none;
+            resize: none;
+            background-color: #fafbfc;
+        }
+
+        .preview {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        .preview h1 {
+            font-size: 26px;
+            margin: 20px 0 12px;
+            font-weight: 700;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+            color: #1a1a1a;
+        }
+
+        .preview h2 {
+            font-size: 20px;
+            margin: 18px 0 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .preview h3 {
+            font-size: 17px;
+            margin: 14px 0 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .preview h4, .preview h5, .preview h6 {
+            margin: 12px 0 6px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .preview code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #c7254e;
+        }
+
+        .preview pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 12px 0;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .preview pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 16px;
+            margin-left: 0;
+            margin-top: 12px;
+            margin-bottom: 12px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            border: 1px solid #ddd;
+        }
+
+        .preview th {
+            background-color: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .preview td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .preview ul, .preview ol {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding-left: 24px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            padding: 20px;
+            justify-content: center;
+            background: white;
+            border-top: 1px solid #e8eef7;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .convert-btn {
+            background-color: #667eea;
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .convert-btn:hover:not(:disabled) {
+            background-color: #5568d3;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .copy-btn {
+            background-color: #52C755;
+            color: white;
+            box-shadow: 0 2px 8px rgba(82, 199, 85, 0.3);
+        }
+
+        .copy-btn:hover:not(:disabled) {
+            background-color: #3FA040;
+            box-shadow: 0 4px 12px rgba(82, 199, 85, 0.4);
+        }
+
+        .copy-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clear-btn {
+            background-color: white;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .clear-btn:hover {
+            background-color: #f5f5f5;
+        }
+
+        .message {
+            padding: 12px 20px;
+            margin: 0 20px 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c00;
+        }
+
+        .success {
+            background-color: #efe;
+            color: #0c0;
+        }
+
+        .footer {
+            background-color: #e8eef7;
+            padding: 30px 20px;
+            border-top: 1px solid #d0d8e8;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 0 0 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .footer .subtext {
+            font-size: 12px;
+            color: #999;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .preview .katex-display {
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        .preview .katex {
+            font-size: 1.1em;
+        }
+
+        .preview .mermaid-container {
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        .preview .mermaid-container svg {
+            max-width: 100%;
+            height: auto;
+        }
+        .math-active {
+            background-color: #667eea !important;
+            color: white !important;
+            border-color: #667eea !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>📝 Markdown to DOCX Converter</h1>
+            <p>Convert your markdown to Word documents with proper styles</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Markdown Editor</h2>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="mdFile" accept=".md,.markdown,.txt" />
+                        <label for="mdFile" class="upload-btn">📂 Load .md File</label>
+                    </div>
+                </div>
+                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Document Title
+
+## Heading 1
+
+### Heading 2
+
+This is normal paragraph text with some **bold** and *italic* formatting.
+
+#### Code Example
+
+```python
+def hello_world():
+    print("Hello World!")
+```
+
+#### Lists with Indentation
+
+1. First numbered item
+    1. Nested level 2
+        1. Nested level 3
+2. Second numbered item
+
+Bullet points:
+- First bullet
+    - Nested bullet level 2
+        - Nested bullet level 3
+- Second bullet
+
+#### Paragraph with Custom Indentation
+
+Normal paragraph.
+
+::indent:1:: This paragraph has 1 level of indentation
+
+::indent:2:: This paragraph has 2 levels of indentation
+
+#### Table Example with Bold
+
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| **Bold** text | Data 2 | Data 3 |
+| Data 4 | *Italic* text | Data 6 |
+
+#### Blockquote
+
+> This is a quote from someone important.
+> It can span multiple lines.
+
+---
+
+End of document.
+
+#### LaTeX Equation
+
+Inline equation: $E = mc^2$
+
+Display equation:
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+
+#### Mermaid Diagram
+
+```mermaid
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E
+```
+</textarea>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Live Preview</h2>
+                    <span class="info">
+                        Author: <input type="text" id="authorInput" value="Khaled Diab"
+                            style="border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:12px;width:130px;">
+                    </span>
+                </div>
+                <div class="preview" id="preview"></div>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="actions">
+            <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
+            <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
+            <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
+              <button class="clear-btn" id="mathToggleBtn">🔢 Math: KaTeX</button>
+        </div>
+
+        <footer class="footer">
+            <p>💡 All markdown is converted to proper Word styles with harmonized typography</p>
+            <p class="subtext">Built with Marked.js + JSZip | Professional Document Formatting</p>
+        </footer>
+    </div>
+
+    <script>
+                // ===== DOCUMENT AUTHENTICITY LAYER =====
+        const DOC_META = {
+            author: 'Khaled Diab',
+            company: 'Solartech UK',
+            createdDaysAgo: 6,        // document "created" this many days ago
+            editMinutes: 0            // 0 = pick a realistic random value
+        };
+
+        let RSID_POOL = [];
+
+        function randHex8() {
+            let s = '';
+            for (let i = 0; i < 8; i++) s += '0123456789ABCDEF'[Math.floor(Math.random() * 16)];
+            return s;
+        }
+
+        function buildRsidPool() {
+            const n = 18 + Math.floor(Math.random() * 14);   // 18-31 editing sessions
+            RSID_POOL = [];
+            for (let i = 0; i < n; i++) RSID_POOL.push(randHex8());
+        }
+
+        // Stamp paragraphs with revision-save IDs, clustered like real editing sessions
+        function injectRsids(xml) {
+            let cur = RSID_POOL[0];
+            let run = 0;
+            return xml.replace(/<w:p>/g, () => {
+                if (run <= 0) {
+                    cur = RSID_POOL[Math.floor(Math.random() * RSID_POOL.length)];
+                    run = 3 + Math.floor(Math.random() * 10);
+                }
+                run--;
+                const p = Math.random() < 0.25
+                    ? RSID_POOL[Math.floor(Math.random() * RSID_POOL.length)]
+                    : cur;
+                return '<w:p w:rsidR="' + cur + '" w:rsidRDefault="' + cur + '" w:rsidP="' + p + '">';
+            });
+        }
+
+        function isoStamp(date) {
+            const p = n => String(n).padStart(2, '0');
+            return date.getUTCFullYear() + '-' + p(date.getUTCMonth() + 1) + '-' + p(date.getUTCDate())
+                 + 'T' + p(date.getUTCHours()) + ':' + p(date.getUTCMinutes()) + ':00Z';
+        }
+
+        function getCoreXml() {
+            const now = new Date();
+            const created = new Date(now.getTime() - DOC_META.createdDaysAgo * 86400000
+                                     - Math.floor(Math.random() * 6) * 3600000);
+            const modified = new Date(now.getTime() - Math.floor(Math.random() * 40) * 3600000);
+            const rev = 3 + Math.floor(Math.random() * 12);
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"'
+                + ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/"'
+                + ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
+                + '<dc:creator>' + escapeXml(DOC_META.author) + '</dc:creator>'
+                + '<cp:lastModifiedBy>' + escapeXml(DOC_META.author) + '</cp:lastModifiedBy>'
+                + '<cp:revision>' + rev + '</cp:revision>'
+                + '<dcterms:created xsi:type="dcterms:W3CDTF">' + isoStamp(created) + '</dcterms:created>'
+                + '<dcterms:modified xsi:type="dcterms:W3CDTF">' + isoStamp(modified) + '</dcterms:modified>'
+                + '</cp:coreProperties>';
+        }
+
+        function getAppXml(markdown) {
+            const words = markdown.split(/\s+/).filter(Boolean).length;
+            const chars = markdown.length;
+            const pages = Math.max(1, Math.round(words / 420));
+            const total = DOC_META.editMinutes || (45 + Math.floor(Math.random() * 165));
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"'
+                + ' xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
+                + '<Template>Normal.dotm</Template>'
+                + '<TotalTime>' + total + '</TotalTime>'
+                + '<Pages>' + pages + '</Pages>'
+                + '<Words>' + words + '</Words>'
+                + '<Characters>' + chars + '</Characters>'
+                + '<Application>Microsoft Office Word</Application>'
+                + '<DocSecurity>0</DocSecurity>'
+                + '<Lines>' + Math.round(words / 11) + '</Lines>'
+                + '<Paragraphs>' + Math.round(words / 55) + '</Paragraphs>'
+                + '<Company>' + escapeXml(DOC_META.company) + '</Company>'
+                + '<LinksUpToDate>false</LinksUpToDate>'
+                + '<CharactersWithSpaces>' + (chars + words) + '</CharactersWithSpaces>'
+                + '<SharedDoc>false</SharedDoc>'
+                + '<HyperlinksChanged>false</HyperlinksChanged>'
+                + '<AppVersion>16.0000</AppVersion>'
+                + '</Properties>';
+        }
+
+        function getSettings() {
+            let rs = '<w:rsids><w:rsidRoot w:val="' + RSID_POOL[0] + '"/>';
+            for (const r of RSID_POOL) rs += '<w:rsid w:val="' + r + '"/>';
+            rs += '</w:rsids>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:zoom w:percent="100"/>'
+                + '<w:defaultTabStop w:val="720"/>'
+                + '<w:characterSpacingControl w:val="doNotCompress"/>'
+                + '<w:compat><w:compatSetting w:name="compatibilityMode"'
+                + ' w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat>'
+                + rs
+                + '<w:themeFontLang w:val="en-GB"/>'
+                + '</w:settings>';
+        }
+
+        function getFontTable() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:font w:name="Calibri"><w:panose1 w:val="020F0502020204030204"/><w:charset w:val="00"/>'
+                + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
+                + '<w:font w:name="Cambria"><w:panose1 w:val="02040503050406030204"/><w:charset w:val="00"/>'
+                + '<w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>'
+                + '<w:font w:name="Courier New"><w:panose1 w:val="02070309020205020404"/><w:charset w:val="00"/>'
+                + '<w:family w:val="modern"/><w:pitch w:val="fixed"/></w:font>'
+                + '<w:font w:name="Times New Roman"><w:panose1 w:val="02020603050405020304"/><w:charset w:val="00"/>'
+                + '<w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>'
+                + '</w:fonts>';
+        }
+
+        function getWebSettings() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:webSettings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:optimizeForBrowser/><w:allowPNG/></w:webSettings>';
+        }
+
+        function getFooter() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr>'
+                + '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
+                + '<w:fldChar w:fldCharType="begin"/></w:r>'
+                + '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
+                + '<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
+                + '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
+                + '<w:fldChar w:fldCharType="end"/></w:r>'
+                + '</w:p></w:ftr>';
+        }
+
+        function getTheme() {
+            const fill = '<a:solidFill><a:schemeClr val="phClr"/></a:solidFill>';
+            const ln = '<a:ln w="6350" cap="flat" cmpd="sng" algn="ctr">' + fill
+                     + '<a:prstDash val="solid"/></a:ln>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme">'
+                + '<a:themeElements><a:clrScheme name="Office">'
+                + '<a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1>'
+                + '<a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>'
+                + '<a:dk2><a:srgbClr val="44546A"/></a:dk2><a:lt2><a:srgbClr val="E7E6E6"/></a:lt2>'
+                + '<a:accent1><a:srgbClr val="4472C4"/></a:accent1><a:accent2><a:srgbClr val="ED7D31"/></a:accent2>'
+                + '<a:accent3><a:srgbClr val="A5A5A5"/></a:accent3><a:accent4><a:srgbClr val="FFC000"/></a:accent4>'
+                + '<a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6>'
+                + '<a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink>'
+                + '</a:clrScheme><a:fontScheme name="Office">'
+                + '<a:majorFont><a:latin typeface="Cambria"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
+                + '<a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
+                + '</a:fontScheme><a:fmtScheme name="Office">'
+                + '<a:fillStyleLst>' + fill + fill + fill + '</a:fillStyleLst>'
+                + '<a:lnStyleLst>' + ln + ln + ln + '</a:lnStyleLst>'
+                + '<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle>'
+                + '<a:effectStyle><a:effectLst/></a:effectStyle>'
+                + '<a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>'
+                + '<a:bgFillStyleLst>' + fill + fill + fill + '</a:bgFillStyleLst>'
+                + '</a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>';
+        }
+        // ===== END AUTHENTICITY LAYER =====
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const convertBtn = document.getElementById('convertBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const messageEl = document.getElementById('message');
+        const mdFile = document.getElementById('mdFile');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+
+        function setProgress(percent) {
+            progressBar.style.width = percent + '%';
+        }
+
+        function showProgress() {
+            progressContainer.classList.add('active');
+            setProgress(0);
+        }
+
+        function hideProgress() {
+            progressContainer.classList.remove('active');
+        }
+
+        // Handle file upload
+        mdFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target.result;
+                editor.value = content;
+                preview.innerHTML = marked.parse(content);
+                showMessage('✓ File loaded successfully!', 'success');
+                mdFile.value = '';
+            };
+            reader.onerror = () => {
+                showMessage('Error reading file', 'error');
+            };
+            reader.readAsText(file);
+        });
+
+// Initialize mermaid
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+
+        let mermaidCounter = 0;
+        let mathRenderer = 'katex'; // 'katex' or 'mathjax'
+
+        const mathToggleBtn = document.getElementById('mathToggleBtn');
+        mathToggleBtn.addEventListener('click', () => {
+            mathRenderer = mathRenderer === 'katex' ? 'mathjax' : 'katex';
+            mathToggleBtn.textContent = '🔢 Math: ' + (mathRenderer === 'katex' ? 'KaTeX' : 'MathJax');
+            mathToggleBtn.classList.toggle('math-active', mathRenderer === 'mathjax');
+            renderPreview();
+        });
+
+        async function renderPreview() {
+            let md = editor.value;
+
+            // Extract mermaid blocks BEFORE marked processes them
+            const mermaidBlocks = [];
+            md = md.replace(/```mermaid\s*\n([\s\S]*?)```/g, (match, code) => {
+                const id = 'mermaid-placeholder-' + mermaidBlocks.length;
+                mermaidBlocks.push({ id, code: code.trim() });
+                return '<div id="' + id + '" class="mermaid-container"></div>';
+            });
+
+            // Parse markdown
+            preview.innerHTML = marked.parse(md);
+
+            // Render LaTeX based on selected renderer
+            if (mathRenderer === 'katex') {
+                renderMathInElement(preview, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ],
+                    throwOnError: false
+                });
+            } else {
+                // MathJax
+                if (window.MathJax && MathJax.typesetPromise) {
+                    await MathJax.typesetPromise([preview]);
+                }
+            }
+
+            // Render mermaid diagrams
+            for (const block of mermaidBlocks) {
+                const el = document.getElementById(block.id);
+                if (el) {
+                    try {
+                        mermaidCounter++;
+                        const graphId = 'mermaid-graph-' + mermaidCounter;
+                        const { svg } = await mermaid.render(graphId, block.code);
+                        el.innerHTML = svg;
+                    } catch (e) {
+                        el.innerHTML = '<pre style="color:red;">Mermaid error: ' + e.message + '</pre>';
+                    }
+                }
+            }
+        }
+
+        // Update preview
+        let previewTimeout;
+        editor.addEventListener('input', () => {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(renderPreview, 300);
+        });
+
+        // Initial preview
+        renderPreview();
+
+        // Clear
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Clear all content?')) {
+                editor.value = '';
+                preview.innerHTML = '';
+            }
+        });
+
+        function showMessage(text, type) {
+            messageEl.className = 'message ' + type;
+            messageEl.textContent = text;
+            setTimeout(() => {
+                messageEl.className = '';
+                messageEl.textContent = '';
+            }, 3000);
+        }
+
+        // Copy formatted content
+        copyBtn.addEventListener('click', async () => {
+            try {
+                const html = preview.innerHTML;
+                
+                const blob = new Blob([html], { type: 'text/html' });
+                const item = new ClipboardItem({
+                    'text/html': blob,
+                    'text/plain': new Blob([editor.value], { type: 'text/plain' })
+                });
+                
+                await navigator.clipboard.write([item]);
+                showMessage('✓ Formatted content copied to clipboard!', 'success');
+            } catch (error) {
+                try {
+                    await navigator.clipboard.writeText(editor.value);
+                    showMessage('✓ Content copied as text!', 'success');
+                } catch (err) {
+                    console.error('Copy error:', err);
+                    showMessage('Error copying to clipboard', 'error');
+                }
+            }
+        });
+
+        // Convert
+        convertBtn.addEventListener('click', async () => {
+            const markdown = editor.value.trim();
+            if (!markdown) {
+                showMessage('Please enter markdown content', 'error');
+                return;
+            }
+
+                       const authorEl = document.getElementById('authorInput');
+            if (authorEl && authorEl.value.trim()) DOC_META.author = authorEl.value.trim();
+            convertBtn.disabled = true;
+            convertBtn.textContent = '⏳ Converting...';
+            showProgress();
+
+            try {
+                setProgress(25);
+                const docxBlob = await markdownToDocx(markdown);
+                setProgress(75);
+                saveAs(docxBlob, 'document.docx');
+                setProgress(100);
+                showMessage('✓ Downloaded successfully!', 'success');
+                setTimeout(hideProgress, 500);
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error: ' + error.message, 'error');
+                hideProgress();
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.textContent = '⬇️ Download as DOCX';
+            }
+        });
+// Capture a DOM element as a base64 PNG string (no data: prefix)
+        async function elementToBase64Png(element) {
+            const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
+            return canvas.toDataURL('image/png').split(',')[1];
+        }
+
+        // Convert LaTeX to Office MathML (OMML) XML string
+        function latexToOMML(latexStr) {
+                    try {
+                        // Try KaTeX first
+                        const mathml = katex.renderToString(latexStr, { output: 'mathml', throwOnError: true });
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(mathml, 'text/html');
+                        const mathEl = doc.querySelector('math');
+                        if (mathEl) return mathMLToOMML(mathEl);
+                    } catch(e) {
+                        // KaTeX failed, try MathJax
+                    }
+
+                    // Fallback: try MathJax MathML output
+                    try {
+                        if (window.MathJax && MathJax.startup && MathJax.startup.promise) {
+                            // MathJax 3 uses async loading; tex2mml is not directly available
+                            // Use the MathJax global if available after startup
+                            const mmlStr = MathJax.tex2mml ? MathJax.tex2mml(latexStr) : null;
+                            if (mmlStr) {
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(mmlStr, 'application/xml');
+                                const mathEl = doc.querySelector('math');
+                                if (mathEl) return mathMLToOMML(mathEl);
+                            }
+                        }
+                    } catch(e) {
+                        // Both failed
+                    }
+
+                    // Last resort: render as plain text
+                    return '<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><m:r><m:t>' + escapeXml(latexStr) + '</m:t></m:r></m:oMath>';
+                }
+
+        // Convert a MathML DOM element tree to OMML XML string
+        function mathMLToOMML(mathEl) {
+            let omml = '<m:oMath xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">';
+            omml += convertMathMLChildren(mathEl);
+            omml += '</m:oMath>';
+            return omml;
+        }
+
+        function convertMathMLChildren(node) {
+            let omml = '';
+            for (const child of node.childNodes) {
+                omml += convertMathMLNode(child);
+            }
+            return omml;
+        }
+
+        function convertMathMLNode(node) {
+            if (node.nodeType === 3) {
+                // Text node
+                const text = node.textContent.trim();
+                if (!text) return '';
+                return wrapOMMLRun(text);
+            }
+            if (node.nodeType !== 1) return '';
+
+            const tag = node.tagName.toLowerCase();
+
+            switch (tag) {
+                case 'semantics':
+                    // Process first child (presentation MathML)
+                    if (node.firstElementChild) return convertMathMLNode(node.firstElementChild);
+                    return '';
+                case 'annotation':
+                    return '';
+                case 'math':
+                    return convertMathMLChildren(node);
+                case 'mrow':
+                    return convertMathMLChildren(node);
+                case 'mi': {
+                    const text = node.textContent.trim();
+                    // Italic for single-char identifiers
+                    if (text.length === 1 && text.match(/[a-zA-Z]/)) {
+                        return '<m:r><m:rPr><m:sty m:val="i"/></m:rPr><m:t>' + escapeXml(text) + '</m:t></m:r>';
+                    }
+                    return wrapOMMLRun(text);
+                }
+                case 'mn':
+                    return wrapOMMLRun(node.textContent.trim());
+                case 'mo':
+                    return wrapOMMLRun(node.textContent.trim());
+                case 'mtext':
+                    return '<m:r><m:rPr><m:sty m:val="p"/></m:rPr><m:t>' + escapeXml(node.textContent) + '</m:t></m:r>';
+                case 'msup': {
+                    const base = node.children[0];
+                    const sup = node.children[1];
+                    if (!base || !sup) return convertMathMLChildren(node);
+                    return '<m:sSup><m:e>' + convertMathMLNode(base) + '</m:e><m:sup>' + convertMathMLNode(sup) + '</m:sup></m:sSup>';
+                }
+                case 'msub': {
+                    const base = node.children[0];
+                    const sub = node.children[1];
+                    if (!base || !sub) return convertMathMLChildren(node);
+                    return '<m:sSub><m:e>' + convertMathMLNode(base) + '</m:e><m:sub>' + convertMathMLNode(sub) + '</m:sub></m:sSub>';
+                }
+                case 'msubsup': {
+                    const base = node.children[0];
+                    const sub = node.children[1];
+                    const sup = node.children[2];
+                    if (!base || !sub || !sup) return convertMathMLChildren(node);
+                    return '<m:sSubSup><m:e>' + convertMathMLNode(base) + '</m:e><m:sub>' + convertMathMLNode(sub) + '</m:sub><m:sup>' + convertMathMLNode(sup) + '</m:sup></m:sSubSup>';
+                }
+                case 'mfrac': {
+                    const num = node.children[0];
+                    const den = node.children[1];
+                    if (!num || !den) return convertMathMLChildren(node);
+                    return '<m:f><m:num>' + convertMathMLNode(num) + '</m:num><m:den>' + convertMathMLNode(den) + '</m:den></m:f>';
+                }
+                case 'msqrt':
+                    return '<m:rad><m:radPr><m:degHide m:val="1"/></m:radPr><m:deg/><m:e>' + convertMathMLChildren(node) + '</m:e></m:rad>';
+                case 'mroot': {
+                    const base = node.children[0];
+                    const idx = node.children[1];
+                    if (!base || !idx) return convertMathMLChildren(node);
+                    return '<m:rad><m:deg>' + convertMathMLNode(idx) + '</m:deg><m:e>' + convertMathMLNode(base) + '</m:e></m:rad>';
+                }
+                case 'mover': {
+                    const base = node.children[0];
+                    const over = node.children[1];
+                    if (!base || !over) return convertMathMLChildren(node);
+                    const overText = over.textContent.trim();
+                    // Common accents
+                    if (overText === '¯' || overText === '‾') {
+                        return '<m:bar><m:barPr><m:pos m:val="top"/></m:barPr><m:e>' + convertMathMLNode(base) + '</m:e></m:bar>';
+                    }
+                    return '<m:limUpp><m:e>' + convertMathMLNode(base) + '</m:e><m:lim>' + convertMathMLNode(over) + '</m:lim></m:limUpp>';
+                }
+                case 'munder': {
+                    const base = node.children[0];
+                    const under = node.children[1];
+                    if (!base || !under) return convertMathMLChildren(node);
+                    return '<m:limLow><m:e>' + convertMathMLNode(base) + '</m:e><m:lim>' + convertMathMLNode(under) + '</m:lim></m:limLow>';
+                }
+                case 'munderover': {
+                    const base = node.children[0];
+                    const under = node.children[1];
+                    const over = node.children[2];
+                    if (!base || !under || !over) return convertMathMLChildren(node);
+                    // Check if base is an integral/sum operator
+                    const baseText = base.textContent.trim();
+                    if ('∫∬∮∑∏'.includes(baseText)) {
+                        return '<m:nary><m:naryPr><m:chr m:val="' + escapeXml(baseText) + '"/></m:naryPr><m:sub>' + convertMathMLNode(under) + '</m:sub><m:sup>' + convertMathMLNode(over) + '</m:sup><m:e></m:e></m:nary>';
+                    }
+                    return '<m:limLow><m:e><m:limUpp><m:e>' + convertMathMLNode(base) + '</m:e><m:lim>' + convertMathMLNode(over) + '</m:lim></m:limUpp></m:e><m:lim>' + convertMathMLNode(under) + '</m:lim></m:limLow>';
+                }
+                case 'mtable': {
+                    let omml = '<m:m>';
+                    for (const row of node.children) {
+                        if (row.tagName.toLowerCase() === 'mtr') {
+                            omml += '<m:mr>';
+                            for (const cell of row.children) {
+                                omml += '<m:e>' + convertMathMLChildren(cell) + '</m:e>';
+                            }
+                            omml += '</m:mr>';
+                        }
+                    }
+                    omml += '</m:m>';
+                    return omml;
+                }
+                case 'mtr':
+                case 'mtd':
+                    return convertMathMLChildren(node);
+                case 'mspace':
+                    return '';
+                case 'mpadded':
+                    return convertMathMLChildren(node);
+                case 'mstyle':
+                    return convertMathMLChildren(node);
+                case 'menclose':
+                    return convertMathMLChildren(node);
+                case 'mphantom':
+                    return '';
+                default:
+                    return convertMathMLChildren(node);
+            }
+        }
+
+        function wrapOMMLRun(text) {
+            return '<m:r><m:t>' + escapeXml(text) + '</m:t></m:r>';
+        }
+
+        // Render mermaid code to offscreen SVG and capture as PNG base64
+        async function mermaidToBase64Png(code) {
+            const container = document.createElement('div');
+            container.style.cssText = 'position:absolute;left:-9999px;top:0;background:#fff;padding:20px;';
+            document.body.appendChild(container);
+            mermaidCounter++;
+            const graphId = 'mermaid-export-' + mermaidCounter;
+            try {
+                const { svg } = await mermaid.render(graphId, code);
+                container.innerHTML = svg;
+                // Wait for SVG to layout
+                await new Promise(r => setTimeout(r, 100));
+                const base64 = await elementToBase64Png(container);
+                const width = container.offsetWidth;
+                const height = container.offsetHeight;
+                return { base64, width, height };
+            } catch (e) {
+                console.error('Mermaid render error:', e);
+                return null;
+            } finally {
+                if (container.parentNode) {
+                    document.body.removeChild(container);
+                }
+            }
+        }
+        // Create valid DOCX with proper styles
+
+	async function markdownToDocx(markdown) {
+            const zip = new JSZip();
+            const imageMap = {};
+            let imageIndex = 0;
+
+            // Pre-compile regexes once
+            const displayRegex = /\$\$([\s\S]*?)\$\$/g;
+            const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
+            const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
+
+            // Extract display LaTeX
+            const displayLatexBlocks = [];
+            const displayRanges = [];
+            let m;
+            while ((m = displayRegex.exec(markdown)) !== null) {
+                const key = 'latex_display_' + imageIndex++;
+                displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0], start: m.index, end: m.index + m[0].length });
+            }
+
+            // Build display range set for O(1) lookup
+            const displayRangeSet = new Set();
+            for (const block of displayLatexBlocks) {
+                for (let i = block.start; i < block.end; i++) displayRangeSet.add(i);
+            }
+
+            // Extract inline LaTeX (skip positions inside display blocks)
+            const inlineLatexBlocks = [];
+            let im;
+            while ((im = inlineRegex.exec(markdown)) !== null) {
+                if (displayRangeSet.has(im.index)) continue;
+                const key = 'latex_inline_' + imageIndex++;
+                inlineLatexBlocks.push({ key, latex: im[1].trim(), fullMatch: im[0] });
+            }
+
+            // Extract mermaid blocks
+            const mermaidBlocksList = [];
+            let mm;
+            while ((mm = mermaidRegex.exec(markdown)) !== null) {
+                const key = 'mermaid_' + imageIndex++;
+                mermaidBlocksList.push({ key, code: mm[1].trim(), fullMatch: mm[0] });
+            }
+
+            setProgress(20);
+
+            // Build OMML map for LaTeX in parallel
+            const ommlPromises = [];
+            for (const block of displayLatexBlocks) {
+                ommlPromises.push(Promise.resolve().then(() => {
+                    block.omml = latexToOMML(block.latex);
+                }));
+            }
+            for (const block of inlineLatexBlocks) {
+                ommlPromises.push(Promise.resolve().then(() => {
+                    block.omml = latexToOMML(block.latex);
+                }));
+            }
+            await Promise.all(ommlPromises);
+
+            const ommlMap = {};
+            for (const block of displayLatexBlocks) ommlMap[block.key] = block.omml;
+            for (const block of inlineLatexBlocks) ommlMap[block.key] = block.omml;
+
+            // Render mermaid diagrams in parallel
+            const mermaidResults = await Promise.allSettled(
+                mermaidBlocksList.map(block => mermaidToBase64Png(block.code).then(result => ({ block, result })))
+            );
+            for (const { status, value } of mermaidResults) {
+                if (status === 'fulfilled' && value.result) {
+                    imageMap[value.block.key] = value.result;
+                }
+            }
+
+            setProgress(50);
+
+            // Build image relationships
+            const imageRels = [];
+            let relId = 10;
+            const imageRelMap = {};
+            for (const [key, imgData] of Object.entries(imageMap)) {
+                const rId = 'rId' + relId++;
+                const filename = 'media/' + key + '.png';
+                zip.file('word/' + filename, imgData.base64, { base64: true });
+                imageRels.push({ rId, target: filename });
+                imageRelMap[key] = { rId, width: imgData.width, height: imgData.height };
+            }
+
+            setProgress(60);
+
+                        buildRsidPool();
+
+            let docXml = getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
+            docXml = injectRsids(docXml);
+
+            zip.file('[Content_Types].xml', getContentTypesWithImages());
+            zip.file('_rels/.rels', getRels());
+            zip.file('docProps/core.xml', getCoreXml());
+            zip.file('docProps/app.xml', getAppXml(markdown));
+            zip.file('word/_rels/document.xml.rels', getDocumentRelsWithImages(imageRels));
+            zip.file('word/styles.xml', getStyles());
+            zip.file('word/numbering.xml', getNumbering());
+            zip.file('word/settings.xml', getSettings());
+            zip.file('word/fontTable.xml', getFontTable());
+            zip.file('word/webSettings.xml', getWebSettings());
+            zip.file('word/footer1.xml', getFooter());
+            zip.file('word/theme/theme1.xml', getTheme());
+            zip.file('word/document.xml', docXml);
+
+            return await zip.generateAsync({ type: 'blob' });
+        }
+        function escapeXml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+            // Pre-compile regex for faster text formatting parsing
+        const BOLD_REGEX = /\*\*([^*]+?)\*\*/g;
+        const ITALIC_REGEX = /(?<!\*)\*([^*]+?)\*(?!\*)/g;
+        const ITALIC_UNDERSCORE_REGEX = /(?<![A-Za-z0-9])_([^_]+?)_(?![A-Za-z0-9])/g;
+        const CODE_REGEX = /`([^`]+?)`/g;
+        
+        function parseTextFormatting(text) {
+            const result = [];
+            let lastIndex = 0;
+            const markers = [];
+            
+            // Collect all formatting markers with positions
+            let m;
+            while ((m = BOLD_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'bold', text: m[1] });
+            }
+            while ((m = ITALIC_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'italic', text: m[1] });
+            }
+            while ((m = ITALIC_UNDERSCORE_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'italic', text: m[1] });
+            }
+            while ((m = CODE_REGEX.exec(text)) !== null) {
+                markers.push({ start: m.index, end: m.index + m[0].length, type: 'code', text: m[1] });
+            }
+            
+            // Sort by position and filter overlapping markers (prefer longer matches)
+            markers.sort((a, b) => a.start - b.start);
+            const filtered = [];
+            let lastEnd = -1;
+            for (const marker of markers) {
+                if (marker.start >= lastEnd) {
+                    filtered.push(marker);
+                    lastEnd = marker.end;
+                }
+            }
+            
+            // Build result array
+            for (const marker of filtered) {
+                if (marker.start > lastIndex) {
+                    result.push({ type: 'text', text: text.substring(lastIndex, marker.start) });
+                }
+                result.push({ type: marker.type, text: marker.text });
+                lastIndex = marker.end;
+            }
+            if (lastIndex < text.length) {
+                result.push({ type: 'text', text: text.substring(lastIndex) });
+            }
+            
+            return result.length ? result : [{ type: 'text', text }];
+        }
+
+        function formatTextToXml(text) {
+            const parts = parseTextFormatting(text);
+            let xml = '';
+            
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                let textContent = part.text;
+                
+                if (part.type === 'bold') {
+                    xml += '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (part.type === 'italic') {
+                    xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (part.type === 'code') {
+                    xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else {
+                    xml += '<w:r><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                }
+            }
+            return xml;
+        }
+        function getContentTypesWithImages() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+                + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+                + '<Default Extension="xml" ContentType="application/xml"/>'
+                + '<Default Extension="png" ContentType="image/png"/>'
+                + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+                + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+                + '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>'
+                + '<Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>'
+                + '<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>'
+                + '<Override PartName="/word/webSettings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml"/>'
+                + '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'
+                + '<Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'
+                + '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
+                + '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'
+                + '</Types>';                }
+        function getContentTypes() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>';
+        }
+
+        function getRels() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+                + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'
+                + '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>'
+                + '</Relationships>';        }
+
+        function getDocumentRels() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>';
+        }
+        function getDocumentRelsWithImages(imageRels) {
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+                + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+                + '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>'
+                + '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>'
+                + '<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>'
+                + '<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/>'
+                + '<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>'
+                + '<Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>';
+            for (const rel of imageRels) {
+                xml += '<Relationship Id="' + rel.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + rel.target + '"/>';
+            }
+            xml += '</Relationships>';
+            return xml;
+        }
+
+        function getNumbering() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%2."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%3."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="1"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="◦"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="▪"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>';
+        }
+
+        function getStyles() {
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + '<w:docDefaults><w:rPrDefault><w:rPr>'
+                + '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi"/>'
+                + '<w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'
+                + '</w:rPr></w:rPrDefault>'
+                + '<w:pPrDefault><w:pPr><w:widowControl/><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
+                + '</w:docDefaults>'
+                + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:widowControl/><w:spacing w:after="160" w:line="276" w:lineRule="auto"/><w:jc w:val="both"/></w:pPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:keepNext/><w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/>'
+                + '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr></w:pPr>'
+                + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="40"/><w:color w:val="1A1A1A"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="320" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="0"/></w:pPr>'
+                + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:b/><w:sz w:val="30"/><w:color w:val="1F3A33"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="240" w:after="80" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="1"/></w:pPr>'
+                + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:b/><w:sz w:val="26"/><w:color w:val="2C4A42"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:keepNext/><w:spacing w:before="200" w:after="60" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="2"/></w:pPr>'
+                + '<w:rPr><w:b/><w:sz w:val="23"/><w:color w:val="333333"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:ind w:left="680" w:right="340"/><w:spacing w:before="120" w:after="120"/><w:jc w:val="left"/>'
+                + '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="BFBFBF"/></w:pBdr></w:pPr>'
+                + '<w:rPr><w:i/><w:color w:val="404040"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/>'
+                + '<w:pPr><w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:ind w:left="170" w:right="170"/>'
+                + '<w:shd w:val="clear" w:fill="F7F7F7"/>'
+                + '<w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
+                + '<w:left w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/><w:right w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/></w:pBdr></w:pPr>'
+                + '<w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="333333"/><w:sz w:val="19"/></w:rPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:spacing w:after="80"/><w:jc w:val="left"/><w:contextualSpacing/></w:pPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>'
+                + '<w:pPr><w:spacing w:before="40" w:after="40" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr>'
+                + '<w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
+                + '</w:styles>';
+                        }
+
+	        // Pre-compile table separator regex
+        const TABLE_SEPARATOR_REGEX = /^\s*\|\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
+        
+        function parseTableRows(tableLines) {
+            const dataRows = [];
+            let headerFound = false;
+            
+            for (let i = 0; i < tableLines.length; i++) {
+                const line = tableLines[i];
+                
+                // Check if this is a separator row (only pipes and dashes)
+                if (TABLE_SEPARATOR_REGEX.test(line)) {
+                    if (dataRows.length === 1 && !headerFound) {
+                        dataRows[0].isHeader = true;
+                        headerFound = true;
+                    }
+                    continue;
+                }
+                
+                // Parse cells efficiently: split, trim, filter in one pass
+                const rawCells = line.split('|');
+                const cells = [];
+                for (let j = 0; j < rawCells.length; j++) {
+                    const trimmed = rawCells[j].trim();
+                    if (trimmed.length > 0) cells.push(trimmed);
+                }
+                
+                if (cells.length > 0) {
+                    dataRows.push({ cells, isHeader: false });
+                }
+            }
+            
+            if (!headerFound && dataRows.length > 0) {
+                dataRows[0].isHeader = true;
+            }
+            
+            return dataRows;
+        }
+
+        function buildTable(tableLines) {
+            const rowData = parseTableRows(tableLines);
+            if (rowData.length === 0) return '';
+
+            let xml = '<w:tbl><w:tblPr>';
+            xml += '<w:tblW w:w="5000" w:type="auto"/>';
+            xml += '<w:tblInd w:w="0" w:type="dxa"/>';
+             xml += '<w:tblBorders>';
+            xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="595959"/>';
+            xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="595959"/>';
+            xml += '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>';
+            xml += '<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>';
+            xml += '</w:tblBorders>';
+            xml += '<w:tblCellMar>';
+            xml += '<w:top w:w="100" w:type="dxa"/>';
+            xml += '<w:left w:w="100" w:type="dxa"/>';
+            xml += '<w:bottom w:w="100" w:type="dxa"/>';
+            xml += '<w:right w:w="100" w:type="dxa"/>';
+            xml += '</w:tblCellMar>';
+            xml += '</w:tblPr>';
+
+            // Get max column count from all rows
+            const colCount = Math.max(...rowData.map(r => r.cells.length));
+            
+            rowData.forEach((row) => {
+                xml += '<w:tr>';
+                xml += '<w:trPr>';
+                xml += '<w:trHeight w:val="400" w:type="auto"/>';
+                xml += '</w:trPr>';
+                
+                // Pad row to match column count (copy to avoid mutating original)
+                const cells = [...row.cells];
+                while (cells.length < colCount) {
+                    cells.push('');
+                }
+                
+                cells.slice(0, colCount).forEach(cell => {
+                    const isHeader = row.isHeader;
+                                        const shading = isHeader ? '<w:shd w:val="clear" w:fill="F2F2F2"/>' : '';
+                    const textColor = '';
+                   const cellWidth = Math.round(5000 / colCount);
+                    
+                    xml += '<w:tc>';
+                    xml += '<w:tcPr>';
+                    xml += '<w:tcW w:w="' + cellWidth + '" w:type="auto"/>';
+                    xml += shading;
+                    xml += '<w:vAlign w:val="center"/>';
+                    xml += '</w:tcPr>';
+                    xml += '<w:p>';
+                    xml += '<w:pPr>';
+                    xml += '<w:pStyle w:val="TableText"/>';
+                    xml += '<w:jc w:val="left"/>';
+                    xml += '</w:pPr>';
+                    xml += formatTextToXml(cell.trim());
+                    xml += '</w:p>';
+                    xml += '</w:tc>';
+                });
+                xml += '</w:tr>';
+            });
+
+            xml += '</w:tbl>';
+            return xml;
+        }
+
+        function detectListLevel(line) {
+            let level = 0;
+            let i = 0;
+            while (i < line.length) {
+                if (line[i] === '\t') {
+                    level++;
+                    i++;
+                } else if (line.substring(i, i + 4) === '    ') {
+                    level++;
+                    i += 4;
+                } else {
+                    break;
+                }
+            }
+            return { level, trimmedLine: line.substring(i) };
+        }
+
+        function getIndentValue(level) {
+            return level * 720;
+        }
+
+        function getParagraphIndent(line) {
+            const match = line.match(/^::indent:(\d+)::/);
+            if (match) {
+                return { indent: parseInt(match[1]), text: line.replace(/^::indent:\d+::/, '').trim() };
+            }
+            return null;
+        }
+	// Cache for repeated string building
+        const imageXmlCache = new Map();
+        
+        function buildImageXml(rId, widthPx, heightPx, isInline) {
+            const cacheKey = rId + '-' + widthPx + '-' + heightPx;
+            if (imageXmlCache.has(cacheKey)) return imageXmlCache.get(cacheKey);
+            
+            // Convert pixels to EMUs (1 px = 9525 EMU), scale x2 render down
+            const scale = 0.5;
+            let emuW = Math.round(widthPx * 9525 * scale);
+            let emuH = Math.round(heightPx * 9525 * scale);
+            // Cap max width at 15cm (5400000 EMU)
+            const maxW = 5400000;
+            if (emuW > maxW) {
+                const ratio = maxW / emuW;
+                emuW = maxW;
+                emuH = Math.round(emuH * ratio);
+            }
+            const id = Math.floor(Math.random() * 100000);
+            const result = '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + id + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
+            
+            imageXmlCache.set(cacheKey, result);
+            return result;
+        }
+
+      function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
+            let processed = markdown;
+            for (const block of mermaidBlocksList) {
+                processed = processed.replace(block.fullMatch, '::mermaid_image::' + block.key + '::');
+            }
+            for (const block of displayLatexBlocks) {
+                processed = processed.replace(block.fullMatch, '::latex_display::' + block.key + '::');
+            }
+            for (const block of inlineLatexBlocks) {
+                processed = processed.replace(block.fullMatch, '::latex_inline::' + block.key + '::');
+            }
+
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
+
+            const lines = processed.split('\n');
+            let inTable = false;
+            let tableLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                if (inTable && !line.includes('|')) {
+                    xml += buildTable(tableLines);
+                    tableLines = [];
+                    inTable = false;
+                }
+
+                // Mermaid image placeholder
+                if (line.match(/^::mermaid_image::(.+)::$/)) {
+                    const key = line.match(/^::mermaid_image::(.+)::$/)[1];
+                    const img = imageRelMap[key];
+                    if (img) {
+                        xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>' + buildImageXml(img.rId, img.width, img.height, false) + '</w:r></w:p>';
+                    }
+                    continue;
+                }
+
+                // Display LaTeX → native OMML equation paragraph
+                if (line.match(/^::latex_display::(.+)::$/)) {
+                    const key = line.match(/^::latex_display::(.+)::$/)[1];
+                    const omml = ommlMap[key];
+                    if (omml) {
+                        xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><m:oMathPara><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr>' + omml + '</m:oMathPara></w:p>';
+                    }
+                    continue;
+                }
+
+                // Check for custom indent syntax
+                const customIndent = getParagraphIndent(line);
+                if (customIndent) {
+                    const indentValue = getIndentValue(customIndent.indent);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/><w:ind w:left="' + indentValue + '"/></w:pPr>' + formatTextWithInlineOmml(customIndent.text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^#\s/)) {
+                    const text = line.replace(/^#\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^##\s/)) {
+                    const text = line.replace(/^##\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^###\s/)) {
+                    const text = line.replace(/^###\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^####\s/)) {
+                    const text = line.replace(/^####\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^\s*\d+\.\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^\d+\.\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                    const { level, trimmedLine } = detectListLevel(line);
+                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
+                    const indent = getIndentValue(level);
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.match(/^>\s/)) {
+                    const text = line.replace(/^>\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
+                else if (line.trim().startsWith('```')) {
+                    i++;
+                    const code = [];
+                    while (i < lines.length && !lines[i].trim().startsWith('```')) {
+                        code.push(escapeXml(lines[i]));
+                        i++;
+                    }
+                    let codeRuns = '';
+                    code.forEach((cl, ci) => {
+                        if (ci > 0) codeRuns += '<w:r><w:br/></w:r>';
+                        codeRuns += '<w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>'
+                                  + '<w:t xml:space="preserve">' + cl + '</w:t></w:r>';
+                    });
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr>' + codeRuns + '</w:p>';
+                }
+                else if (line.includes('|')) {
+                    inTable = true;
+                    tableLines.push(line);
+                }
+                else if (line.match(/^---+$/)) {
+                    xml += '<w:p><w:pPr><w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/>'
+                        + '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="BFBFBF"/></w:pBdr>'
+                        + '<w:rPr><w:sz w:val="4"/></w:rPr></w:pPr></w:p>';
+                }
+                else if (line.trim()) {
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Normal"/></w:pPr>' + formatTextWithInlineOmml(line, ommlMap) + '</w:p>';
+                }
+            }
+
+            if (inTable && tableLines.length > 0) {
+                xml += buildTable(tableLines);
+            }
+
+            xml += '<w:sectPr>'
+                + '<w:footerReference w:type="default" r:id="rId7"/>'
+                + '<w:pgSz w:w="11906" w:h="16838"/>'
+                + '<w:pgMar w:top="1418" w:right="1276" w:bottom="1418" w:left="1418"'
+                + ' w:header="709" w:footer="709" w:gutter="0"/>'
+                + '<w:cols w:space="708"/><w:docGrid w:linePitch="360"/>'
+                + '</w:sectPr>';
+            xml += '</w:body></w:document>';
+                        return xml;
+        }
+
+        // Like formatTextToXml but also handles inline LaTeX image placeholders
+        // Handle inline LaTeX as native OMML equations within text
+        function formatTextWithInlineOmml(text, ommlMap) {
+            if (!text.includes('::latex_inline::')) {
+                return formatTextToXml(text);
+            }
+
+            const parts = text.split(/(::latex_inline::[^:]+::)/);
+            let xml = '';
+            for (const part of parts) {
+                const match = part.match(/^::latex_inline::(.+)::$/);
+                if (match) {
+                    const key = match[1];
+                    const omml = ommlMap[key];
+                    if (omml) {
+                        xml += omml;
+                    }
+                } else {
+                    xml += formatTextToXml(part);
+                }
+            }
+            return xml;
+        }
+    </script>
+</body>
+</html>
