@@ -10,6 +10,8 @@
     <!-- KaTeX for LaTeX rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+
+360L
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
     <!-- MathJax as alternative LaTeX renderer -->
     <script>
@@ -616,6 +618,12 @@ graph TD
         function getFontTable() {
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                                + '<w:font w:name="Segoe UI"><w:panose1 w:val="020B0502040204020203"/><w:charset w:val="00"/>'
+                + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
+                + '<w:font w:name="Georgia"><w:panose1 w:val="02040502050405020303"/><w:charset w:val="00"/>'
+                + '<w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>'
+                + '<w:font w:name="Segoe UI Emoji"><w:panose1 w:val="020B0502040204020203"/><w:charset w:val="00"/>'
+                + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
                 + '<w:font w:name="Calibri"><w:panose1 w:val="020F0502020204030204"/><w:charset w:val="00"/>'
                 + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
                 + '<w:font w:name="Cambria"><w:panose1 w:val="02040503050406030204"/><w:charset w:val="00"/>'
@@ -661,8 +669,8 @@ graph TD
                 + '<a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6>'
                 + '<a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink>'
                 + '</a:clrScheme><a:fontScheme name="Office">'
-                + '<a:majorFont><a:latin typeface="Cambria"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
-                + '<a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
+                + '<a:majorFont><a:latin typeface="Georgia"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
+                + '<a:minorFont><a:latin typeface="Segoe UI"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
                 + '</a:fontScheme><a:fmtScheme name="Office">'
                 + '<a:fillStyleLst>' + fill + fill + fill + '</a:fillStyleLst>'
                 + '<a:lnStyleLst>' + ln + ln + ln + '</a:lnStyleLst>'
@@ -1260,6 +1268,19 @@ graph TD
                     xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (part.type === 'code') {
                     xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                } else if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(textContent)) {
+                    // Split emoji into their own runs so they get the emoji font
+                    const chunks = textContent.split(/([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+)/u);
+                    for (const ch of chunks) {
+                        if (!ch) continue;
+                        if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(ch)) {
+                            xml += '<w:r><w:rPr><w:rFonts w:ascii="Segoe UI Emoji" w:hAnsi="Segoe UI Emoji"'
+                                 + ' w:cs="Segoe UI Emoji"/></w:rPr><w:t xml:space="preserve">'
+                                 + escapeXml(ch) + '</w:t></w:r>';
+                        } else {
+                            xml += '<w:r><w:t xml:space="preserve">' + escapeXml(ch) + '</w:t></w:r>';
+                        }
+                    }
                 } else {
                     xml += '<w:r><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 }
@@ -1321,13 +1342,11 @@ graph TD
                 + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
                 + '<w:docDefaults><w:rPrDefault><w:rPr>'
                 + '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi"/>'
-                + '<w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'
-                + '</w:rPr></w:rPrDefault>'
+                + '<w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'                + '</w:rPr></w:rPrDefault>'
                 + '<w:pPrDefault><w:pPr><w:widowControl/><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
                 + '</w:docDefaults>'
                 + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:widowControl/><w:spacing w:after="160" w:line="276" w:lineRule="auto"/><w:jc w:val="both"/></w:pPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:widowControl/><w:spacing w:after="180" w:line="264" w:lineRule="auto"/></w:pPr></w:style>'                + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
                 + '<w:pPr><w:keepNext/><w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/>'
                 + '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr></w:pPr>'
                 + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="40"/><w:color w:val="1A1A1A"/></w:rPr></w:style>'
@@ -1340,6 +1359,9 @@ graph TD
                 + '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
                 + '<w:pPr><w:keepNext/><w:spacing w:before="200" w:after="60" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="2"/></w:pPr>'
                 + '<w:rPr><w:b/><w:sz w:val="23"/><w:color w:val="333333"/></w:rPr></w:style>'
+                              + '<w:style w:type="paragraph" w:styleId="Heading4"><w:name w:val="heading 4"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:keepNext/><w:spacing w:before="180" w:after="60" w:line="240" w:lineRule="auto"/><w:outlineLvl w:val="3"/></w:pPr>'
+                + '<w:rPr><w:b/><w:i/><w:sz w:val="21"/><w:color w:val="404040"/></w:rPr></w:style>'
                 + '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
                 + '<w:pPr><w:ind w:left="680" w:right="340"/><w:spacing w:before="120" w:after="120"/><w:jc w:val="left"/>'
                 + '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="BFBFBF"/></w:pBdr></w:pPr>'
@@ -1397,67 +1419,89 @@ graph TD
             return dataRows;
         }
 
+           // Usable text width on A4 with your margins: 11906 - 1418 - 1276 = 9212 twips
+        const USABLE_WIDTH = 9212;
+
         function buildTable(tableLines) {
             const rowData = parseTableRows(tableLines);
             if (rowData.length === 0) return '';
 
+            const colCount = Math.max(...rowData.map(r => r.cells.length));
+
+            // Weight columns by their longest cell content, clamped so no column
+            // collapses to nothing or swallows the table
+            const weights = new Array(colCount).fill(1);
+            for (const row of rowData) {
+                for (let c = 0; c < colCount; c++) {
+                    const len = (row.cells[c] || '').length;
+                    if (len > weights[c]) weights[c] = len;
+                }
+            }
+            for (let c = 0; c < colCount; c++) {
+                weights[c] = Math.min(Math.max(weights[c], 6), 60);
+            }
+            const totalW = weights.reduce((a, b) => a + b, 0);
+            const colTwips = weights.map(w => Math.round(USABLE_WIDTH * w / totalW));
+            // Absorb rounding drift into the last column
+            colTwips[colCount - 1] += USABLE_WIDTH - colTwips.reduce((a, b) => a + b, 0);
+
             let xml = '<w:tbl><w:tblPr>';
-            xml += '<w:tblW w:w="5000" w:type="auto"/>';
+            xml += '<w:tblW w:w="' + USABLE_WIDTH + '" w:type="dxa"/>';
+            xml += '<w:tblLayout w:type="fixed"/>';
             xml += '<w:tblInd w:w="0" w:type="dxa"/>';
-             xml += '<w:tblBorders>';
+            xml += '<w:tblBorders>';
             xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="595959"/>';
             xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="595959"/>';
             xml += '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>';
             xml += '<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>';
             xml += '</w:tblBorders>';
             xml += '<w:tblCellMar>';
-            xml += '<w:top w:w="100" w:type="dxa"/>';
-            xml += '<w:left w:w="100" w:type="dxa"/>';
-            xml += '<w:bottom w:w="100" w:type="dxa"/>';
-            xml += '<w:right w:w="100" w:type="dxa"/>';
+            xml += '<w:top w:w="80" w:type="dxa"/>';
+            xml += '<w:left w:w="130" w:type="dxa"/>';
+            xml += '<w:bottom w:w="80" w:type="dxa"/>';
+            xml += '<w:right w:w="130" w:type="dxa"/>';
             xml += '</w:tblCellMar>';
             xml += '</w:tblPr>';
 
-            // Get max column count from all rows
-            const colCount = Math.max(...rowData.map(r => r.cells.length));
-            
-            rowData.forEach((row) => {
-                xml += '<w:tr>';
-                xml += '<w:trPr>';
-                xml += '<w:trHeight w:val="400" w:type="auto"/>';
+            // The grid Word actually lays the table out from — this was missing entirely
+            xml += '<w:tblGrid>';
+            for (let c = 0; c < colCount; c++) {
+                xml += '<w:gridCol w:w="' + colTwips[c] + '"/>';
+            }
+            xml += '</w:tblGrid>';
+
+            rowData.forEach(row => {
+                const isHeader = row.isHeader;
+                xml += '<w:tr><w:trPr><w:cantSplit/>';
+                if (isHeader) xml += '<w:tblHeader/>';
                 xml += '</w:trPr>';
-                
-                // Pad row to match column count (copy to avoid mutating original)
+
                 const cells = [...row.cells];
-                while (cells.length < colCount) {
-                    cells.push('');
-                }
-                
-                cells.slice(0, colCount).forEach(cell => {
-                    const isHeader = row.isHeader;
-                                        const shading = isHeader ? '<w:shd w:val="clear" w:fill="F2F2F2"/>' : '';
-                    const textColor = '';
-                   const cellWidth = Math.round(5000 / colCount);
-                    
-                    xml += '<w:tc>';
-                    xml += '<w:tcPr>';
-                    xml += '<w:tcW w:w="' + cellWidth + '" w:type="auto"/>';
-                    xml += shading;
-                    xml += '<w:vAlign w:val="center"/>';
+                while (cells.length < colCount) cells.push('');
+
+                cells.slice(0, colCount).forEach((cell, c) => {
+                    xml += '<w:tc><w:tcPr>';
+                    xml += '<w:tcW w:w="' + colTwips[c] + '" w:type="dxa"/>';
+                    if (isHeader) xml += '<w:shd w:val="clear" w:color="auto" w:fill="EDEDED"/>';
+                    xml += '<w:vAlign w:val="' + (isHeader ? 'center' : 'top') + '"/>';
                     xml += '</w:tcPr>';
-                    xml += '<w:p>';
-                    xml += '<w:pPr>';
-                    xml += '<w:pStyle w:val="TableText"/>';
-                    xml += '<w:jc w:val="left"/>';
+                    xml += '<w:p><w:pPr><w:pStyle w:val="TableText"/>';
+                    if (isHeader) xml += '<w:rPr><w:b/></w:rPr>';
                     xml += '</w:pPr>';
-                    xml += formatTextToXml(cell.trim());
-                    xml += '</w:p>';
-                    xml += '</w:tc>';
+                    xml += isHeader
+                        ? formatTextToXml(cell.trim()).replace(/<w:r><w:rPr>/g, '<w:r><w:rPr><w:b/>')
+                                                      .replace(/<w:r><w:t/g, '<w:r><w:rPr><w:b/></w:rPr><w:t')
+                        : formatTextToXml(cell.trim());
+                    xml += '</w:p></w:tc>';
                 });
                 xml += '</w:tr>';
             });
 
             xml += '</w:tbl>';
+            // A table immediately followed by text needs a spacer paragraph, or Word
+            // jams the next paragraph against the bottom border
+            xml += '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'
+                 + '<w:rPr><w:sz w:val="12"/></w:rPr></w:pPr></w:p>';
             return xml;
         }
 
@@ -1583,6 +1627,10 @@ graph TD
                     const text = line.replace(/^####\s/, '');
                     xml += '<w:p><w:pPr><w:pStyle w:val="Heading3"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
                 }
+                                else if (line.match(/^#####\s/)) {
+                    const text = line.replace(/^#####\s/, '');
+                    xml += '<w:p><w:pPr><w:pStyle w:val="Heading4"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                }
                 else if (line.match(/^\s*\d+\.\s/)) {
                     const { level, trimmedLine } = detectListLevel(line);
                     const text = trimmedLine.replace(/^\d+\.\s/, '');
@@ -1619,7 +1667,7 @@ graph TD
                     tableLines.push(line);
                 }
                 else if (line.match(/^---+$/)) {
-                    xml += '<w:p><w:pPr><w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/>'
+                    xml += '<w:p><w:pPr><w:spacing w:before="200" w:after="200" w:line="240" w:lineRule="auto"/>'
                         + '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="BFBFBF"/></w:pBdr>'
                         + '<w:rPr><w:sz w:val="4"/></w:rPr></w:pPr></w:p>';
                 }
