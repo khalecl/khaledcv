@@ -11,7 +11,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 
-360L
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
     <!-- MathJax as alternative LaTeX renderer -->
     <script>
@@ -519,7 +518,7 @@ graph TD
         };
 
         let RSID_POOL = [];
-
+        let NUM_INSTANCES = [];
         function randHex8() {
             let s = '';
             for (let i = 0; i < 8; i++) s += '0123456789ABCDEF'[Math.floor(Math.random() * 16)];
@@ -1254,35 +1253,49 @@ graph TD
             return result.length ? result : [{ type: 'text', text }];
         }
 
-        function formatTextToXml(text) {
+         function formatTextToXml(text, forceBold) {
             const parts = parseTextFormatting(text);
             let xml = '';
-            
+
             for (let i = 0; i < parts.length; i++) {
                 const part = parts[i];
                 let textContent = part.text;
-                
+
+                // Build run properties in schema order: rFonts, b, i, color, sz
+                function rpr(opts) {
+                    let p = '';
+                    if (opts.fonts) p += '<w:rFonts w:ascii="' + opts.fonts + '" w:hAnsi="' + opts.fonts + '"'
+                                       + (opts.cs ? ' w:cs="' + opts.fonts + '"' : '') + '/>';
+                    if (opts.bold || forceBold) p += '<w:b/>';
+                    if (opts.italic) p += '<w:i/>';
+                    if (opts.color) p += '<w:color w:val="' + opts.color + '"/>';
+                    return p ? '<w:rPr>' + p + '</w:rPr>' : '';
+                }
+
                 if (part.type === 'bold') {
-                    xml += '<w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                    xml += '<w:r>' + rpr({ bold: true }) + '<w:t xml:space="preserve">'
+                         + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (part.type === 'italic') {
-                    xml += '<w:r><w:rPr><w:i/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                    xml += '<w:r>' + rpr({ italic: true }) + '<w:t xml:space="preserve">'
+                         + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (part.type === 'code') {
-                    xml += '<w:r><w:rPr><w:rFonts w:ascii="Courier New"/><w:color w:val="C7254E"/></w:rPr><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                    xml += '<w:r>' + rpr({ fonts: 'Courier New', color: 'C7254E' })
+                         + '<w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(textContent)) {
-                    // Split emoji into their own runs so they get the emoji font
                     const chunks = textContent.split(/([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+)/u);
                     for (const ch of chunks) {
                         if (!ch) continue;
                         if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(ch)) {
-                            xml += '<w:r><w:rPr><w:rFonts w:ascii="Segoe UI Emoji" w:hAnsi="Segoe UI Emoji"'
-                                 + ' w:cs="Segoe UI Emoji"/></w:rPr><w:t xml:space="preserve">'
-                                 + escapeXml(ch) + '</w:t></w:r>';
+                            xml += '<w:r>' + rpr({ fonts: 'Segoe UI Emoji', cs: true })
+                                 + '<w:t xml:space="preserve">' + escapeXml(ch) + '</w:t></w:r>';
                         } else {
-                            xml += '<w:r><w:t xml:space="preserve">' + escapeXml(ch) + '</w:t></w:r>';
+                            xml += '<w:r>' + rpr({}) + '<w:t xml:space="preserve">'
+                                 + escapeXml(ch) + '</w:t></w:r>';
                         }
                     }
                 } else {
-                    xml += '<w:r><w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
+                    xml += '<w:r>' + rpr({}) + '<w:t xml:space="preserve">'
+                         + escapeXml(textContent) + '</w:t></w:r>';
                 }
             }
             return xml;
@@ -1334,7 +1347,66 @@ graph TD
         }
 
         function getNumbering() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:abstractNum w:abstractNumId="0"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%2."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%3."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:abstractNum w:abstractNumId="1"><w:nsimple/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="1"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="◦"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="1440" w:hanging="360"/></w:pPr></w:lvl><w:lvl w:ilvl="2"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="▪"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="2160" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num><w:num w:numId="2"><w:abstractNumId w:val="1"/></w:num></w:numbering>';
+            // Word convention: each level indents 360 twips further, hanging indent 360
+            function lvlIndent(l) { return 720 + (l * 360); }
+
+            const decFmts  = ['decimal', 'lowerLetter', 'lowerRoman', 'decimal', 'lowerLetter'];
+            const bulChars = ['\uF0B7', 'o', '\uF0A7', '\uF0B7', 'o'];
+            const bulFonts = ['Symbol', 'Courier New', 'Wingdings', 'Symbol', 'Courier New'];
+
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">';
+
+            // abstractNum 0 — ordered
+            xml += '<w:abstractNum w:abstractNumId="0">'
+                 + '<w:multiLevelType w:val="hybridMultilevel"/>';
+            for (let l = 0; l < 5; l++) {
+                xml += '<w:lvl w:ilvl="' + l + '">'
+                     + '<w:start w:val="1"/>'
+                     + '<w:numFmt w:val="' + decFmts[l] + '"/>'
+                     + '<w:lvlText w:val="%' + (l + 1) + '."/>'
+                     + '<w:lvlJc w:val="left"/>'
+                     + '<w:pPr><w:ind w:left="' + lvlIndent(l) + '" w:hanging="360"/></w:pPr>'
+                     + '</w:lvl>';
+            }
+            xml += '</w:abstractNum>';
+
+            // abstractNum 1 — bullets
+            xml += '<w:abstractNum w:abstractNumId="1">'
+                 + '<w:multiLevelType w:val="hybridMultilevel"/>';
+            for (let l = 0; l < 5; l++) {
+                xml += '<w:lvl w:ilvl="' + l + '">'
+                     + '<w:start w:val="1"/>'
+                     + '<w:numFmt w:val="bullet"/>'
+                     + '<w:lvlText w:val="' + bulChars[l] + '"/>'
+                     + '<w:lvlJc w:val="left"/>'
+                     + '<w:pPr><w:ind w:left="' + lvlIndent(l) + '" w:hanging="360"/></w:pPr>'
+                     + '<w:rPr><w:rFonts w:ascii="' + bulFonts[l] + '" w:hAnsi="' + bulFonts[l] + '"'
+                     + ' w:hint="default"/></w:rPr>'
+                     + '</w:lvl>';
+            }
+            xml += '</w:abstractNum>';
+
+            // One <w:num> per list found in the document, each restarting at 1
+            for (const inst of NUM_INSTANCES) {
+                xml += '<w:num w:numId="' + inst.numId + '">'
+                     + '<w:abstractNumId w:val="' + inst.abstractId + '"/>';
+                if (inst.abstractId === 0) {
+                    for (let l = 0; l < 5; l++) {
+                        xml += '<w:lvlOverride w:ilvl="' + l + '">'
+                             + '<w:startOverride w:val="1"/></w:lvlOverride>';
+                    }
+                }
+                xml += '</w:num>';
+            }
+
+            // Word requires at least one <w:num> to exist
+            if (NUM_INSTANCES.length === 0) {
+                xml += '<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>';
+            }
+
+            xml += '</w:numbering>';
+            return xml;
         }
 
         function getStyles() {
@@ -1342,13 +1414,17 @@ graph TD
                 + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
                 + '<w:docDefaults><w:rPrDefault><w:rPr>'
                 + '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi"/>'
-                + '<w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'                + '</w:rPr></w:rPrDefault>'
+                + '<w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'
+                + '</w:rPr></w:rPrDefault>'
                 + '<w:pPrDefault><w:pPr><w:widowControl/><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
                 + '</w:docDefaults>'
                 + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:widowControl/><w:spacing w:after="180" w:line="264" w:lineRule="auto"/></w:pPr></w:style>'                + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:keepNext/><w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/>'
-                + '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr></w:pPr>'
+                + '<w:pPr><w:widowControl/><w:spacing w:after="180" w:line="264" w:lineRule="auto"/></w:pPr></w:style>'
+                + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:keepNext/>'
+                + '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr>'
+                + '<w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/>'
+                + '<w:jc w:val="left"/></w:pPr>'
                 + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="40"/><w:color w:val="1A1A1A"/></w:rPr></w:style>'
                 + '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
                 + '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="320" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="0"/></w:pPr>'
@@ -1363,17 +1439,26 @@ graph TD
                 + '<w:pPr><w:keepNext/><w:spacing w:before="180" w:after="60" w:line="240" w:lineRule="auto"/><w:outlineLvl w:val="3"/></w:pPr>'
                 + '<w:rPr><w:b/><w:i/><w:sz w:val="21"/><w:color w:val="404040"/></w:rPr></w:style>'
                 + '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:ind w:left="680" w:right="340"/><w:spacing w:before="120" w:after="120"/><w:jc w:val="left"/>'
-                + '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="BFBFBF"/></w:pBdr></w:pPr>'
+                + '<w:pPr>'
+                + '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="BFBFBF"/></w:pBdr>'
+                + '<w:spacing w:before="120" w:after="120"/>'
+                + '<w:ind w:left="680" w:right="340"/>'
+                + '<w:jc w:val="left"/></w:pPr>'
                 + '<w:rPr><w:i/><w:color w:val="404040"/></w:rPr></w:style>'
                 + '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/>'
-                + '<w:pPr><w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:ind w:left="170" w:right="170"/>'
-                + '<w:shd w:val="clear" w:fill="F7F7F7"/>'
-                + '<w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/><w:bottom w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
-                + '<w:left w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/><w:right w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/></w:pBdr></w:pPr>'
+                + '<w:pPr>'
+                + '<w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
+                + '<w:left w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
+                + '<w:bottom w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
+                + '<w:right w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/></w:pBdr>'
+                + '<w:shd w:val="clear" w:color="auto" w:fill="F7F7F7"/>'
+                + '<w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/>'
+                + '<w:ind w:left="170" w:right="170"/>'
+                + '<w:jc w:val="left"/></w:pPr>'
                 + '<w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="333333"/><w:sz w:val="19"/></w:rPr></w:style>'
                 + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:spacing w:after="80"/><w:jc w:val="left"/><w:contextualSpacing/></w:pPr></w:style>'
+                + '<w:pPr><w:spacing w:before="0" w:after="60" w:line="264" w:lineRule="auto"/>'
+                + '<w:ind w:left="0" w:firstLine="0"/><w:contextualSpacing/></w:pPr></w:style>'
                 + '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>'
                 + '<w:pPr><w:spacing w:before="40" w:after="40" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr>'
                 + '<w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
@@ -1488,10 +1573,7 @@ graph TD
                     xml += '<w:p><w:pPr><w:pStyle w:val="TableText"/>';
                     if (isHeader) xml += '<w:rPr><w:b/></w:rPr>';
                     xml += '</w:pPr>';
-                    xml += isHeader
-                        ? formatTextToXml(cell.trim()).replace(/<w:r><w:rPr>/g, '<w:r><w:rPr><w:b/>')
-                                                      .replace(/<w:r><w:t/g, '<w:r><w:rPr><w:b/></w:rPr><w:t')
-                        : formatTextToXml(cell.trim());
+                    xml += formatTextToXml(cell.trim(), isHeader);
                     xml += '</w:p></w:tc>';
                 });
                 xml += '</w:tr>';
@@ -1505,20 +1587,30 @@ graph TD
             return xml;
         }
 
+        // Detect the document's nesting unit (2 spaces vs 4 spaces) from its own content
+        let INDENT_UNIT = 2;
+
+        function computeIndentUnit(lines) {
+            let minIndent = 99;
+            for (const line of lines) {
+                if (!/^[ \t]+([\*\-\+]|\d+\.)\s/.test(line)) continue;
+                const m = line.match(/^ +/);
+                if (m && m[0].length > 0 && m[0].length < minIndent) minIndent = m[0].length;
+            }
+            INDENT_UNIT = (minIndent === 99) ? 2 : minIndent;
+            if (INDENT_UNIT < 1) INDENT_UNIT = 2;
+        }
+
         function detectListLevel(line) {
-            let level = 0;
+            let spaces = 0;
             let i = 0;
             while (i < line.length) {
-                if (line[i] === '\t') {
-                    level++;
-                    i++;
-                } else if (line.substring(i, i + 4) === '    ') {
-                    level++;
-                    i += 4;
-                } else {
-                    break;
-                }
+                if (line[i] === '\t') { spaces += INDENT_UNIT; i++; }
+                else if (line[i] === ' ') { spaces++; i++; }
+                else break;
             }
+            let level = Math.floor(spaces / INDENT_UNIT);
+            if (level > 4) level = 4;                    // numbering.xml defines 0-4
             return { level, trimmedLine: line.substring(i) };
         }
 
@@ -1569,15 +1661,34 @@ graph TD
             for (const block of inlineLatexBlocks) {
                 processed = processed.replace(block.fullMatch, '::latex_inline::' + block.key + '::');
             }
+            // Reset numbering registry for this conversion
+            NUM_INSTANCES = [];
+            let numIdCounter = 0;
+            let activeOrderedNumId = null;   // null when we are not inside an ordered list
+            let activeBulletNumId = null;
 
+            function newNumId(abstractId) {
+                numIdCounter++;
+                const id = numIdCounter;
+                NUM_INSTANCES.push({ numId: id, abstractId: abstractId });
+                return id;
+            }
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
 
             const lines = processed.split('\n');
+            computeIndentUnit(lines);
             let inTable = false;
             let tableLines = [];
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
+
+                // Any line that is neither a list item nor blank terminates the current list
+                const isListLine = /^[ \t]*([\*\-\+]|\d+\.)\s/.test(line);
+                if (!isListLine && line.trim() !== '') {
+                    activeOrderedNumId = null;
+                    activeBulletNumId = null;
+                }
 
                 if (inTable && !line.includes('|')) {
                     xml += buildTable(tableLines);
@@ -1631,17 +1742,26 @@ graph TD
                     const text = line.replace(/^#####\s/, '');
                     xml += '<w:p><w:pPr><w:pStyle w:val="Heading4"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
                 }
-                else if (line.match(/^\s*\d+\.\s/)) {
+                else if (line.match(/^[ \t]*\d+\.\s/)) {
                     const { level, trimmedLine } = detectListLevel(line);
-                    const text = trimmedLine.replace(/^\d+\.\s/, '');
-                    const indent = getIndentValue(level);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="1"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                    const text = trimmedLine.replace(/^\d+\.\s+/, '');
+                    // Start a new numbering instance whenever a fresh list begins
+                    if (activeOrderedNumId === null) activeOrderedNumId = newNumId(0);
+                    activeBulletNumId = null;
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/>'
+                        + '<w:numPr><w:ilvl w:val="' + level + '"/>'
+                        + '<w:numId w:val="' + activeOrderedNumId + '"/></w:numPr></w:pPr>'
+                        + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
                 }
-                else if (line.match(/^\s*[\*\-\+]\s/)) {
+                else if (line.match(/^[ \t]*[\*\-\+]\s/)) {
                     const { level, trimmedLine } = detectListLevel(line);
-                    const text = trimmedLine.replace(/^[\*\-\+]\s/, '');
-                    const indent = getIndentValue(level);
-                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="' + level + '"/><w:numId w:val="2"/></w:numPr><w:ind w:left="' + (720 + indent) + '" w:hanging="360"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                    const text = trimmedLine.replace(/^[\*\-\+]\s+/, '');
+                    if (activeBulletNumId === null) activeBulletNumId = newNumId(1);
+                    activeOrderedNumId = null;
+                    xml += '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/>'
+                        + '<w:numPr><w:ilvl w:val="' + level + '"/>'
+                        + '<w:numId w:val="' + activeBulletNumId + '"/></w:numPr></w:pPr>'
+                        + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
                 }
                 else if (line.match(/^>\s/)) {
                     const text = line.replace(/^>\s/, '');
@@ -1693,9 +1813,9 @@ graph TD
 
         // Like formatTextToXml but also handles inline LaTeX image placeholders
         // Handle inline LaTeX as native OMML equations within text
-        function formatTextWithInlineOmml(text, ommlMap) {
+        function formatTextWithInlineOmml(text, ommlMap, forceBold) {
             if (!text.includes('::latex_inline::')) {
-                return formatTextToXml(text);
+                return formatTextToXml(text, forceBold);
             }
 
             const parts = text.split(/(::latex_inline::[^:]+::)/);
