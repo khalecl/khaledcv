@@ -1684,8 +1684,11 @@ graph TD
                 const line = lines[i];
 
                 // Any line that is neither a list item nor blank terminates the current list
+                // (placeholder lines for math/mermaid must NOT break list continuity)
+                const trimmed = line.trim();
+                const isPlaceholder = /^::(latex_display|mermaid_image)::.+::$/.test(trimmed);
                 const isListLine = /^[ \t]*([\*\-\+]|\d+\.)\s/.test(line);
-                if (!isListLine && line.trim() !== '') {
+                if (!isListLine && trimmed !== '' && !isPlaceholder) {
                     activeOrderedNumId = null;
                     activeBulletNumId = null;
                 }
@@ -1696,9 +1699,10 @@ graph TD
                     inTable = false;
                 }
 
-                // Mermaid image placeholder
-                if (line.match(/^::mermaid_image::(.+)::$/)) {
-                    const key = line.match(/^::mermaid_image::(.+)::$/)[1];
+                // Mermaid image placeholder (allow leading whitespace from list indentation)
+                const mermaidMatch = trimmed.match(/^::mermaid_image::(.+)::$/);
+                if (mermaidMatch) {
+                    const key = mermaidMatch[1];
                     const img = imageRelMap[key];
                     if (img) {
                         xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>' + buildImageXml(img.rId, img.width, img.height, false) + '</w:r></w:p>';
@@ -1706,9 +1710,10 @@ graph TD
                     continue;
                 }
 
-                // Display LaTeX → native OMML equation paragraph
-                if (line.match(/^::latex_display::(.+)::$/)) {
-                    const key = line.match(/^::latex_display::(.+)::$/)[1];
+                // Display LaTeX → native OMML equation paragraph (allow leading whitespace)
+                const latexMatch = trimmed.match(/^::latex_display::(.+)::$/);
+                if (latexMatch) {
+                    const key = latexMatch[1];
                     const omml = ommlMap[key];
                     if (omml) {
                         xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><m:oMathPara><m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr>' + omml + '</m:oMathPara></w:p>';
