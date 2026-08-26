@@ -1507,7 +1507,7 @@ graph TD
            // Usable text width on A4 with your margins: 11906 - 1418 - 1276 = 9212 twips
         const USABLE_WIDTH = 9212;
 
-        function buildTable(tableLines) {
+        function buildTable(tableLines, ommlMap) {
             const rowData = parseTableRows(tableLines);
             if (rowData.length === 0) return '';
 
@@ -1573,7 +1573,7 @@ graph TD
                     xml += '<w:p><w:pPr><w:pStyle w:val="TableText"/>';
                     if (isHeader) xml += '<w:rPr><w:b/></w:rPr>';
                     xml += '</w:pPr>';
-                    xml += formatTextToXml(cell.trim(), isHeader);
+                    xml += formatTextWithInlineOmml(cell.trim(), ommlMap || {}, isHeader);
                     xml += '</w:p></w:tc>';
                 });
                 xml += '</w:tr>';
@@ -1675,7 +1675,7 @@ graph TD
             }
             let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>';
 
-            const lines = processed.split('\n');
+            const lines = processed.split(/\r?\n/);
             computeIndentUnit(lines);
             let inTable = false;
             let tableLines = [];
@@ -1691,7 +1691,7 @@ graph TD
                 }
 
                 if (inTable && !line.includes('|')) {
-                    xml += buildTable(tableLines);
+                    xml += buildTable(tableLines, ommlMap);
                     tableLines = [];
                     inTable = false;
                 }
@@ -1797,7 +1797,7 @@ graph TD
             }
 
             if (inTable && tableLines.length > 0) {
-                xml += buildTable(tableLines);
+                xml += buildTable(tableLines, ommlMap);
             }
 
             xml += '<w:sectPr>'
