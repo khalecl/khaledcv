@@ -1861,20 +1861,53 @@ graph TD
                 return formatTextToXml(text, forceBold);
             }
 
-            const parts = text.split(/(::latex_inline::[^:]+::)/);
-            let xml = '';
+            // Protect placeholders, run the normal formatter (so **bold** that wraps a
+            // placeholder is paired correctly), then swap placeholders for OMML.
+            // formatTextToXml emits each placeholder inside its own <w:t> run; we
+            // find those runs and replace them with the equation, preserving the
+            // surrounding run's bold/italic properties by dropping the placeholder run.
+            const parts = text.split(/(::latex_inline::[\w]+::)/);
+
+            // Build a version where each placeholder is a unique unlikely token that
+            // survives escapeXml unchanged, so we can locate it after formatting.
+            const tokenMap = {};
+            let tokenized = '';
+            let ti = 0;
             for (const part of parts) {
-                const match = part.match(/^::latex_inline::(.+)::$/);
+                const match = part.match(/^::latex_inline::([\w]+)::$/);
                 if (match) {
-                    const key = match[1];
-                    const omml = ommlMap[key];
-                    if (omml) {
-                        xml += omml;
-                    }
+                    const tok = '\uE100' + (ti++) + '\uE100';
+                    tokenMap[tok] = match[1];
+                    tokenized += tok;
                 } else {
-                    xml += formatTextToXml(part);
+                    tokenized += part;
                 }
             }
+
+            // Let the normal formatter handle bold/italic/code across the whole string.
+            let xml = formatTextToXml(tokenized, forceBold);
+
+            // Replace each tokenized run. A token sits inside a <w:t ...>...token...</w:t>.
+            // Split that run so the equation is emitted as OMML while keeping any
+            // text on either side of the token within the same original run props.
+            for (const tok of Object.keys(tokenMap)) {
+                const key = tokenMap[tok];
+                const omml = ommlMap[key] || '';
+                // Escaped token as it appears after escapeXml (the \uE100 chars pass through).
+                const runRe = new RegExp(
+                    '<w:r>(<w:rPr>[\\s\\S]*?</w:rPr>)?<w:t[^>]*>([\\s\\S]*?)' + tok + '([\\s\\S]*?)</w:t></w:r>'
+                );
+                xml = xml.replace(runRe, (whole, rpr, pre, post) => {
+                    rpr = rpr || '';
+                    let out = '';
+                    if (pre) out += '<w:r>' + rpr + '<w:t xml:space="preserve">' + pre + '</w:t></w:r>';
+                    out += omml;
+                    if (post) out += '<w:r>' + rpr + '<w:t xml:space="preserve">' + post + '</w:t></w:r>';
+                    return out;
+                });
+            }
+            // Clean up any stray tokens (shouldn't happen, but be safe)
+            xml = xml.replace(/\uE100\d+\uE100/g, '');
             return xml;
         }
     </script>
