@@ -1089,40 +1089,65 @@ graph TD
             let imageIndex = 0;
 
             // Pre-compile regexes once
-            const displayRegex = /\$\$([\s\S]*?)\$\$/g;
-            const inlineRegex = /(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g;
             const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
 
-            // Extract display LaTeX
-            const displayLatexBlocks = [];
-            const displayRanges = [];
-            let m;
-            while ((m = displayRegex.exec(markdown)) !== null) {
-                const key = 'latex_display_' + imageIndex++;
-                displayLatexBlocks.push({ key, latex: m[1].trim(), fullMatch: m[0], start: m.index, end: m.index + m[0].length });
-            }
-
-            // Build display range set for O(1) lookup
-            const displayRangeSet = new Set();
-            for (const block of displayLatexBlocks) {
-                for (let i = block.start; i < block.end; i++) displayRangeSet.add(i);
-            }
-
-            // Extract inline LaTeX (skip positions inside display blocks)
-            const inlineLatexBlocks = [];
-            let im;
-            while ((im = inlineRegex.exec(markdown)) !== null) {
-                if (displayRangeSet.has(im.index)) continue;
-                const key = 'latex_inline_' + imageIndex++;
-                inlineLatexBlocks.push({ key, latex: im[1].trim(), fullMatch: im[0] });
-            }
-
-            // Extract mermaid blocks
+            // Extract mermaid blocks FIRST (from raw markdown, before masking)
             const mermaidBlocksList = [];
             let mm;
             while ((mm = mermaidRegex.exec(markdown)) !== null) {
                 const key = 'mermaid_' + imageIndex++;
                 mermaidBlocksList.push({ key, code: mm[1].trim(), fullMatch: mm[0] });
+            }
+
+            // ---- Mask code + escaped dollars so math scanning never touches them ----
+            // Mask fenced code blocks and inline code, and turn \$ into a sentinel.
+            // Positions found in the masked string map 1:1 back to `markdown` because
+            // every mask/sentinel replacement preserves character length is NOT true,
+            // so we scan the masked string and store the masked-string offsets, then
+            // replace on a separate masked copy that we later restore. See below.
+            const SENT_ESC = '\uE001';                       // stands in for \$
+            const codeMasks = [];
+            let masked = markdown;
+            masked = masked.replace(/```[\s\S]*?```/g, (mtxt) => {
+                const tok = '\uE000C' + codeMasks.length + '\uE000';
+                codeMasks.push(mtxt); return tok;
+            });
+            masked = masked.replace(/`[^`\n]*`/g, (mtxt) => {
+                const tok = '\uE000I' + codeMasks.length + '\uE000';
+                codeMasks.push(mtxt); return tok;
+            });
+            masked = masked.replace(/\\\$/g, SENT_ESC);
+
+            // Extract display LaTeX from the MASKED string
+            const displayRegex = /\$\$([\s\S]*?)\$\$/g;
+            const displayLatexBlocks = [];
+            let m;
+            while ((m = displayRegex.exec(masked)) !== null) {
+                const key = 'latex_display_' + imageIndex++;
+                const latex = m[1].trim().split(SENT_ESC).join('\\$');   // restore \$ inside latex
+                displayLatexBlocks.push({ key, latex, fullMatch: m[0], start: m.index, end: m.index + m[0].length });
+            }
+
+            // Build display range set for O(1) lookup (offsets are in `masked`)
+            const displayRangeSet = new Set();
+            for (const block of displayLatexBlocks) {
+                for (let i = block.start; i < block.end; i++) displayRangeSet.add(i);
+            }
+
+            // Extract inline LaTeX from the MASKED string, with currency guards
+            const inlineRegex = /\$([^\$\n]+?)\$/g;
+            const inlineLatexBlocks = [];
+            let im;
+            while ((im = inlineRegex.exec(masked)) !== null) {
+                if (displayRangeSet.has(im.index)) continue;
+                const content = im[1];
+                const before = masked[im.index - 1] || '';
+                if (/[A-Za-z0-9]/.test(before)) continue;                    // US$, 3$ -> currency
+                if (/^\s|\s$/.test(content)) continue;                       // "$ x $" -> not math
+                if (/^\d/.test(content) && !/[\\{}^_]/.test(content)) continue; // $30M -> currency
+                const key = 'latex_inline_' + imageIndex++;
+                const latex = content.trim().split(SENT_ESC).join('\\$');
+                inlineLatexBlocks.push({ key, latex, fullMatch: im[0], start: im.index, end: im.index + im[0].length });
             }
 
             setProgress(20);
@@ -1173,7 +1198,7 @@ graph TD
 
                         buildRsidPool();
 
-            let docXml = getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap);
+            let docXml = getWordDocumentWithImages(masked, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap, codeMasks, SENT_ESC);
             docXml = injectRsids(docXml);
 
             zip.file('[Content_Types].xml', getContentTypesWithImages());
@@ -1650,16 +1675,29 @@ graph TD
             return result;
         }
 
-      function getWordDocumentWithImages(markdown, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap) {
-            let processed = markdown;
+      function getWordDocumentWithImages(masked, displayLatexBlocks, inlineLatexBlocks, mermaidBlocksList, imageRelMap, ommlMap, codeMasks, SENT_ESC) {
+            let processed = masked;
+
+            // Replace math spans by placeholder using POSITIONS (descending) so
+            // duplicate expressions and identical text can't collide, and nothing
+            // is missed. Offsets are valid against `masked`.
+            const mathSpans = [];
+            for (const block of displayLatexBlocks) mathSpans.push({ start: block.start, end: block.end, ph: '::latex_display::' + block.key + '::' });
+            for (const block of inlineLatexBlocks) mathSpans.push({ start: block.start, end: block.end, ph: '::latex_inline::' + block.key + '::' });
+            mathSpans.sort((a, b) => b.start - a.start);
+            for (const sp of mathSpans) {
+                processed = processed.slice(0, sp.start) + sp.ph + processed.slice(sp.end);
+            }
+
+            // Restore escaped dollars (now literal $) that were OUTSIDE any math span
+            if (SENT_ESC) processed = processed.split(SENT_ESC).join('$');
+
+            // Restore fenced/inline code, then swap mermaid code fences for placeholders
+            if (codeMasks && codeMasks.length) {
+                processed = processed.replace(/\uE000[CI](\d+)\uE000/g, (_, n) => codeMasks[+n]);
+            }
             for (const block of mermaidBlocksList) {
                 processed = processed.replace(block.fullMatch, '::mermaid_image::' + block.key + '::');
-            }
-            for (const block of displayLatexBlocks) {
-                processed = processed.replace(block.fullMatch, '::latex_display::' + block.key + '::');
-            }
-            for (const block of inlineLatexBlocks) {
-                processed = processed.replace(block.fullMatch, '::latex_inline::' + block.key + '::');
             }
             // Reset numbering registry for this conversion
             NUM_INSTANCES = [];
