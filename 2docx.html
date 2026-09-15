@@ -384,6 +384,79 @@
             color: white !important;
             border-color: #667eea !important;
         }
+            .doc-settings {
+            background: #fff;
+            border: 1px solid #e2e5ea;
+            border-radius: 10px;
+            margin: 16px 0;
+            padding: 0 16px;
+        }
+        .doc-settings > summary {
+            cursor: pointer;
+            padding: 14px 0;
+            font-weight: 600;
+            font-size: 15px;
+            list-style: none;
+        }
+        .doc-settings > summary::-webkit-details-marker { display: none; }
+        .doc-settings[open] > summary { border-bottom: 1px solid #eef0f3; }
+        .ds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px 16px;
+            padding: 16px 0;
+        }
+        .ds-grid label {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 12px;
+            color: #5c6370;
+        }
+        .ds-grid select,
+        .ds-grid input[type="text"],
+        .ds-grid input[type="number"] {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 7px 8px;
+            font-size: 13px;
+            font-family: inherit;
+            background: #fff;
+            min-height: 34px;
+        }
+        .ds-grid input[type="color"] {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            height: 34px;
+            padding: 2px;
+            cursor: pointer;
+        }
+        .ds-grid label.ds-check {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #16181d;
+        }
+        .ds-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 0 16px;
+        }
+        .ds-note { font-size: 12px; color: #8a8f98; }
+        @media (max-width: 640px) {
+            .ds-grid { grid-template-columns: 1fr 1fr; }
+        }    
+                .ds-subhead {
+            font-size: 13px;
+            font-weight: 600;
+            color: #16181d;
+            padding: 6px 0 0;
+            border-top: 1px solid #eef0f3;
+            margin-top: 4px;
+        }
+        .ds-subhead span { font-weight: 400; color: #8a8f98; }
     </style>
 </head>
 <body>
@@ -495,6 +568,219 @@ graph TD
 
         <div id="message"></div>
 
+        <details class="doc-settings" id="docSettings">
+            <summary>⚙️ Document Style &amp; Template</summary>
+            <div class="ds-grid">
+
+                <label>Template
+                    <select id="dsPreset"></select>
+                </label>
+
+                <label>Body font
+                    <select id="dsBodyFont">
+                        <option>Segoe UI</option><option>Calibri</option>
+                        <option>Times New Roman</option><option>Georgia</option>
+                        <option>Arial</option><option>Cambria</option><option>Verdana</option>
+                    </select>
+                </label>
+
+                <label>Heading font
+                    <select id="dsHeadFont">
+                        <option>Georgia</option><option>Calibri</option><option>Calibri Light</option>
+                        <option>Segoe UI</option><option>Times New Roman</option>
+                        <option>Cambria</option><option>Arial</option>
+                    </select>
+                </label>
+
+                <label>Body size (pt)
+                    <input type="number" id="dsBodySize" min="8" max="16" step="0.5" value="10.5">
+                </label>
+
+                <label>Line spacing
+                    <select id="dsLine">
+                        <option value="240">Single</option>
+                        <option value="264" selected>1.1</option>
+                        <option value="276">1.15</option>
+                        <option value="360">1.5</option>
+                        <option value="480">Double</option>
+                    </select>
+                </label>
+
+                <label>Accent colour
+                    <input type="color" id="dsAccent" value="#1F3A33">
+                </label>
+
+                <label>Page size
+                    <select id="dsPageSize">
+                        <option>A4</option><option>Letter</option><option>Legal</option><option>A5</option>
+                    </select>
+                </label>
+
+                <label>Orientation
+                    <select id="dsOrient">
+                        <option value="portrait">Portrait</option>
+                        <option value="landscape">Landscape</option>
+                    </select>
+                </label>
+
+                <label>Margins
+                    <select id="dsMargins">
+                        <option value="narrow">Narrow</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="wide">Wide</option>
+                    </select>
+                </label>
+
+                <label>Table style
+                    <select id="dsTableStyle">
+                        <option value="lines">Horizontal lines</option>
+                        <option value="grid">Full grid</option>
+                        <option value="minimal">Minimal</option>
+                    </select>
+                </label>
+
+                <label>Header
+                    <select id="dsHeaderMode">
+                        <option value="none">None</option>
+                        <option value="title">Document title</option>
+                        <option value="text">Custom text</option>
+                    </select>
+                </label>
+
+                <label>Header text
+                    <input type="text" id="dsHeaderText" placeholder="e.g. Company — Confidential">
+                </label>
+
+                <label>Footer
+                    <select id="dsFooterMode">
+                        <option value="page">Page number</option>
+                        <option value="textPage">Text + page number</option>
+                        <option value="none">None</option>
+                    </select>
+                </label>
+
+                <label>Footer text
+                    <input type="text" id="dsFooterText" placeholder="e.g. © 2026 Your Name">
+                </label>
+
+                <label class="ds-check">
+                    <input type="checkbox" id="dsToc"> Insert table of contents
+                </label>
+
+                <label class="ds-check">
+                    <input type="checkbox" id="dsFirstPage" checked> Different first page
+                </label>
+
+                <label class="ds-check">
+                    <input type="checkbox" id="dsTitleRule" checked> Rule under title
+                </label>
+            </div>
+
+            <div class="ds-subhead">Per-style fonts <span>— blank = follow the template</span></div>
+            <div class="ds-grid">
+                <label>Normal text<input type="text" id="dsfNormal" list="dsFontList" placeholder="inherit"></label>
+                <label>Title<input type="text" id="dsfTitle" list="dsFontList" placeholder="inherit"></label>
+                <label>Heading 1<input type="text" id="dsfH1" list="dsFontList" placeholder="inherit"></label>
+                <label>Heading 2<input type="text" id="dsfH2" list="dsFontList" placeholder="inherit"></label>
+                <label>Heading 3<input type="text" id="dsfH3" list="dsFontList" placeholder="inherit"></label>
+                <label>Heading 4<input type="text" id="dsfH4" list="dsFontList" placeholder="inherit"></label>
+                <label>Quotes<input type="text" id="dsfQuote" list="dsFontList" placeholder="inherit"></label>
+                <label>Code blocks<input type="text" id="dsfCode" list="dsFontList" placeholder="inherit"></label>
+                <label>Tables<input type="text" id="dsfTable" list="dsFontList" placeholder="inherit"></label>
+                <label>Arabic / complex script<input type="text" id="dsfCs" list="dsFontList" placeholder="Word default"></label>
+                <label>Quote size (pt)<input type="number" id="dsQuoteSize" min="6" max="24" step="0.5" placeholder="auto"></label>
+                <label>Table size (pt)<input type="number" id="dsTableSize" min="6" max="24" step="0.5" placeholder="auto"></label>
+                <label>Code size (pt)<input type="number" id="dsCodeSize" min="6" max="24" step="0.5" placeholder="auto"></label>
+            </div>
+
+            <datalist id="dsFontList">
+                <option>Segoe UI</option><option>Calibri</option><option>Calibri Light</option>
+                <option>Cambria</option><option>Georgia</option><option>Times New Roman</option>
+                <option>Arial</option><option>Verdana</option><option>Tahoma</option>
+                <option>Trebuchet MS</option><option>Garamond</option><option>Book Antiqua</option>
+                <option>Palatino Linotype</option><option>Franklin Gothic Book</option>
+                <option>Courier New</option><option>Consolas</option>
+                <option>Traditional Arabic</option><option>Simplified Arabic</option>
+                <option>Dubai</option><option>Amiri</option>
+            </datalist>
+            </div>
+            <div class="ds-actions">
+                <button type="button" id="dsReset" class="clear-btn">↺ Reset to template</button>
+                <span class="ds-note">Settings are saved in this browser.</span>
+            </div>
+              <details class="doc-settings" id="metaSettings">
+            <summary>🪪 Document Properties</summary>
+            <div class="ds-grid">
+
+                <label>Dates
+                    <select id="dmMode">
+                        <option value="auto">Automatic (plausible)</option>
+                        <option value="manual">Set manually</option>
+                    </select>
+                </label>
+
+                <label>Created
+                    <input type="datetime-local" id="dmCreated">
+                </label>
+
+                <label>Last modified
+                    <input type="datetime-local" id="dmModified">
+                </label>
+
+                <label>Revision number
+                    <input type="number" id="dmRevision" min="0" max="999" placeholder="auto">
+                </label>
+
+                <label>Editing time (min)
+                    <input type="number" id="dmEditMinutes" min="0" max="99999" placeholder="auto">
+                </label>
+
+                <label>Author
+                    <input type="text" id="dmAuthor" placeholder="Created by">
+                </label>
+
+                <label>Last modified by
+                    <input type="text" id="dmEditor" placeholder="same as author">
+                </label>
+
+                <label>Company
+                    <input type="text" id="dmCompany">
+                </label>
+
+                <label>Manager
+                    <input type="text" id="dmManager">
+                </label>
+
+                <label>Title
+                    <input type="text" id="dmTitle" placeholder="uses the # heading">
+                </label>
+
+                <label>Subject
+                    <input type="text" id="dmSubject">
+                </label>
+
+                <label>Category
+                    <input type="text" id="dmCategory">
+                </label>
+
+                <label>Keywords
+                    <input type="text" id="dmKeywords" placeholder="comma, separated">
+                </label>
+
+                <label>Comments
+                    <input type="text" id="dmComments">
+                </label>
+
+            </div>
+            <div class="ds-actions">
+                <button type="button" id="dmNow" class="clear-btn">🕒 Set both to now</button>
+                <span class="ds-note">Visible to anyone who opens File → Properties.</span>
+            </div>
+        </details>      
+
+
+
         <div class="actions">
             <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
             <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
@@ -509,11 +795,171 @@ graph TD
     </div>
 
     <script>
+        let DOC_TITLE_HINT = '';
+                // ===== DOCUMENT STYLE ENGINE =====
+        // Single source of truth for every visual decision in the DOCX.
+        // getStyles / getTheme / getFontTable / getHeader / getFooter /
+        // buildTable / sectPr all read from DOC_THEME. Nothing else sets style.
+
+        const PAGE_SIZES = {
+            A4:      { w: 11906, h: 16838 },
+            Letter:  { w: 12240, h: 15840 },
+            Legal:   { w: 12240, h: 20160 },
+            A5:      { w: 8391,  h: 11906 }
+        };
+
+        const MARGIN_PRESETS = {
+            narrow:   { top: 720,  right: 720,  bottom: 720,  left: 720  },
+            normal:   { top: 1418, right: 1276, bottom: 1418, left: 1418 },
+            moderate: { top: 1440, right: 1080, bottom: 1440, left: 1080 },
+            wide:     { top: 1440, right: 2160, bottom: 1440, left: 2160 }
+        };
+
+        // Sizes are half-points (21 = 10.5pt). Spacing is twips. Line is 240ths.
+        const DOC_PRESETS = {
+            professional: {
+                label: 'Professional (current)',
+                bodyFont: 'Segoe UI', headingFont: 'Georgia', monoFont: 'Courier New',
+                bodySize: 21, lineSpacing: 264, paraAfter: 180,
+                titleSize: 40, h1Size: 30, h2Size: 26, h3Size: 23, h4Size: 21,
+                titleColor: '1A1A1A', h1Color: '1F3A33', h2Color: '2C4A42',
+                h3Color: '333333', h4Color: '404040', textColor: 'auto',
+                titleRule: true, tableStyle: 'lines',
+                tableHeaderFill: 'EDEDED', tableBorderColor: '595959',
+                codeFill: 'F7F7F7', codeBorder: 'DDDDDD',
+                quoteBorder: 'BFBFBF'
+            },
+            academic: {
+                label: 'Academic',
+                bodyFont: 'Times New Roman', headingFont: 'Times New Roman', monoFont: 'Courier New',
+                bodySize: 24, lineSpacing: 480, paraAfter: 0,
+                titleSize: 32, h1Size: 28, h2Size: 26, h3Size: 24, h4Size: 24,
+                titleColor: '000000', h1Color: '000000', h2Color: '000000',
+                h3Color: '000000', h4Color: '000000', textColor: '000000',
+                titleRule: false, tableStyle: 'grid',
+                tableHeaderFill: 'FFFFFF', tableBorderColor: '000000',
+                codeFill: 'FFFFFF', codeBorder: 'AAAAAA',
+                quoteBorder: '000000'
+            },
+            corporate: {
+                label: 'Corporate',
+                bodyFont: 'Calibri', headingFont: 'Calibri', monoFont: 'Consolas',
+                bodySize: 22, lineSpacing: 276, paraAfter: 160,
+                titleSize: 44, h1Size: 32, h2Size: 26, h3Size: 24, h4Size: 22,
+                titleColor: '1F4E79', h1Color: '1F4E79', h2Color: '2E74B5',
+                h3Color: '404040', h4Color: '595959', textColor: 'auto',
+                titleRule: true, tableStyle: 'grid',
+                tableHeaderFill: 'DEEAF6', tableBorderColor: '8EAADB',
+                codeFill: 'F2F2F2', codeBorder: 'D9D9D9',
+                quoteBorder: '2E74B5'
+            },
+            technical: {
+                label: 'Technical Manual',
+                bodyFont: 'Segoe UI', headingFont: 'Segoe UI', monoFont: 'Consolas',
+                bodySize: 21, lineSpacing: 276, paraAfter: 140,
+                titleSize: 36, h1Size: 28, h2Size: 24, h3Size: 22, h4Size: 21,
+                titleColor: '0F766E', h1Color: '0F766E', h2Color: '115E59',
+                h3Color: '333333', h4Color: '4B5563', textColor: 'auto',
+                titleRule: true, tableStyle: 'grid',
+                tableHeaderFill: 'E6F4F1', tableBorderColor: '0F766E',
+                codeFill: 'F8FAFC', codeBorder: 'CBD5E1',
+                quoteBorder: '0F766E'
+            },
+            minimal: {
+                label: 'Minimal',
+                bodyFont: 'Segoe UI', headingFont: 'Segoe UI', monoFont: 'Consolas',
+                bodySize: 21, lineSpacing: 276, paraAfter: 160,
+                titleSize: 34, h1Size: 26, h2Size: 23, h3Size: 21, h4Size: 21,
+                titleColor: '000000', h1Color: '000000', h2Color: '000000',
+                h3Color: '000000', h4Color: '000000', textColor: 'auto',
+                titleRule: false, tableStyle: 'minimal',
+                tableHeaderFill: 'FFFFFF', tableBorderColor: '999999',
+                codeFill: 'FAFAFA', codeBorder: 'EEEEEE',
+                quoteBorder: 'CCCCCC'
+            }
+        };
+
+        // Live theme. Rebuilt from the UI before every conversion.
+
+        // Per-style font overrides. '' means "inherit from the theme"
+        // (major font for Title/H1/H2, minor font for everything else).
+        // csFont is the complex-script font — this is what Arabic text uses.
+        const EMPTY_STYLE_FONTS = {
+            normal: '', title: '', h1: '', h2: '', h3: '', h4: '',
+            quote: '', code: '', table: '', header: ''
+        };
+
+        let DOC_THEME = Object.assign({}, DOC_PRESETS.professional, {
+            preset: 'professional',
+            styleFonts: Object.assign({}, EMPTY_STYLE_FONTS),
+            csFont: '',              // '' = let Word choose
+            quoteSize: 0,            // 0 = derive from body size
+            tableSize: 0,
+            codeSize: 0,
+            pageSize: 'A4',
+            landscape: false,
+            margins: Object.assign({}, MARGIN_PRESETS.normal),
+            headerMode: 'none',        // none | text | title
+            headerText: '',
+            footerMode: 'page',        // none | page | textPage
+            footerText: '',
+            differentFirstPage: true,
+            toc: false,
+            tocDepth: 3
+        });
+
+        function themePageDims() {
+            const p = PAGE_SIZES[DOC_THEME.pageSize] || PAGE_SIZES.A4;
+            return DOC_THEME.landscape ? { w: p.h, h: p.w } : { w: p.w, h: p.h };
+        }
+
+        function themeUsableWidth() {
+            const d = themePageDims();
+            const m = DOC_THEME.margins;
+            return Math.max(2000, d.w - m.left - m.right);
+        }
+                // Resolve the rFonts element for one style.
+        // slot: key in DOC_THEME.styleFonts
+        // useMajor: fall back to the heading font rather than the body font
+        function styleFontXml(slot, useMajor) {
+            const T = DOC_THEME;
+            const explicit = (T.styleFonts && T.styleFonts[slot]) || '';
+            const cs = T.csFont ? ' w:cs="' + escapeXml(T.csFont) + '"' : '';
+
+            if (explicit) {
+                const e = escapeXml(explicit);
+                return '<w:rFonts w:ascii="' + e + '" w:hAnsi="' + e + '" w:eastAsia="' + e + '"'
+                     + (cs || ' w:cs="' + e + '"') + '/>';
+            }
+            // No override — keep the theme reference so the document stays
+            // theme-driven and Word's font pickers behave normally.
+            return useMajor
+                ? '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"' + cs + '/>'
+                : (cs ? '<w:rFonts' + cs + '/>' : '');
+        }
+
+        // Half-point size for a style, falling back to a body-relative default
+        function styleSize(explicit, fallback) {
+            const v = parseInt(explicit, 10);
+            return (v && v > 0) ? v : fallback;
+        }
+        // ===== END DOCUMENT STYLE ENGINE =====
                 // ===== DOCUMENT AUTHENTICITY LAYER =====
-        const DOC_META = {
-            author: 'Khaled Diab',
+        let DOC_META = {
+            mode: 'auto',             // 'auto' = plausible generated dates, 'manual' = use the fields below
+            author: 'Khaled Diab',    // dc:creator
+            lastEditor: '',           // cp:lastModifiedBy — blank falls back to author
             company: 'Solartech UK',
-            createdDaysAgo: 6,        // document "created" this many days ago
+            manager: '',
+            title: '',                // blank = use the document's H1
+            subject: '',
+            keywords: '',
+            category: '',
+            comments: '',
+            createdISO: '',           // 'YYYY-MM-DDTHH:MM' from the datetime input
+            modifiedISO: '',
+            revision: 0,              // 0 = random 3-14
+            createdDaysAgo: 6,        // auto mode only
             editMinutes: 0            // 0 = pick a realistic random value
         };
 
@@ -554,29 +1000,62 @@ graph TD
                  + 'T' + p(date.getUTCHours()) + ':' + p(date.getUTCMinutes()) + ':00Z';
         }
 
-        function getCoreXml() {
+ 
+         function getCoreXml() {
+            const M = DOC_META;
             const now = new Date();
-            const created = new Date(now.getTime() - DOC_META.createdDaysAgo * 86400000
-                                     - Math.floor(Math.random() * 6) * 3600000);
-            const modified = new Date(now.getTime() - Math.floor(Math.random() * 40) * 3600000);
-            const rev = 3 + Math.floor(Math.random() * 12);
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+
+            // Parse a datetime-local value ('YYYY-MM-DDTHH:MM') as local time.
+            function parseLocal(v) {
+                if (!v) return null;
+                const d = new Date(v);
+                return isNaN(d.getTime()) ? null : d;
+            }
+
+            let created, modified;
+            if (M.mode === 'manual') {
+                created  = parseLocal(M.createdISO)  || now;
+                modified = parseLocal(M.modifiedISO) || created;
+                // A document cannot be modified before it was created —
+                // Word does not reject this, but it looks wrong in Properties.
+                if (modified < created) modified = created;
+            } else {
+                created = new Date(now.getTime() - M.createdDaysAgo * 86400000
+                                   - Math.floor(Math.random() * 6) * 3600000);
+                modified = new Date(now.getTime() - Math.floor(Math.random() * 40) * 3600000);
+                if (modified < created) modified = new Date(created.getTime() + 3600000);
+            }
+
+            const rev = M.revision > 0 ? M.revision : (3 + Math.floor(Math.random() * 12));
+            const editor = M.lastEditor || M.author;
+            const title = M.title || (typeof DOC_TITLE_HINT === 'string' ? DOC_TITLE_HINT : '');
+
+            let x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"'
                 + ' xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/"'
-                + ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
-                + '<dc:creator>' + escapeXml(DOC_META.author) + '</dc:creator>'
-                + '<cp:lastModifiedBy>' + escapeXml(DOC_META.author) + '</cp:lastModifiedBy>'
-                + '<cp:revision>' + rev + '</cp:revision>'
-                + '<dcterms:created xsi:type="dcterms:W3CDTF">' + isoStamp(created) + '</dcterms:created>'
-                + '<dcterms:modified xsi:type="dcterms:W3CDTF">' + isoStamp(modified) + '</dcterms:modified>'
-                + '</cp:coreProperties>';
+                + ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">';
+
+            if (title)        x += '<dc:title>' + escapeXml(title) + '</dc:title>';
+            if (M.subject)    x += '<dc:subject>' + escapeXml(M.subject) + '</dc:subject>';
+            x += '<dc:creator>' + escapeXml(M.author) + '</dc:creator>';
+            if (M.keywords)   x += '<cp:keywords>' + escapeXml(M.keywords) + '</cp:keywords>';
+            if (M.comments)   x += '<dc:description>' + escapeXml(M.comments) + '</dc:description>';
+            x += '<cp:lastModifiedBy>' + escapeXml(editor) + '</cp:lastModifiedBy>'
+               + '<cp:revision>' + rev + '</cp:revision>'
+               + '<dcterms:created xsi:type="dcterms:W3CDTF">' + isoStamp(created) + '</dcterms:created>'
+               + '<dcterms:modified xsi:type="dcterms:W3CDTF">' + isoStamp(modified) + '</dcterms:modified>';
+            if (M.category)   x += '<cp:category>' + escapeXml(M.category) + '</cp:category>';
+            x += '</cp:coreProperties>';
+            return x;
         }
 
         function getAppXml(markdown) {
             const words = markdown.split(/\s+/).filter(Boolean).length;
             const chars = markdown.length;
             const pages = Math.max(1, Math.round(words / 420));
-            const total = DOC_META.editMinutes || (45 + Math.floor(Math.random() * 165));
+            const total = DOC_META.editMinutes > 0
+                ? DOC_META.editMinutes
+                : (45 + Math.floor(Math.random() * 165));
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"'
                 + ' xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">'
@@ -590,6 +1069,7 @@ graph TD
                 + '<Lines>' + Math.round(words / 11) + '</Lines>'
                 + '<Paragraphs>' + Math.round(words / 55) + '</Paragraphs>'
                 + '<Company>' + escapeXml(DOC_META.company) + '</Company>'
+                + (DOC_META.manager ? '<Manager>' + escapeXml(DOC_META.manager) + '</Manager>' : '')
                 + '<LinksUpToDate>false</LinksUpToDate>'
                 + '<CharactersWithSpaces>' + (chars + words) + '</CharactersWithSpaces>'
                 + '<SharedDoc>false</SharedDoc>'
@@ -605,6 +1085,8 @@ graph TD
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
                 + '<w:zoom w:percent="100"/>'
+                + (DOC_THEME.toc ? '<w:updateFields w:val="true"/>' : '')
+
                 + '<w:defaultTabStop w:val="720"/>'
                 + '<w:characterSpacingControl w:val="doNotCompress"/>'
                 + '<w:compat><w:compatSetting w:name="compatibilityMode"'
@@ -615,23 +1097,56 @@ graph TD
         }
 
         function getFontTable() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                + '<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-                                + '<w:font w:name="Segoe UI"><w:panose1 w:val="020B0502040204020203"/><w:charset w:val="00"/>'
-                + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
-                + '<w:font w:name="Georgia"><w:panose1 w:val="02040502050405020303"/><w:charset w:val="00"/>'
-                + '<w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>'
-                + '<w:font w:name="Segoe UI Emoji"><w:panose1 w:val="020B0502040204020203"/><w:charset w:val="00"/>'
-                + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
-                + '<w:font w:name="Calibri"><w:panose1 w:val="020F0502020204030204"/><w:charset w:val="00"/>'
-                + '<w:family w:val="swiss"/><w:pitch w:val="variable"/></w:font>'
-                + '<w:font w:name="Cambria"><w:panose1 w:val="02040503050406030204"/><w:charset w:val="00"/>'
-                + '<w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>'
-                + '<w:font w:name="Courier New"><w:panose1 w:val="02070309020205020404"/><w:charset w:val="00"/>'
-                + '<w:family w:val="modern"/><w:pitch w:val="fixed"/></w:font>'
-                + '<w:font w:name="Times New Roman"><w:panose1 w:val="02020603050405020304"/><w:charset w:val="00"/>'
-                + '<w:family w:val="roman"/><w:pitch w:val="variable"/></w:font>'
-                + '</w:fonts>';
+            // Panose values are only hints for substitution. A generic swiss/roman
+            // panose is safe for fonts not in the known table below.
+            const KNOWN = {
+                'Segoe UI':        ['020B0502040204020203', 'swiss',  'variable'],
+                'Georgia':         ['02040502050405020303', 'roman',  'variable'],
+                'Segoe UI Emoji':  ['020B0502040204020203', 'swiss',  'variable'],
+                'Calibri':         ['020F0502020204030204', 'swiss',  'variable'],
+                'Calibri Light':   ['020F0302020204030204', 'swiss',  'variable'],
+                'Cambria':         ['02040503050406030204', 'roman',  'variable'],
+                'Courier New':     ['02070309020205020404', 'modern', 'fixed'],
+                'Consolas':        ['020B0609020204030204', 'modern', 'fixed'],
+                'Times New Roman': ['02020603050405020304', 'roman',  'variable'],
+                'Arial':           ['020B0604020202020204', 'swiss',  'variable'],
+                'Verdana':         ['020B0604030504040204', 'swiss',  'variable'],
+                'Garamond':        ['02020404030301010803', 'roman',  'variable'],
+                'Book Antiqua':   ['02040602050305030304', 'roman',  'variable'],
+                'Franklin Gothic Book': ['020B0503020102020204', 'swiss', 'variable'],
+                'Tahoma':          ['020B0604030504040204', 'swiss',  'variable'],
+                'Trebuchet MS':    ['020B0603020202020204', 'swiss',  'variable'],
+                'Palatino Linotype':['02040502050505030304','roman',  'variable'],
+                'Traditional Arabic': ['02020603050405020304', 'roman', 'variable'],
+                'Simplified Arabic':  ['02020603050405020304', 'roman', 'variable'],
+                'Dubai':           ['020B0503030403020204', 'swiss',  'variable'],
+                'Amiri':           ['02020603050405020304', 'roman',  'variable']
+            };
+
+            // Always ship the Office fallbacks plus whatever the theme selected
+
+            const names = new Set([
+                'Segoe UI', 'Georgia', 'Segoe UI Emoji', 'Calibri',
+                'Cambria', 'Courier New', 'Times New Roman',
+                DOC_THEME.bodyFont, DOC_THEME.headingFont, DOC_THEME.monoFont,
+                DOC_THEME.csFont
+            ]);
+            // Any per-style override must also be declared or Word substitutes
+            for (const k of Object.keys(DOC_THEME.styleFonts || {})) {
+                if (DOC_THEME.styleFonts[k]) names.add(DOC_THEME.styleFonts[k]);
+            }
+
+            let xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:fonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">';
+            for (const n of names) {
+                if (!n) continue;
+                const k = KNOWN[n] || ['020B0604020202020204', 'swiss', 'variable'];
+                xml += '<w:font w:name="' + escapeXml(n) + '">'
+                    + '<w:panose1 w:val="' + k[0] + '"/><w:charset w:val="00"/>'
+                    + '<w:family w:val="' + k[1] + '"/><w:pitch w:val="' + k[2] + '"/></w:font>';
+            }
+            xml += '</w:fonts>';
+            return xml;
         }
 
         function getWebSettings() {
@@ -640,17 +1155,51 @@ graph TD
                 + '<w:optimizeForBrowser/><w:allowPNG/></w:webSettings>';
         }
 
+        // Shared run properties for header/footer text
+        function hfRun(text) {
+            return '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
+                 + '<w:t xml:space="preserve">' + escapeXml(text) + '</w:t></w:r>';
+        }
+
+        function hfPageField() {
+            const rpr = '<w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>';
+            return '<w:r>' + rpr + '<w:fldChar w:fldCharType="begin"/></w:r>'
+                 + '<w:r>' + rpr + '<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
+                 + '<w:r>' + rpr + '<w:fldChar w:fldCharType="end"/></w:r>';
+        }
+
         function getFooter() {
+            const T = DOC_THEME;
+            let body = '';
+            if (T.footerMode === 'none') {
+                body = '<w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>';
+            } else if (T.footerMode === 'textPage') {
+                // left: custom text, right: page number, via a right tab stop
+                body = '<w:p><w:pPr><w:tabs><w:tab w:val="right" w:pos="' + themeUsableWidth() + '"/></w:tabs>'
+                     + '<w:spacing w:before="0" w:after="0"/></w:pPr>'
+                     + hfRun(T.footerText || '')
+                     + '<w:r><w:tab/></w:r>'
+                     + hfPageField() + '</w:p>';
+            } else {
+                body = '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr>'
+                     + hfPageField() + '</w:p>';
+            }
             return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-                + '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr>'
-                + '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
-                + '<w:fldChar w:fldCharType="begin"/></w:r>'
-                + '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
-                + '<w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
-                + '<w:r><w:rPr><w:sz w:val="18"/><w:color w:val="808080"/></w:rPr>'
-                + '<w:fldChar w:fldCharType="end"/></w:r>'
-                + '</w:p></w:ftr>';
+                + body + '</w:ftr>';
+        }
+
+        function getHeader() {
+            const T = DOC_THEME;
+            let text = '';
+            if (T.headerMode === 'text')  text = T.headerText || '';
+            if (T.headerMode === 'title') text = (typeof DOC_TITLE_HINT === 'string' ? DOC_TITLE_HINT : '');
+            const body = '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/>'
+                       + '<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="4" w:color="D0D0D0"/></w:pBdr>'
+                       + '</w:pPr>' + (text ? hfRun(text) : '') + '</w:p>';
+            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+                + '<w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                + body + '</w:hdr>';
         }
 
         function getTheme() {
@@ -668,8 +1217,8 @@ graph TD
                 + '<a:accent5><a:srgbClr val="5B9BD5"/></a:accent5><a:accent6><a:srgbClr val="70AD47"/></a:accent6>'
                 + '<a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink>'
                 + '</a:clrScheme><a:fontScheme name="Office">'
-                + '<a:majorFont><a:latin typeface="Georgia"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
-                + '<a:minorFont><a:latin typeface="Segoe UI"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
+                + '<a:majorFont><a:latin typeface="' + DOC_THEME.headingFont + '"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont>'
+                + '<a:minorFont><a:latin typeface="' + DOC_THEME.bodyFont + '"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont>'
                 + '</a:fontScheme><a:fmtScheme name="Office">'
                 + '<a:fillStyleLst>' + fill + fill + fill + '</a:fillStyleLst>'
                 + '<a:lnStyleLst>' + ln + ln + ln + '</a:lnStyleLst>'
@@ -853,7 +1402,12 @@ graph TD
                 setProgress(25);
                 const docxBlob = await markdownToDocx(markdown);
                 setProgress(75);
-                saveAs(docxBlob, 'document.docx');
+                   const _t = (DOC_TITLE_HINT || '').trim()
+                    .replace(/[\\/:*?"<>|]/g, '')
+                    .replace(/\s+/g, '-')
+                    .slice(0, 60);
+                saveAs(docxBlob, (_t || 'document') + '.docx');
+   
                 setProgress(100);
                 showMessage('✓ Downloaded successfully!', 'success');
                 setTimeout(hideProgress, 500);
@@ -1212,6 +1766,7 @@ graph TD
             zip.file('word/fontTable.xml', getFontTable());
             zip.file('word/webSettings.xml', getWebSettings());
             zip.file('word/footer1.xml', getFooter());
+            zip.file('word/header1.xml', getHeader());
             zip.file('word/theme/theme1.xml', getTheme());
             zip.file('word/document.xml', docXml);
 
@@ -1337,6 +1892,7 @@ graph TD
                 + '<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>'
                 + '<Override PartName="/word/webSettings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml"/>'
                 + '<Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>'
+                + '<Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>'
                 + '<Override PartName="/word/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/>'
                 + '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'
                 + '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'
@@ -1363,7 +1919,8 @@ graph TD
                 + '<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>'
                 + '<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/>'
                 + '<Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>'
-                + '<Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>';
+                + '<Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>'
+                + '<Relationship Id="rId8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header1.xml"/>';
             for (const rel of imageRels) {
                 xml += '<Relationship Id="' + rel.rId + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="' + rel.target + '"/>';
             }
@@ -1435,111 +1992,171 @@ graph TD
         }
 
         function getStyles() {
-            return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            const T = DOC_THEME;
+            const txt = (T.textColor && T.textColor !== 'auto')
+                ? '<w:color w:val="' + T.textColor + '"/>' : '';
+
+            let s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
                 + '<w:docDefaults><w:rPrDefault><w:rPr>'
                 + '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi"/>'
-                + '<w:sz w:val="21"/><w:szCs w:val="21"/><w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'
+                + '<w:sz w:val="' + T.bodySize + '"/><w:szCs w:val="' + T.bodySize + '"/>'
+                + '<w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'
                 + '</w:rPr></w:rPrDefault>'
-                + '<w:pPrDefault><w:pPr><w:widowControl/><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault>'
-                + '</w:docDefaults>'
-                + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:widowControl/><w:spacing w:after="180" w:line="264" w:lineRule="auto"/></w:pPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPrDefault><w:pPr><w:widowControl/>'
+                + '<w:spacing w:after="' + T.paraAfter + '" w:line="' + T.lineSpacing + '" w:lineRule="auto"/>'
+                + '</w:pPr></w:pPrDefault></w:docDefaults>';
+
+            // Normal
+            s += '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:widowControl/>'
+                + '<w:spacing w:after="' + T.paraAfter + '" w:line="' + T.lineSpacing + '" w:lineRule="auto"/>'
+                + '</w:pPr><w:rPr>' + styleFontXml('normal', false) + txt + '</w:rPr></w:style>';
+
+            // Title
+            s += '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
                 + '<w:pPr><w:keepNext/>'
-                + '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr>'
-                + '<w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/>'
-                + '<w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:sz w:val="40"/><w:color w:val="1A1A1A"/></w:rPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="320" w:after="120" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="0"/></w:pPr>'
-                + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:b/><w:sz w:val="30"/><w:color w:val="1F3A33"/></w:rPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="240" w:after="80" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="1"/></w:pPr>'
-                + '<w:rPr><w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"/><w:b/><w:sz w:val="26"/><w:color w:val="2C4A42"/></w:rPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Heading3"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:keepNext/><w:spacing w:before="200" w:after="60" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/><w:outlineLvl w:val="2"/></w:pPr>'
-                + '<w:rPr><w:b/><w:sz w:val="23"/><w:color w:val="333333"/></w:rPr></w:style>'
-                              + '<w:style w:type="paragraph" w:styleId="Heading4"><w:name w:val="heading 4"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:keepNext/><w:spacing w:before="180" w:after="60" w:line="240" w:lineRule="auto"/><w:outlineLvl w:val="3"/></w:pPr>'
-                + '<w:rPr><w:b/><w:i/><w:sz w:val="21"/><w:color w:val="404040"/></w:rPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr>'
-                + '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="BFBFBF"/></w:pBdr>'
-                + '<w:spacing w:before="120" w:after="120"/>'
-                + '<w:ind w:left="680" w:right="340"/>'
-                + '<w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr><w:i/><w:color w:val="404040"/></w:rPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/>'
-                + '<w:pPr>'
-                + '<w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
-                + '<w:left w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
-                + '<w:bottom w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/>'
-                + '<w:right w:val="single" w:sz="4" w:space="4" w:color="DDDDDD"/></w:pBdr>'
-                + '<w:shd w:val="clear" w:color="auto" w:fill="F7F7F7"/>'
+                + (T.titleRule ? '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr>' : '')
+                + '<w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr>'
+                + '<w:rPr>' + styleFontXml('title', true)
+                + '<w:sz w:val="' + T.titleSize + '"/><w:szCs w:val="' + T.titleSize + '"/>'
+                + '<w:color w:val="' + T.titleColor + '"/></w:rPr></w:style>';
+
+            // Headings 1-4, driven by the theme
+            const heads = [
+
+                { id: 'Heading1', slot: 'h1', nm: 'heading 1', sz: T.h1Size, col: T.h1Color, before: 320, after: 120, lvl: 0, major: true,  ital: false },
+                { id: 'Heading2', slot: 'h2', nm: 'heading 2', sz: T.h2Size, col: T.h2Color, before: 240, after: 80,  lvl: 1, major: true,  ital: false },
+                { id: 'Heading3', slot: 'h3', nm: 'heading 3', sz: T.h3Size, col: T.h3Color, before: 200, after: 60,  lvl: 2, major: false, ital: false },
+                { id: 'Heading4', slot: 'h4', nm: 'heading 4', sz: T.h4Size, col: T.h4Color, before: 180, after: 60,  lvl: 3, major: false, ital: true  }
+            ];
+            for (const h of heads) {
+                s += '<w:style w:type="paragraph" w:styleId="' + h.id + '"><w:name w:val="' + h.nm + '"/>'
+                    + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                    + '<w:pPr><w:keepNext/>' + (h.lvl < 2 ? '<w:keepLines/>' : '')
+                    + '<w:spacing w:before="' + h.before + '" w:after="' + h.after + '" w:line="240" w:lineRule="auto"/>'
+                    + '<w:jc w:val="left"/><w:outlineLvl w:val="' + h.lvl + '"/></w:pPr>'
+
+                    + '<w:rPr>'
+                    + styleFontXml(h.slot, h.major)
+                    + '<w:b/>' + (h.ital ? '<w:i/>' : '')
+                    + '<w:sz w:val="' + h.sz + '"/><w:szCs w:val="' + h.sz + '"/>'
+                    + '<w:color w:val="' + h.col + '"/></w:rPr></w:style>';
+            }
+
+            // Quote
+            s += '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="' + T.quoteBorder + '"/></w:pBdr>'
+                + '<w:spacing w:before="120" w:after="120"/><w:ind w:left="680" w:right="340"/>'
+                + '<w:jc w:val="left"/></w:pPr><w:rPr>' + styleFontXml('quote', false)
+                + '<w:i/><w:sz w:val="' + styleSize(T.quoteSize, T.bodySize) + '"/>'
+                + '<w:color w:val="404040"/></w:rPr></w:style>';
+
+            // Code
+            s += '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/>'
+                + '<w:pPr><w:pBdr>'
+                + '<w:top w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
+                + '<w:left w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
+                + '<w:bottom w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
+                + '<w:right w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/></w:pBdr>'
+                + '<w:shd w:val="clear" w:color="auto" w:fill="' + T.codeFill + '"/>'
                 + '<w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/>'
-                + '<w:ind w:left="170" w:right="170"/>'
-                + '<w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/><w:color w:val="333333"/><w:sz w:val="19"/></w:rPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:spacing w:before="0" w:after="60" w:line="264" w:lineRule="auto"/>'
-                + '<w:ind w:left="0" w:firstLine="0"/><w:contextualSpacing/></w:pPr></w:style>'
-                + '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>'
+                + '<w:ind w:left="170" w:right="170"/><w:jc w:val="left"/></w:pPr>'
+                + '<w:rPr><w:rFonts w:ascii="' + escapeXml(T.styleFonts.code || T.monoFont) + '"'
+                + ' w:hAnsi="' + escapeXml(T.styleFonts.code || T.monoFont) + '"/>'
+                + '<w:color w:val="333333"/>'
+                + '<w:sz w:val="' + styleSize(T.codeSize, Math.max(16, T.bodySize - 2)) + '"/></w:rPr></w:style>';
+
+
+            // List paragraph
+            s += '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
+                + '<w:pPr><w:spacing w:before="0" w:after="60" w:line="' + T.lineSpacing + '" w:lineRule="auto"/>'
+                + '<w:ind w:left="0" w:firstLine="0"/><w:contextualSpacing/></w:pPr></w:style>';
+
+            // Table text
+            s += '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>'
                 + '<w:pPr><w:spacing w:before="40" w:after="40" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr><w:sz w:val="20"/></w:rPr></w:style>'
-                + '</w:styles>';
-                        }
+                + '<w:rPr>' + styleFontXml('table', false)
+                + '<w:sz w:val="' + styleSize(T.tableSize, Math.max(16, T.bodySize - 1)) + '"/></w:rPr></w:style>';
+
+
+            // TOC levels 1-3 (needed so a generated TOC is not unstyled)
+            for (let i = 1; i <= 3; i++) {
+                s += '<w:style w:type="paragraph" w:styleId="TOC' + i + '"><w:name w:val="toc ' + i + '"/>'
+                    + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/>'
+                    + '<w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="' + themeUsableWidth() + '"/></w:tabs>'
+                    + '<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
+                    + '<w:ind w:left="' + ((i - 1) * 220) + '"/></w:pPr></w:style>';
+            }
+
+            s += '</w:styles>';
+            return s;
+        }
 
 	        // Pre-compile table separator regex
         const TABLE_SEPARATOR_REGEX = /^\s*\|\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$/;
         
+        // Split a markdown table row into cells, preserving empty cells and
+        // honouring \| escapes. Leading/trailing pipes are dropped, interior
+        // empties are kept.
+        function splitTableRow(line) {
+            const out = [];
+            let cur = '';
+            for (let i = 0; i < line.length; i++) {
+                const ch = line[i];
+                if (ch === '\\' && line[i + 1] === '|') { cur += '|'; i++; continue; }
+                if (ch === '|') { out.push(cur); cur = ''; continue; }
+                cur += ch;
+            }
+            out.push(cur);
+            if (out.length && out[0].trim() === '') out.shift();
+            if (out.length && out[out.length - 1].trim() === '') out.pop();
+            return out.map(c => c.trim());
+        }
+
         function parseTableRows(tableLines) {
             const dataRows = [];
             let headerFound = false;
-            
+            let aligns = [];
+
             for (let i = 0; i < tableLines.length; i++) {
                 const line = tableLines[i];
-                
-                // Check if this is a separator row (only pipes and dashes)
+
                 if (TABLE_SEPARATOR_REGEX.test(line)) {
+                    // Capture per-column alignment from the separator row
+                    aligns = splitTableRow(line).map(spec => {
+                        const left  = spec.startsWith(':');
+                        const right = spec.endsWith(':');
+                        if (left && right) return 'center';
+                        if (right) return 'right';
+                        if (left) return 'left';
+                        return '';   // '' = inherit style default
+                    });
                     if (dataRows.length === 1 && !headerFound) {
                         dataRows[0].isHeader = true;
                         headerFound = true;
                     }
                     continue;
                 }
-                
-                // Parse cells efficiently: split, trim, filter in one pass
-                const rawCells = line.split('|');
-                const cells = [];
-                for (let j = 0; j < rawCells.length; j++) {
-                    const trimmed = rawCells[j].trim();
-                    if (trimmed.length > 0) cells.push(trimmed);
-                }
-                
-                if (cells.length > 0) {
-                    dataRows.push({ cells, isHeader: false });
-                }
+
+                const cells = splitTableRow(line);
+                if (cells.length > 0) dataRows.push({ cells, isHeader: false });
             }
-            
-            if (!headerFound && dataRows.length > 0) {
-                dataRows[0].isHeader = true;
-            }
-            
-            return dataRows;
+
+            if (!headerFound && dataRows.length > 0) dataRows[0].isHeader = true;
+            return { rows: dataRows, aligns: aligns };
         }
 
-           // Usable text width on A4 with your margins: 11906 - 1418 - 1276 = 9212 twips
-        const USABLE_WIDTH = 9212;
-
         function buildTable(tableLines, ommlMap) {
-            const rowData = parseTableRows(tableLines);
+            const parsed = parseTableRows(tableLines);
+            const rowData = parsed.rows;
+            const aligns = parsed.aligns || [];
             if (rowData.length === 0) return '';
 
+            const T = DOC_THEME;
+            const USABLE_WIDTH = themeUsableWidth();
             const colCount = Math.max(...rowData.map(r => r.cells.length));
 
-            // Weight columns by their longest cell content, clamped so no column
-            // collapses to nothing or swallows the table
             const weights = new Array(colCount).fill(1);
             for (const row of rowData) {
                 for (let c = 0; c < colCount; c++) {
@@ -1552,32 +2169,40 @@ graph TD
             }
             const totalW = weights.reduce((a, b) => a + b, 0);
             const colTwips = weights.map(w => Math.round(USABLE_WIDTH * w / totalW));
-            // Absorb rounding drift into the last column
             colTwips[colCount - 1] += USABLE_WIDTH - colTwips.reduce((a, b) => a + b, 0);
+
+            // Border set depends on the theme's table style
+            let borders = '<w:tblBorders>';
+            if (T.tableStyle === 'grid') {
+                const b = ' w:val="single" w:sz="4" w:space="0" w:color="' + T.tableBorderColor + '"';
+                borders += '<w:top' + b + '/><w:bottom' + b + '/><w:left' + b + '/><w:right' + b + '/>'
+                         + '<w:insideH' + b + '/><w:insideV' + b + '/>';
+            } else if (T.tableStyle === 'minimal') {
+                borders += '<w:top w:val="single" w:sz="8" w:space="0" w:color="' + T.tableBorderColor + '"/>'
+                         + '<w:bottom w:val="single" w:sz="8" w:space="0" w:color="' + T.tableBorderColor + '"/>'
+                         + '<w:insideH w:val="none" w:sz="0" w:space="0" w:color="auto"/>'
+                         + '<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>';
+            } else { // 'lines' — the original look
+                borders += '<w:top w:val="single" w:sz="12" w:space="0" w:color="' + T.tableBorderColor + '"/>'
+                         + '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="' + T.tableBorderColor + '"/>'
+                         + '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>'
+                         + '<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>';
+            }
+            borders += '</w:tblBorders>';
 
             let xml = '<w:tbl><w:tblPr>';
             xml += '<w:tblW w:w="' + USABLE_WIDTH + '" w:type="dxa"/>';
             xml += '<w:tblLayout w:type="fixed"/>';
             xml += '<w:tblInd w:w="0" w:type="dxa"/>';
-            xml += '<w:tblBorders>';
-            xml += '<w:top w:val="single" w:sz="12" w:space="0" w:color="595959"/>';
-            xml += '<w:bottom w:val="single" w:sz="12" w:space="0" w:color="595959"/>';
-            xml += '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="BFBFBF"/>';
-            xml += '<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>';
-            xml += '</w:tblBorders>';
-            xml += '<w:tblCellMar>';
-            xml += '<w:top w:w="80" w:type="dxa"/>';
-            xml += '<w:left w:w="130" w:type="dxa"/>';
-            xml += '<w:bottom w:w="80" w:type="dxa"/>';
-            xml += '<w:right w:w="130" w:type="dxa"/>';
-            xml += '</w:tblCellMar>';
+            xml += borders;
+            xml += '<w:tblCellMar>'
+                 + '<w:top w:w="80" w:type="dxa"/><w:left w:w="130" w:type="dxa"/>'
+                 + '<w:bottom w:w="80" w:type="dxa"/><w:right w:w="130" w:type="dxa"/>'
+                 + '</w:tblCellMar>';
             xml += '</w:tblPr>';
 
-            // The grid Word actually lays the table out from — this was missing entirely
             xml += '<w:tblGrid>';
-            for (let c = 0; c < colCount; c++) {
-                xml += '<w:gridCol w:w="' + colTwips[c] + '"/>';
-            }
+            for (let c = 0; c < colCount; c++) xml += '<w:gridCol w:w="' + colTwips[c] + '"/>';
             xml += '</w:tblGrid>';
 
             rowData.forEach(row => {
@@ -1590,12 +2215,16 @@ graph TD
                 while (cells.length < colCount) cells.push('');
 
                 cells.slice(0, colCount).forEach((cell, c) => {
+                    const jc = aligns[c] || '';
                     xml += '<w:tc><w:tcPr>';
                     xml += '<w:tcW w:w="' + colTwips[c] + '" w:type="dxa"/>';
-                    if (isHeader) xml += '<w:shd w:val="clear" w:color="auto" w:fill="EDEDED"/>';
+                    if (isHeader && T.tableHeaderFill && T.tableHeaderFill !== 'FFFFFF') {
+                        xml += '<w:shd w:val="clear" w:color="auto" w:fill="' + T.tableHeaderFill + '"/>';
+                    }
                     xml += '<w:vAlign w:val="' + (isHeader ? 'center' : 'top') + '"/>';
                     xml += '</w:tcPr>';
                     xml += '<w:p><w:pPr><w:pStyle w:val="TableText"/>';
+                    if (jc) xml += '<w:jc w:val="' + jc + '"/>';
                     if (isHeader) xml += '<w:rPr><w:b/></w:rPr>';
                     xml += '</w:pPr>';
                     xml += formatTextWithInlineOmml(cell.trim(), ommlMap || {}, isHeader);
@@ -1605,8 +2234,6 @@ graph TD
             });
 
             xml += '</w:tbl>';
-            // A table immediately followed by text needs a spacer paragraph, or Word
-            // jams the next paragraph against the bottom border
             xml += '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'
                  + '<w:rPr><w:sz w:val="12"/></w:rPr></w:pPr></w:p>';
             return xml;
@@ -1653,24 +2280,98 @@ graph TD
 	// Cache for repeated string building
         const imageXmlCache = new Map();
         
-        function buildImageXml(rId, widthPx, heightPx, isInline) {
-            const cacheKey = rId + '-' + widthPx + '-' + heightPx;
+     
+             // opts: { wrap, side, widthPct }
+        //   wrap:  'inline' | 'square' | 'tight' | 'through' | 'topAndBottom' | 'behind' | 'front'
+        //   side:  'left' | 'right' | 'center'
+        //   widthPct: 1-100, share of the usable text column (0 = natural size)
+        function buildImageXml(rId, widthPx, heightPx, opts) {
+            // Backwards compatible: old calls passed a boolean as the 4th arg
+            if (typeof opts === 'boolean' || opts == null) opts = {};
+            const wrap = opts.wrap || 'inline';
+            const side = opts.side || 'center';
+            const widthPct = parseInt(opts.widthPct, 10) || 0;
+
+            const cacheKey = [rId, widthPx, heightPx, wrap, side, widthPct].join('-');
             if (imageXmlCache.has(cacheKey)) return imageXmlCache.get(cacheKey);
-            
-            // Convert pixels to EMUs (1 px = 9525 EMU), scale x2 render down
+
             const scale = 0.5;
             let emuW = Math.round(widthPx * 9525 * scale);
             let emuH = Math.round(heightPx * 9525 * scale);
-            // Cap max width at 15cm (5400000 EMU)
-            const maxW = 5400000;
+
+            // Cap to the text column (twips → EMU is ×635)
+            const columnEmu = (typeof themeUsableWidth === 'function')
+                ? themeUsableWidth() * 635
+                : 5400000;
+            const maxW = widthPct > 0
+                ? Math.round(columnEmu * Math.min(widthPct, 100) / 100)
+                : Math.min(columnEmu, 5400000);
             if (emuW > maxW) {
                 const ratio = maxW / emuW;
                 emuW = maxW;
                 emuH = Math.round(emuH * ratio);
             }
+
             const id = Math.floor(Math.random() * 100000);
-            const result = '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><wp:extent cx="' + emuW + '" cy="' + emuH + '"/><wp:docPr id="' + id + '" name="Image"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="' + rId + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>';
-            
+            const WPNS = ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
+
+            const graphic = '<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+                + '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                + '<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
+                + '<pic:nvPicPr><pic:cNvPr id="0" name="Image"/><pic:cNvPicPr/></pic:nvPicPr>'
+                + '<pic:blipFill><a:blip r:embed="' + rId + '"'
+                + ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>'
+                + '<a:stretch><a:fillRect/></a:stretch></pic:blipFill>'
+                + '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm>'
+                + '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'
+                + '</pic:pic></a:graphicData></a:graphic>';
+
+            let result;
+
+            if (wrap === 'inline') {
+                result = '<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"' + WPNS + '>'
+                    + '<wp:extent cx="' + emuW + '" cy="' + emuH + '"/>'
+                    + '<wp:docPr id="' + id + '" name="Image"/>'
+                    + graphic + '</wp:inline></w:drawing>';
+            } else {
+                // Text flows on the side opposite the image
+                const wrapText = side === 'left' ? 'right'
+                               : side === 'right' ? 'left'
+                               : 'bothSides';
+
+                // A rectangular wrap polygon. Word requires one for tight/through;
+                // a rectangle is legal and matches the diagram's bounding box.
+                const poly = '<wp:wrapPolygon edited="0">'
+                    + '<wp:start x="0" y="0"/>'
+                    + '<wp:lineTo x="0" y="21600"/>'
+                    + '<wp:lineTo x="21600" y="21600"/>'
+                    + '<wp:lineTo x="21600" y="0"/>'
+                    + '<wp:lineTo x="0" y="0"/>'
+                    + '</wp:wrapPolygon>';
+
+                let wrapEl;
+                if (wrap === 'square')            wrapEl = '<wp:wrapSquare wrapText="' + wrapText + '"/>';
+                else if (wrap === 'tight')        wrapEl = '<wp:wrapTight wrapText="' + wrapText + '">' + poly + '</wp:wrapTight>';
+                else if (wrap === 'through')      wrapEl = '<wp:wrapThrough wrapText="' + wrapText + '">' + poly + '</wp:wrapThrough>';
+                else if (wrap === 'topAndBottom') wrapEl = '<wp:wrapTopAndBottom/>';
+                else                              wrapEl = '<wp:wrapNone/>';   // behind / front
+
+                const behind = (wrap === 'behind') ? '1' : '0';
+                const align = (side === 'center') ? 'center' : side;
+
+                result = '<w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300"'
+                    + ' simplePos="0" relativeHeight="' + (251658240 + (id % 1000)) + '"'
+                    + ' behindDoc="' + behind + '" locked="0" layoutInCell="1" allowOverlap="1"' + WPNS + '>'
+                    + '<wp:simplePos x="0" y="0"/>'
+                    + '<wp:positionH relativeFrom="margin"><wp:align>' + align + '</wp:align></wp:positionH>'
+                    + '<wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV>'
+                    + '<wp:extent cx="' + emuW + '" cy="' + emuH + '"/>'
+                    + '<wp:effectExtent l="0" t="0" r="0" b="0"/>'
+                    + wrapEl
+                    + '<wp:docPr id="' + id + '" name="Image"/>'
+                    + graphic + '</wp:anchor></w:drawing>';
+            }
+
             imageXmlCache.set(cacheKey, result);
             return result;
         }
@@ -1701,7 +2402,9 @@ graph TD
             }
             // Reset numbering registry for this conversion
             NUM_INSTANCES = [];
+            let tocInserted = false;
             let numIdCounter = 0;
+
             let activeOrderedNumId = null;   // null when we are not inside an ordered list
             let activeBulletNumId = null;
 
@@ -1768,6 +2471,20 @@ graph TD
                 else if (line.match(/^#\s/)) {
                     const text = line.replace(/^#\s/, '');
                     xml += '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                    DOC_TITLE_HINT = text.replace(/[*_`]/g, '');
+                    if (DOC_THEME.toc && !tocInserted) {
+                        tocInserted = true;
+                        const d = Math.min(Math.max(DOC_THEME.tocDepth || 3, 1), 4);
+                        xml += '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>'
+                             + '<w:r><w:t>Contents</w:t></w:r></w:p>'
+                             + '<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>'
+                             + '<w:r><w:instrText xml:space="preserve"> TOC \\o "1-' + d + '" \\h \\z \\u </w:instrText></w:r>'
+                             + '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+                             + '<w:r><w:rPr><w:i/><w:color w:val="808080"/></w:rPr>'
+                             + '<w:t xml:space="preserve">Right-click and choose Update Field to build the table of contents.</w:t></w:r>'
+                             + '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
+                             + '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+                    }
                 }
                 else if (line.match(/^##\s/)) {
                     const text = line.replace(/^##\s/, '');
@@ -1843,13 +2560,24 @@ graph TD
                 xml += buildTable(tableLines, ommlMap);
             }
 
-            xml += '<w:sectPr>'
-                + '<w:footerReference w:type="default" r:id="rId7"/>'
-                + '<w:pgSz w:w="11906" w:h="16838"/>'
-                + '<w:pgMar w:top="1418" w:right="1276" w:bottom="1418" w:left="1418"'
-                + ' w:header="709" w:footer="709" w:gutter="0"/>'
-                + '<w:cols w:space="708"/><w:docGrid w:linePitch="360"/>'
-                + '</w:sectPr>';
+            const _pg = themePageDims();
+            const _mg = DOC_THEME.margins;
+            let _sect = '<w:sectPr>';
+            if (DOC_THEME.differentFirstPage) _sect += '<w:titlePg/>';
+            if (DOC_THEME.headerMode !== 'none') {
+                _sect += '<w:headerReference w:type="default" r:id="rId8"/>';
+            }
+            if (DOC_THEME.footerMode !== 'none') {
+                _sect += '<w:footerReference w:type="default" r:id="rId7"/>';
+            }
+            _sect += '<w:pgSz w:w="' + _pg.w + '" w:h="' + _pg.h + '"'
+                   + (DOC_THEME.landscape ? ' w:orient="landscape"' : '') + '/>'
+                   + '<w:pgMar w:top="' + _mg.top + '" w:right="' + _mg.right + '"'
+                   + ' w:bottom="' + _mg.bottom + '" w:left="' + _mg.left + '"'
+                   + ' w:header="709" w:footer="709" w:gutter="0"/>'
+                   + '<w:cols w:space="708"/><w:docGrid w:linePitch="360"/>'
+                   + '</w:sectPr>';
+            xml += _sect;
             xml += '</w:body></w:document>';
                         return xml;
         }
@@ -1910,6 +2638,269 @@ graph TD
             xml = xml.replace(/\uE100\d+\uE100/g, '');
             return xml;
         }
+                // ===== SETTINGS PANEL WIRING =====
+        (function initDocSettings() {
+            const $ = id => document.getElementById(id);
+            const STORE_KEY = 'docx_theme_v1';
+
+            const els = {
+                preset: $('dsPreset'), bodyFont: $('dsBodyFont'), headFont: $('dsHeadFont'),
+                bodySize: $('dsBodySize'), line: $('dsLine'), accent: $('dsAccent'),
+                pageSize: $('dsPageSize'), orient: $('dsOrient'), margins: $('dsMargins'),
+                tableStyle: $('dsTableStyle'), headerMode: $('dsHeaderMode'),
+                headerText: $('dsHeaderText'), footerMode: $('dsFooterMode'),
+                footerText: $('dsFooterText'), toc: $('dsToc'),
+                firstPage: $('dsFirstPage'), titleRule: $('dsTitleRule'),
+                fNormal: $('dsfNormal'), fTitle: $('dsfTitle'),
+                fH1: $('dsfH1'), fH2: $('dsfH2'), fH3: $('dsfH3'), fH4: $('dsfH4'),
+                fQuote: $('dsfQuote'), fCode: $('dsfCode'), fTable: $('dsfTable'),
+                fCs: $('dsfCs'),
+                quoteSize: $('dsQuoteSize'), tableSize: $('dsTableSize'),
+                codeSize: $('dsCodeSize'),
+                reset: $('dsReset')
+            };
+
+
+            // Bail out quietly if the markup is not present
+            if (!els.preset) return;
+
+            for (const key of Object.keys(DOC_PRESETS)) {
+                const o = document.createElement('option');
+                o.value = key;
+                o.textContent = DOC_PRESETS[key].label;
+                els.preset.appendChild(o);
+            }
+
+            function hexToWord(h) { return (h || '').replace('#', '').toUpperCase(); }
+            function wordToHex(w) { return '#' + (w || '000000'); }
+
+            // Shift an accent colour darker for the H2 tone
+            function darken(hex, amt) {
+                const n = parseInt(hex, 16);
+                if (isNaN(n)) return hex;
+                const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+                    .map(v => Math.max(0, Math.round(v * (1 - amt))));
+                return c.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+            }
+
+            function applyPresetToForm(key) {
+                const p = DOC_PRESETS[key];
+                if (!p) return;
+                els.bodyFont.value = p.bodyFont;
+                els.headFont.value = p.headingFont;
+                els.bodySize.value = (p.bodySize / 2).toFixed(1);
+                els.line.value = String(p.lineSpacing);
+                els.accent.value = wordToHex(p.h1Color);
+                els.tableStyle.value = p.tableStyle;
+                els.titleRule.checked = !!p.titleRule;
+                                ['fNormal','fTitle','fH1','fH2','fH3','fH4','fQuote','fCode','fTable','fCs',
+                 'quoteSize','tableSize','codeSize'].forEach(k => { if (els[k]) els[k].value = ''; });
+            }
+
+            function readForm() {
+                const presetKey = els.preset.value || 'professional';
+                const base = DOC_PRESETS[presetKey] || DOC_PRESETS.professional;
+                const accent = hexToWord(els.accent.value);
+
+                DOC_THEME = Object.assign({}, base, {
+                    preset: presetKey,
+                    bodyFont: els.bodyFont.value,
+                    headingFont: els.headFont.value,
+                    bodySize: Math.round(parseFloat(els.bodySize.value || '10.5') * 2),
+                    lineSpacing: parseInt(els.line.value, 10) || 264,
+                    h1Color: accent,
+                    h2Color: darken(accent, 0.18),
+                    titleColor: base.titleColor === '000000' ? '000000' : accent,
+                    titleRule: els.titleRule.checked,
+                    tableStyle: els.tableStyle.value,
+                    tableBorderColor: els.tableStyle.value === 'grid' ? accent : base.tableBorderColor,
+                    pageSize: els.pageSize.value,
+                    landscape: els.orient.value === 'landscape',
+                    margins: Object.assign({}, MARGIN_PRESETS[els.margins.value] || MARGIN_PRESETS.normal),
+                    headerMode: els.headerMode.value,
+                    headerText: els.headerText.value,
+                    footerMode: els.footerMode.value,
+                    footerText: els.footerText.value,
+                    differentFirstPage: els.firstPage.checked,
+                    toc: els.toc.checked,
+                    tocDepth: 3,
+                    styleFonts: {
+                        normal: els.fNormal.value.trim(),
+                        title:  els.fTitle.value.trim(),
+                        h1:     els.fH1.value.trim(),
+                        h2:     els.fH2.value.trim(),
+                        h3:     els.fH3.value.trim(),
+                        h4:     els.fH4.value.trim(),
+                        quote:  els.fQuote.value.trim(),
+                        code:   els.fCode.value.trim(),
+                        table:  els.fTable.value.trim(),
+                        header: ''
+                    },
+                    csFont: els.fCs.value.trim(),
+                    quoteSize: els.quoteSize.value ? Math.round(parseFloat(els.quoteSize.value) * 2) : 0,
+                    tableSize: els.tableSize.value ? Math.round(parseFloat(els.tableSize.value) * 2) : 0,
+                    codeSize:  els.codeSize.value  ? Math.round(parseFloat(els.codeSize.value) * 2)  : 0
+                });
+
+            }
+
+            function save() {
+                try {
+                    const snap = {};
+                    for (const k of Object.keys(els)) {
+                        const el = els[k];
+                        if (!el || k === 'reset') continue;
+                        snap[k] = el.type === 'checkbox' ? el.checked : el.value;
+                    }
+                    localStorage.setItem(STORE_KEY, JSON.stringify(snap));
+                } catch (e) {
+                    // Storage can be disabled (private mode, file:// in some browsers).
+                    // Settings still work for this session.
+                }
+            }
+
+            function load() {
+                try {
+                    const raw = localStorage.getItem(STORE_KEY);
+                    if (!raw) return false;
+                    const snap = JSON.parse(raw);
+                    for (const k of Object.keys(snap)) {
+                        const el = els[k];
+                        if (!el) continue;
+                        if (el.type === 'checkbox') el.checked = !!snap[k];
+                        else el.value = snap[k];
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            function onChange(e) {
+                if (e && e.target === els.preset) applyPresetToForm(els.preset.value);
+                readForm();
+                save();
+            }
+
+            for (const k of Object.keys(els)) {
+                const el = els[k];
+                if (!el || k === 'reset') continue;
+                el.addEventListener('change', onChange);
+                if (el.type === 'text' || el.type === 'number') {
+                    el.addEventListener('input', () => { readForm(); save(); });
+                }
+            }
+
+            els.reset.addEventListener('click', () => {
+                applyPresetToForm(els.preset.value);
+                readForm();
+                save();
+                showMessage('Style reset to template defaults.', 'success');
+            });
+
+            if (!load()) applyPresetToForm('professional');
+            readForm();
+        })();
+        // ===== END SETTINGS PANEL WIRING =====
+                // ===== DOCUMENT PROPERTIES WIRING =====
+        (function initDocMeta() {
+            const $ = id => document.getElementById(id);
+            const STORE_KEY = 'docx_meta_v1';
+
+            const els = {
+                mode: $('dmMode'), created: $('dmCreated'), modified: $('dmModified'),
+                revision: $('dmRevision'), editMinutes: $('dmEditMinutes'),
+                author: $('dmAuthor'), editor: $('dmEditor'), company: $('dmCompany'),
+                manager: $('dmManager'), title: $('dmTitle'), subject: $('dmSubject'),
+                category: $('dmCategory'), keywords: $('dmKeywords'), comments: $('dmComments')
+            };
+            if (!els.mode) return;
+
+            function localStamp(d) {
+                const p = n => String(n).padStart(2, '0');
+                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+                     + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+
+            function syncDateFields() {
+                const manual = els.mode.value === 'manual';
+                els.created.disabled = !manual;
+                els.modified.disabled = !manual;
+                els.created.parentElement.style.opacity = manual ? '1' : '0.45';
+                els.modified.parentElement.style.opacity = manual ? '1' : '0.45';
+            }
+
+            function readForm() {
+                DOC_META = Object.assign({}, DOC_META, {
+                    mode: els.mode.value,
+                    author: els.author.value || 'Author',
+                    lastEditor: els.editor.value,
+                    company: els.company.value,
+                    manager: els.manager.value,
+                    title: els.title.value,
+                    subject: els.subject.value,
+                    category: els.category.value,
+                    keywords: els.keywords.value,
+                    comments: els.comments.value,
+                    createdISO: els.created.value,
+                    modifiedISO: els.modified.value,
+                    revision: parseInt(els.revision.value, 10) || 0,
+                    editMinutes: parseInt(els.editMinutes.value, 10) || 0
+                });
+            }
+
+            function save() {
+                try {
+                    const snap = {};
+                    for (const k of Object.keys(els)) snap[k] = els[k].value;
+                    localStorage.setItem(STORE_KEY, JSON.stringify(snap));
+                } catch (e) { /* storage unavailable — session only */ }
+            }
+
+            function load() {
+                try {
+                    const raw = localStorage.getItem(STORE_KEY);
+                    if (!raw) return false;
+                    const snap = JSON.parse(raw);
+                    for (const k of Object.keys(snap)) if (els[k]) els[k].value = snap[k];
+                    return true;
+                } catch (e) { return false; }
+            }
+
+            for (const k of Object.keys(els)) {
+                els[k].addEventListener('change', () => { syncDateFields(); readForm(); save(); });
+                els[k].addEventListener('input',  () => { readForm(); save(); });
+            }
+
+            const nowBtn = $('dmNow');
+            if (nowBtn) nowBtn.addEventListener('click', () => {
+                const s = localStamp(new Date());
+                els.mode.value = 'manual';
+                els.created.value = s;
+                els.modified.value = s;
+                syncDateFields(); readForm(); save();
+                showMessage('Document dates set to now.', 'success');
+            });
+
+            if (!load()) {
+                els.author.value = DOC_META.author;
+                els.company.value = DOC_META.company;
+            }
+            syncDateFields();
+            readForm();
+
+            // Keep the existing Author box in the preview header in sync
+            const legacyAuthor = document.getElementById('authorInput');
+            if (legacyAuthor) {
+                legacyAuthor.value = els.author.value || legacyAuthor.value;
+                legacyAuthor.addEventListener('input', () => {
+                    els.author.value = legacyAuthor.value;
+                    readForm(); save();
+                });
+                els.author.addEventListener('input', () => { legacyAuthor.value = els.author.value; });
+            }
+        })();
+        // ===== END DOCUMENT PROPERTIES WIRING =====
     </script>
 </body>
 </html>
