@@ -485,6 +485,15 @@
             .ds-row label.ds-wide { grid-column: span 2; }
             .ds-tab { padding: 9px 11px; font-size: 12px; }
         }
+                .ds-saved {
+            margin-top: 18px;
+            padding: 16px;
+            border: 1px solid #e2e5ea;
+            border-radius: 10px;
+            background: #fff;
+        }
+        .ds-saved .ds-row { margin-bottom: 10px; }
+        .ds-saved label > button { margin-top: 1px; }
     </style>
 </head>
 <body>
@@ -662,6 +671,7 @@ End of demonstration.
                     </select></label>
                     <label class="ds-check"><input type="checkbox" id="dsTitleRule" checked> Rule under title</label>
                 </div>
+                
 
                 <div class="ds-import">
                     <div class="ds-import-head">Use an existing Word document as the template</div>
@@ -675,7 +685,30 @@ End of demonstration.
                     <div id="dsImportReport" class="ds-import-report"></div>
                 </div>
             </section>
-
+                <div class="ds-saved">
+                    <div class="ds-import-head">My templates</div>
+                    <div class="ds-row">
+                        <label class="ds-wide">Saved template
+                            <select id="dsTplPick">
+                                <option value="">— none selected —</option>
+                            </select>
+                        </label>
+                        <label>&nbsp;
+                            <button type="button" id="dsTplLoad" class="clear-btn">↓ Load</button>
+                        </label>
+                        <label>&nbsp;
+                            <button type="button" id="dsTplDelete" class="clear-btn">🗑 Delete</button>
+                        </label>
+                    </div>
+                    <div class="ds-import-actions">
+                        <input type="text" id="dsTplName" placeholder="New template name" style="flex:1;min-width:160px;border:1px solid #ddd;border-radius:6px;padding:7px 8px;font-size:13px;font-family:inherit;min-height:34px;">
+                        <button type="button" id="dsTplSave" class="upload-btn">💾 Save current settings</button>
+                        <button type="button" id="dsTplExport" class="clear-btn">⬇ Export .json</button>
+                        <input type="file" id="dsTplImportFile" accept=".json" hidden>
+                        <label for="dsTplImportFile" class="clear-btn">⬆ Import .json</label>
+                    </div>
+                    <div id="dsTplReport" class="ds-import-report"></div>
+                </div>
             <!-- ── STYLES ─────────────────────────────────── -->
             <section class="ds-pane" data-pane="styles">
                 <div class="ds-styleedit">
@@ -711,6 +744,7 @@ End of demonstration.
                             <label>Left (cm)<input type="number" id="dsSIndLeft" min="0" max="15" step="0.25" placeholder="auto"></label>
                             <label>Right (cm)<input type="number" id="dsSIndRight" min="0" max="15" step="0.25" placeholder="auto"></label>
                             <label>First line (cm)<input type="number" id="dsSIndFirst" min="0" max="15" step="0.25" placeholder="auto"></label>
+                            <label>Hanging (cm)<input type="number" id="dsSIndHang" min="0" max="15" step="0.25" placeholder="auto"></label>
                             <label>Alignment<select id="dsSAlign">
                                 <option value="">Follow template</option>
                                 <option value="left">Left</option>
@@ -1088,7 +1122,7 @@ End of demonstration.
         function templateStyleBase(key) {
             const T = DOC_THEME;
             const body = { font: '', sizeHp: T.bodySize, color: '', bold: false, italic: false,
-                           align: '', indLeft: 0, indFirst: 0, indRight: 0,
+                           align: '', indLeft: 0, indFirst: 0, indRight: 0, indHanging: 0,
                            before: 0, after: T.paraAfter, line: T.lineSpacing, keepNext: false };
             switch (key) {
                 case 'normal': return body;
@@ -2244,7 +2278,66 @@ End of demonstration.
         }
 
         // Pull one style's formatting into our override shape
-        function readStyleNode(styleNode, themeFonts) {
+          // ---- theme colours -------------------------------------------------
+        // Word writes w:themeColor="accent1" far more often than a literal hex.
+        function readThemeColors(themeDoc) {
+            const map = {};
+            if (!themeDoc) return map;
+            const scheme = themeDoc.getElementsByTagName('a:clrScheme')[0]
+                        || themeDoc.getElementsByTagName('clrScheme')[0];
+            if (!scheme) return map;
+
+            for (const slot of scheme.children) {
+                const name = slot.tagName.replace(/^a:/, '');
+                const srgb = slot.getElementsByTagName('a:srgbClr')[0]
+                          || slot.getElementsByTagName('srgbClr')[0];
+                const sys = slot.getElementsByTagName('a:sysClr')[0]
+                         || slot.getElementsByTagName('sysClr')[0];
+                if (srgb && srgb.getAttribute('val')) {
+                    map[name] = srgb.getAttribute('val').toUpperCase();
+                } else if (sys && sys.getAttribute('lastClr')) {
+                    map[name] = sys.getAttribute('lastClr').toUpperCase();
+                }
+            }
+            // Word's w:themeColor names differ from the theme's own slot names
+            map['text1'] = map['dk1'] || '000000';
+            map['text2'] = map['dk2'] || map['dk1'] || '000000';
+            map['background1'] = map['lt1'] || 'FFFFFF';
+            map['background2'] = map['lt2'] || map['lt1'] || 'FFFFFF';
+            return map;
+        }
+
+        // themeShade darkens, themeTint lightens; both are hex fractions of 255
+        function applyShadeTint(hex, shade, tint) {
+            const n = parseInt(hex, 16);
+            if (isNaN(n)) return hex;
+            let rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+            if (shade) {
+                const f = parseInt(shade, 16) / 255;
+                rgb = rgb.map(v => Math.round(v * f));
+            } else if (tint) {
+                const f = parseInt(tint, 16) / 255;
+                rgb = rgb.map(v => Math.round(v * f + 255 * (1 - f)));
+            }
+            return rgb.map(v => Math.max(0, Math.min(255, v))
+                                 .toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function resolveColorNode(node, themeColors) {
+            if (!node) return null;
+            const val = _attr(node, 'val');
+            const themeName = _attr(node, 'themeColor');
+            if (themeName && themeColors && themeColors[themeName]) {
+                return applyShadeTint(themeColors[themeName],
+                                      _attr(node, 'themeShade'),
+                                      _attr(node, 'themeTint'));
+            }
+            if (val && val !== 'auto') return val.toUpperCase();
+            return null;
+        }
+
+        // ---- one style node, no inheritance ---------------------------------
+        function readStyleNode(styleNode, themeFonts, themeColors) {
             const out = {};
             const rpr = _child(styleNode, 'rPr');
             const ppr = _child(styleNode, 'pPr');
@@ -2256,17 +2349,20 @@ End of demonstration.
                     const themed = _attr(rf, 'asciiTheme') || _attr(rf, 'hAnsiTheme');
                     if (explicit) out.font = explicit;
                     else if (themed && themeFonts) {
-                        out.font = /major/i.test(themed) ? (themeFonts.major || '') : (themeFonts.minor || '');
+                        out.font = /major/i.test(themed) ? (themeFonts.major || '')
+                                                         : (themeFonts.minor || '');
                     }
                 }
                 const sz = _child(rpr, 'sz');
                 if (sz && _attr(sz, 'val')) out.sizeHp = parseInt(_attr(sz, 'val'), 10);
-                const col = _child(rpr, 'color');
-                if (col && _attr(col, 'val') && _attr(col, 'val') !== 'auto') {
-                    out.color = _attr(col, 'val').toUpperCase();
-                }
-                out.bold = _hasChild(rpr, 'b');
-                out.italic = _hasChild(rpr, 'i');
+
+                const col = resolveColorNode(_child(rpr, 'color'), themeColors);
+                if (col) out.color = col;
+
+                // Only record b/i when the style actually states them, so an
+                // unstated value inherits instead of forcing "regular".
+                if (_child(rpr, 'b')) out.bold = _hasChild(rpr, 'b');
+                if (_child(rpr, 'i')) out.italic = _hasChild(rpr, 'i');
             }
 
             if (ppr) {
@@ -2275,23 +2371,49 @@ End of demonstration.
                     if (_attr(sp, 'before')) out.before = parseInt(_attr(sp, 'before'), 10);
                     if (_attr(sp, 'after'))  out.after  = parseInt(_attr(sp, 'after'), 10);
                     const rule = _attr(sp, 'lineRule');
-                    // 'exact'/'atLeast' are absolute twips; we only model 'auto' multiples
-                    if (_attr(sp, 'line') && (!rule || rule === 'auto')) {
-                        out.line = parseInt(_attr(sp, 'line'), 10);
+                    if (_attr(sp, 'line')) {
+                        const line = parseInt(_attr(sp, 'line'), 10);
+                        // 'exact'/'atLeast' are absolute twips — convert to the
+                        // nearest multiple so the value is at least honoured.
+                        out.line = (!rule || rule === 'auto')
+                            ? line
+                            : Math.max(240, Math.round((line / 240) * 240));
                     }
                 }
                 const ind = _child(ppr, 'ind');
                 if (ind) {
-                    if (_attr(ind, 'left'))      out.indLeft  = parseInt(_attr(ind, 'left'), 10);
-                    if (_attr(ind, 'right'))     out.indRight = parseInt(_attr(ind, 'right'), 10);
-                    if (_attr(ind, 'firstLine')) out.indFirst = parseInt(_attr(ind, 'firstLine'), 10);
+                    if (_attr(ind, 'left'))      out.indLeft    = parseInt(_attr(ind, 'left'), 10);
+                    if (_attr(ind, 'start'))     out.indLeft    = parseInt(_attr(ind, 'start'), 10);
+                    if (_attr(ind, 'right'))     out.indRight   = parseInt(_attr(ind, 'right'), 10);
+                    if (_attr(ind, 'end'))       out.indRight   = parseInt(_attr(ind, 'end'), 10);
+                    if (_attr(ind, 'firstLine')) out.indFirst   = parseInt(_attr(ind, 'firstLine'), 10);
+                    if (_attr(ind, 'hanging'))   out.indHanging = parseInt(_attr(ind, 'hanging'), 10);
                 }
                 const jc = _child(ppr, 'jc');
                 if (jc && _attr(jc, 'val')) out.align = _attr(jc, 'val');
-                out.keepNext = _hasChild(ppr, 'keepNext');
+                if (_child(ppr, 'keepNext')) out.keepNext = _hasChild(ppr, 'keepNext');
             }
 
             return out;
+        }
+
+        // ---- inheritance chain ----------------------------------------------
+        // Walks w:basedOn upward, then merges downward so the child wins.
+        function resolveWordStyle(id, index, themeFonts, themeColors, seen) {
+            seen = seen || {};
+            if (!id || seen[id] || !index[id]) return {};
+            seen[id] = true;
+
+            const node = index[id];
+            const basedOn = _child(node, 'basedOn');
+            const parentId = basedOn ? _attr(basedOn, 'val') : null;
+
+            const parent = parentId
+                ? resolveWordStyle(parentId, index, themeFonts, themeColors, seen)
+                : {};
+            const own = readStyleNode(node, themeFonts, themeColors);
+
+            return Object.assign({}, parent, own);
         }
 
         async function importStylesFromDocx(file) {
@@ -2307,8 +2429,10 @@ End of demonstration.
                 throw new Error('styles.xml could not be parsed');
             }
 
-            // Theme fonts, so theme-referenced styles resolve to real names
+       
+                   // Theme fonts and theme colours
             const themeFonts = { major: '', minor: '' };
+            let themeColors = {};
             const themeFile = zip.file('word/theme/theme1.xml');
             if (themeFile) {
                 const td = parser.parseFromString(await themeFile.async('string'), 'application/xml');
@@ -2321,33 +2445,74 @@ End of demonstration.
                 };
                 themeFonts.major = latin(maj);
                 themeFonts.minor = latin(min);
+                themeColors = readThemeColors(td);
             }
 
-            // docDefaults gives us the true body size when Normal doesn't state one
-            let defaultSizeHp = 0;
+            // docDefaults — the true baseline for anything a style doesn't state
+            const defaults = {};
             const dd = stylesDoc.getElementsByTagName('w:docDefaults')[0];
             if (dd) {
-                const sz = dd.getElementsByTagName('w:sz')[0];
-                if (sz && sz.getAttribute('w:val')) defaultSizeHp = parseInt(sz.getAttribute('w:val'), 10);
+                const rprD = dd.getElementsByTagName('w:rPrDefault')[0];
+                const pprD = dd.getElementsByTagName('w:pPrDefault')[0];
+                if (rprD) {
+                    const sz = rprD.getElementsByTagName('w:sz')[0];
+                    if (sz && sz.getAttribute('w:val')) defaults.sizeHp = parseInt(sz.getAttribute('w:val'), 10);
+                    const rf = rprD.getElementsByTagName('w:rFonts')[0];
+                    if (rf) {
+                        const ex = rf.getAttribute('w:ascii');
+                        const th = rf.getAttribute('w:asciiTheme');
+                        if (ex) defaults.font = ex;
+                        else if (th) defaults.font = /major/i.test(th) ? themeFonts.major : themeFonts.minor;
+                    }
+                    const cD = resolveColorNode(rprD.getElementsByTagName('w:color')[0], themeColors);
+                    if (cD) defaults.color = cD;
+                }
+                if (pprD) {
+                    const sp = pprD.getElementsByTagName('w:spacing')[0];
+                    if (sp) {
+                        if (sp.getAttribute('w:before')) defaults.before = parseInt(sp.getAttribute('w:before'), 10);
+                        if (sp.getAttribute('w:after'))  defaults.after  = parseInt(sp.getAttribute('w:after'), 10);
+                        if (sp.getAttribute('w:line'))   defaults.line   = parseInt(sp.getAttribute('w:line'), 10);
+                    }
+                    const ind = pprD.getElementsByTagName('w:ind')[0];
+                    if (ind) {
+                        if (ind.getAttribute('w:left'))      defaults.indLeft  = parseInt(ind.getAttribute('w:left'), 10);
+                        if (ind.getAttribute('w:firstLine')) defaults.indFirst = parseInt(ind.getAttribute('w:firstLine'), 10);
+                    }
+                }
+            }
+
+            // Index every style by id so basedOn chains can be walked
+            const index = {};
+            const nodes = stylesDoc.getElementsByTagName('w:style');
+            for (const node of nodes) {
+                const sid = node.getAttribute('w:styleId');
+                if (sid) index[sid] = node;
             }
 
             const overrides = {};
             const found = [];
-            const nodes = stylesDoc.getElementsByTagName('w:style');
-            for (const node of nodes) {
-                const id = node.getAttribute('w:styleId');
-                const key = IMPORT_STYLE_MAP[id];
-                if (!key || overrides[key]) continue;       // first match wins
-                const st = readStyleNode(node, themeFonts);
-                if (Object.keys(st).length) {
-                    overrides[key] = st;
-                    found.push(id);
+            for (const sid of Object.keys(IMPORT_STYLE_MAP)) {
+                const key = IMPORT_STYLE_MAP[sid];
+                if (!index[sid] || overrides[key]) continue;
+
+                const resolved = resolveWordStyle(sid, index, themeFonts, themeColors, {});
+                // docDefaults sit beneath everything, and beneath Normal in particular
+                const merged = (key === 'normal')
+                    ? Object.assign({}, defaults, resolved)
+                    : Object.assign({}, defaults, overrides.normal || {}, resolved);
+
+                // Drop keys that are identical to the default — they are not overrides
+                for (const k of Object.keys(merged)) {
+                    if (merged[k] === undefined || merged[k] === null || merged[k] === '') delete merged[k];
+                }
+
+                if (Object.keys(merged).length) {
+                    overrides[key] = merged;
+                    found.push(sid);
                 }
             }
 
-            if (overrides.normal && !overrides.normal.sizeHp && defaultSizeHp) {
-                overrides.normal.sizeHp = defaultSizeHp;
-            }
 
             // Page setup from the first section of the document
             let page = null;
@@ -2397,11 +2562,12 @@ End of demonstration.
                 if (outlineLvl !== undefined && outlineLvl < 2) p += '<w:keepLines/>';
                 p += '<w:spacing w:before="' + s.before + '" w:after="' + s.after + '"'
                    + ' w:line="' + s.line + '" w:lineRule="auto"/>';
-                if (s.indLeft || s.indRight || s.indFirst) {
+                if (s.indLeft || s.indRight || s.indFirst || s.indHanging) {
                     p += '<w:ind'
                        + (s.indLeft  ? ' w:left="' + s.indLeft + '"'   : '')
                        + (s.indRight ? ' w:right="' + s.indRight + '"' : '')
-                       + (s.indFirst ? ' w:firstLine="' + s.indFirst + '"' : '')
+                       + (s.indHanging ? ' w:hanging="' + s.indHanging + '"'
+                                       : (s.indFirst ? ' w:firstLine="' + s.indFirst + '"' : ''))
                        + '/>';
                 }
                 if (s.align) p += '<w:jc w:val="' + s.align + '"/>';
@@ -3149,7 +3315,7 @@ End of demonstration.
                 font: $('dsSFont'), size: $('dsSSize'), color: $('dsSColor'),
                 colorClear: $('dsSColorClear'), weight: $('dsSWeight'),
                 indLeft: $('dsSIndLeft'), indRight: $('dsSIndRight'),
-                indFirst: $('dsSIndFirst'), align: $('dsSAlign'),
+                indFirst: $('dsSIndFirst'), indHang: $('dsSIndHang'), align: $('dsSAlign'),
                 before: $('dsSBefore'), after: $('dsSAfter'), line: $('dsSLine'),
                 keepNext: $('dsSKeepNext'),
                 reset: $('dsStyleReset'), resetAll: $('dsStyleResetAll')
@@ -3230,6 +3396,7 @@ End of demonstration.
                 se.indLeft.value  = (ov.indLeft  !== undefined && ov.indLeft  !== '') ? U.twipsToCm(ov.indLeft).toFixed(2)  : '';
                 se.indRight.value = (ov.indRight !== undefined && ov.indRight !== '') ? U.twipsToCm(ov.indRight).toFixed(2) : '';
                 se.indFirst.value = (ov.indFirst !== undefined && ov.indFirst !== '') ? U.twipsToCm(ov.indFirst).toFixed(2) : '';
+                se.indHang.value  = (ov.indHanging !== undefined && ov.indHanging !== '') ? U.twipsToCm(ov.indHanging).toFixed(2) : '';
                 se.before.value   = (ov.before   !== undefined && ov.before   !== '') ? U.twipsToPt(ov.before).toFixed(0)   : '';
                 se.after.value    = (ov.after    !== undefined && ov.after    !== '') ? U.twipsToPt(ov.after).toFixed(0)    : '';
                 se.line.value     = ov.line ? String(ov.line) : '';
@@ -3267,6 +3434,7 @@ End of demonstration.
                 if (se.indLeft.value  !== '') ov.indLeft  = U.cmToTwips(se.indLeft.value);
                 if (se.indRight.value !== '') ov.indRight = U.cmToTwips(se.indRight.value);
                 if (se.indFirst.value !== '') ov.indFirst = U.cmToTwips(se.indFirst.value);
+                if (se.indHang.value !== '') ov.indHanging = U.cmToTwips(se.indHang.value);
                 if (se.align.value)           ov.align    = se.align.value;
                 if (se.before.value !== '')   ov.before   = U.ptToTwips(se.before.value);
                 if (se.after.value  !== '')   ov.after    = U.ptToTwips(se.after.value);
@@ -3282,7 +3450,7 @@ End of demonstration.
             }
 
             se.pick.addEventListener('change', loadStyleIntoForm);
-            [se.font, se.size, se.weight, se.indLeft, se.indRight, se.indFirst,
+            [se.font, se.size, se.weight, se.indLeft, se.indRight, se.indFirst, se.indHang,
              se.align, se.before, se.after, se.line, se.keepNext].forEach(el => {
                 el.addEventListener('change', saveStyleFromForm);
                 if (el.type === 'text' || el.type === 'number') {
@@ -3447,6 +3615,12 @@ End of demonstration.
 
                     say('Imported ' + res.found.length + ' style(s): ' + res.found.join(', ') + '.' + pageMsg
                         + ' Open the Styles tab to adjust or clear any of them.', true);
+
+                    // Pre-fill the template name so the import can be kept
+                    if (tpl && tpl.name && !tpl.name.value) {
+                        tpl.name.value = file.name.replace(/\.(docx|dotx)$/i, '');
+                        tplSay('Press "Save current settings" to keep this as a reusable template.', true);
+                    }
                 } catch (err) {
                     say('Could not read that file: ' + (err && err.message ? err.message : 'unknown error'), false);
                 } finally {
@@ -3460,13 +3634,249 @@ End of demonstration.
                 readForm(); loadStyleIntoForm(); save();
                 say('Imported styles cleared. Back to the built-in template.', true);
             });
+            // ---- named user templates ----
+            const TPL_KEY = 'docx_user_templates_v1';
 
+            const tpl = {
+                pick: $('dsTplPick'), name: $('dsTplName'),
+                saveBtn: $('dsTplSave'), loadBtn: $('dsTplLoad'),
+                delBtn: $('dsTplDelete'), exportBtn: $('dsTplExport'),
+                importFile: $('dsTplImportFile'), report: $('dsTplReport')
+            };
+
+            function tplSay(msg, ok) {
+                if (!tpl.report) return;
+                tpl.report.textContent = msg;
+                tpl.report.className = 'ds-import-report ' + (ok ? 'ok' : 'bad');
+            }
+
+            function tplAll() {
+                try {
+                    return JSON.parse(localStorage.getItem(TPL_KEY) || '{}');
+                } catch (e) { return {}; }
+            }
+
+            function tplPersist(all) {
+                try {
+                    localStorage.setItem(TPL_KEY, JSON.stringify(all));
+                    return true;
+                } catch (e) {
+                    tplSay('Could not save — browser storage is full or disabled.', false);
+                    return false;
+                }
+            }
+
+            // Snapshot every control plus the style overrides
+            function tplSnapshot() {
+                const fields = {};
+                for (const k of Object.keys(els)) {
+                    const el = els[k];
+                    if (!el) continue;
+                    fields[k] = (el.type === 'checkbox') ? el.checked : el.value;
+                }
+                return {
+                    version: 1,
+                    savedAt: new Date().toISOString(),
+                    fields,
+                    overrides: JSON.parse(JSON.stringify(overrides)),
+                    customMargins: customMargins ? Object.assign({}, customMargins) : null
+                };
+            }
+
+            function tplApply(snap) {
+                if (!snap || !snap.fields) throw new Error('Not a valid template file');
+                for (const k of Object.keys(snap.fields)) {
+                    const el = els[k];
+                    if (!el) continue;
+                    if (el.type === 'checkbox') el.checked = !!snap.fields[k];
+                    else el.value = snap.fields[k];
+                }
+                overrides = snap.overrides || {};
+                customMargins = snap.customMargins || null;
+                readForm();
+                loadStyleIntoForm();
+                save();
+            }
+
+            function tplRefreshList(selectName) {
+                const all = tplAll();
+                const names = Object.keys(all).sort();
+                tpl.pick.innerHTML = '<option value="">— none selected —</option>';
+                for (const n of names) {
+                    const o = document.createElement('option');
+                    o.value = n; o.textContent = n;
+                    tpl.pick.appendChild(o);
+                }
+                if (selectName && all[selectName]) tpl.pick.value = selectName;
+            }
+
+            tpl.saveBtn.addEventListener('click', () => {
+                const name = (tpl.name.value || '').trim();
+                if (!name) { tplSay('Give the template a name first.', false); return; }
+
+                const all = tplAll();
+                const existed = !!all[name];
+                if (existed && !confirm('Overwrite the template "' + name + '"?')) return;
+
+                all[name] = tplSnapshot();
+                if (!tplPersist(all)) return;
+
+                tplRefreshList(name);
+                tpl.name.value = '';
+                tplSay((existed ? 'Updated' : 'Saved') + ' template "' + name + '".', true);
+            });
+
+            tpl.loadBtn.addEventListener('click', () => {
+                const name = tpl.pick.value;
+                if (!name) { tplSay('Pick a saved template first.', false); return; }
+                try {
+                    tplApply(tplAll()[name]);
+                    tplSay('Loaded "' + name + '".', true);
+                    showMessage('Template "' + name + '" applied.', 'success');
+                } catch (e) {
+                    tplSay('Could not load that template: ' + e.message, false);
+                }
+            });
+
+            tpl.pick.addEventListener('change', () => {
+                // Selecting is not loading — the Load button is deliberate,
+                // so a stray click cannot wipe unsaved work.
+                if (tpl.pick.value) tplSay('Press Load to apply "' + tpl.pick.value + '".', true);
+            });
+
+            tpl.delBtn.addEventListener('click', () => {
+                const name = tpl.pick.value;
+                if (!name) { tplSay('Pick a saved template first.', false); return; }
+                if (!confirm('Delete the template "' + name + '"? This cannot be undone.')) return;
+                const all = tplAll();
+                delete all[name];
+                if (!tplPersist(all)) return;
+                tplRefreshList();
+                tplSay('Deleted "' + name + '".', true);
+            });
+
+            tpl.exportBtn.addEventListener('click', () => {
+                const name = tpl.pick.value;
+                const snap = name ? tplAll()[name] : tplSnapshot();
+                const label = name || (tpl.name.value || '').trim() || 'template';
+                const payload = Object.assign({ name: label, kind: '2docx-template' }, snap);
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                saveAs(blob, label.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-') + '.2docx.json');
+                tplSay('Exported "' + label + '".', true);
+            });
+
+            tpl.importFile.addEventListener('change', async e => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                try {
+                    const text = await file.text();
+                    const snap = JSON.parse(text);
+                    if (!snap.fields) throw new Error('missing settings — is this a 2docx template?');
+
+                    const name = (snap.name || file.name.replace(/\.(2docx\.)?json$/i, '')).trim() || 'Imported';
+                    const all = tplAll();
+                    if (all[name] && !confirm('A template named "' + name + '" exists. Overwrite it?')) return;
+
+                    all[name] = { version: snap.version || 1, savedAt: snap.savedAt || new Date().toISOString(),
+                                  fields: snap.fields, overrides: snap.overrides || {},
+                                  customMargins: snap.customMargins || null };
+                    if (!tplPersist(all)) return;
+
+                    tplRefreshList(name);
+                    tplApply(all[name]);
+                    tplSay('Imported and applied "' + name + '".', true);
+                } catch (err) {
+                    tplSay('Could not read that file: ' + (err && err.message ? err.message : 'unknown error'), false);
+                } finally {
+                    e.target.value = '';
+                }
+            });
+
+            tplRefreshList();
             // ---- boot ----
             if (!load()) applyPresetToForm('professional');
             readForm();
             loadStyleIntoForm();
         })();
         // ===== END SETTINGS PANEL WIRING =====
+                (function initDocMeta() {
+            const $ = id => document.getElementById(id);
+            const STORE_KEY = 'docx_meta_v1';
+            const els = {
+                mode: $('dmMode'), created: $('dmCreated'), modified: $('dmModified'),
+                revision: $('dmRevision'), editMinutes: $('dmEditMinutes'),
+                author: $('dmAuthor'), editor: $('dmEditor'), company: $('dmCompany'),
+                manager: $('dmManager'), title: $('dmTitle'), subject: $('dmSubject'),
+                category: $('dmCategory'), keywords: $('dmKeywords'), comments: $('dmComments')
+            };
+            if (!els.mode) return;
+
+            function localStamp(d) {
+                const p = n => String(n).padStart(2, '0');
+                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
+                     + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+            function syncDateFields() {
+                const manual = els.mode.value === 'manual';
+                els.created.disabled = !manual;
+                els.modified.disabled = !manual;
+                els.created.parentElement.style.opacity = manual ? '1' : '0.45';
+                els.modified.parentElement.style.opacity = manual ? '1' : '0.45';
+            }
+            function readForm() {
+                DOC_META = Object.assign({}, DOC_META, {
+                    mode: els.mode.value,
+                    author: els.author.value || 'Author',
+                    lastEditor: els.editor.value,
+                    company: els.company.value,
+                    manager: els.manager.value,
+                    title: els.title.value,
+                    subject: els.subject.value,
+                    category: els.category.value,
+                    keywords: els.keywords.value,
+                    comments: els.comments.value,
+                    createdISO: els.created.value,
+                    modifiedISO: els.modified.value,
+                    revision: parseInt(els.revision.value, 10) || 0,
+                    editMinutes: parseInt(els.editMinutes.value, 10) || 0
+                });
+            }
+            function save() {
+                try {
+                    const snap = {};
+                    for (const k of Object.keys(els)) snap[k] = els[k].value;
+                    localStorage.setItem(STORE_KEY, JSON.stringify(snap));
+                } catch (e) { /* storage unavailable */ }
+            }
+            function load() {
+                try {
+                    const raw = localStorage.getItem(STORE_KEY);
+                    if (!raw) return false;
+                    const snap = JSON.parse(raw);
+                    for (const k of Object.keys(snap)) if (els[k]) els[k].value = snap[k];
+                    return true;
+                } catch (e) { return false; }
+            }
+            for (const k of Object.keys(els)) {
+                els[k].addEventListener('change', () => { syncDateFields(); readForm(); save(); });
+                els[k].addEventListener('input',  () => { readForm(); save(); });
+            }
+            const nowBtn = $('dmNow');
+            if (nowBtn) nowBtn.addEventListener('click', () => {
+                const s = localStamp(new Date());
+                els.mode.value = 'manual';
+                els.created.value = s;
+                els.modified.value = s;
+                syncDateFields(); readForm(); save();
+                showMessage('Document dates set to now.', 'success');
+            });
+            if (!load()) {
+                els.author.value = DOC_META.author;
+                els.company.value = DOC_META.company;
+            }
+            syncDateFields();
+            readForm();
+        })();
         // ===== END DOCUMENT PROPERTIES WIRING =====
     </script>
 </body>
