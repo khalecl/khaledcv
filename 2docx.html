@@ -507,78 +507,106 @@
                         <label for="mdFile" class="upload-btn">📂 Load .md File</label>
                     </div>
                 </div>
-                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Document Title
+                <textarea id="editor" placeholder="Paste or write your markdown here..." spellcheck="false"># Markdown to Word Converter
 
-## Heading 1
+A demonstration of everything this converter can produce. Change the template in the settings panel below and download to see the same content restyled.
 
-### Heading 2
+## Text and Headings
 
-This is normal paragraph text with some **bold** and *italic* formatting.
+Body text supports **bold**, *italic*, and ***bold italic***. Inline `code` keeps its monospace font.
 
-#### Code Example
+### Third-level heading
 
-```python
-def hello_world():
-    print("Hello World!")
-```
+#### Fourth-level heading
 
-#### Lists with Indentation
+Paragraphs can be indented without lists:
+
+::indent:1:: One level of indentation.
+
+::indent:2:: Two levels of indentation.
+
+## Lists
 
 1. First numbered item
-    1. Nested level 2
-        1. Nested level 3
+    1. Nested level two
+        1. Nested level three
 2. Second numbered item
 
-Bullet points:
 - First bullet
-    - Nested bullet level 2
-        - Nested bullet level 3
+    - Nested bullet
+        - Third level
 - Second bullet
 
-#### Paragraph with Custom Indentation
+## Tables
 
-Normal paragraph.
+Column alignment is taken from the separator row:
 
-::indent:1:: This paragraph has 1 level of indentation
+| Item | Description | Qty | Unit Cost |
+|:-----|:------------|:---:|----------:|
+| Pump | **Centrifugal**, 50 mm | 4 | 2,450.00 |
+| Valve | Gate, *flanged* | 12 | 185.50 |
+| Sensor | | 8 | 340.00 |
+| Panel | Control, IP65 | 1 | 7,900.00 |
 
-::indent:2:: This paragraph has 2 levels of indentation
+Empty cells hold their column.
 
-#### Table Example with Bold
+## Quotes
 
-| Column 1 | Column 2 | Column 3 |
-|----------|----------|----------|
-| **Bold** text | Data 2 | Data 3 |
-| Data 4 | *Italic* text | Data 6 |
+> Energy efficiency is the cheapest source of new capacity.
+> It is also the fastest to deploy.
 
-#### Blockquote
+## Code
 
-> This is a quote from someone important.
-> It can span multiple lines.
+```python
+def payback_period(capex, annual_saving):
+    if annual_saving <= 0:
+        raise ValueError("Saving must be positive")
+    return capex / annual_saving
 
----
+print(f"{payback_period(48000, 12500):.1f} years")
+```
 
-End of document.
+## Equations
 
-#### LaTeX Equation
+Inline: the annual saving is $S = P \times h \times t$ where $t$ is the tariff.
 
-Inline equation: $E = mc^2$
-
-Display equation:
+Display:
 
 $$
-\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+\eta_{th} = 1 - \frac{T_{cold}}{T_{hot}}
 $$
 
-#### Mermaid Diagram
+$$
+\int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+$$
+
+## Diagrams
+
+Default placement:
 
 ```mermaid
 graph TD
-    A[Start] --> B{Decision}
-    B -->|Yes| C[Action 1]
-    B -->|No| D[Action 2]
-    C --> E[End]
-    D --> E
+    A[Energy Audit] --> B{Savings identified?}
+    B -->|Yes| C[Build business case]
+    B -->|No| D[Re-scope survey]
+    C --> E[Implement]
+    D --> A
+    E --> F[Measure and verify]
 ```
+
+Wrapped to the right at 40% width, with text flowing alongside:
+
+```mermaid {wrap=square, side=right, width=40}
+graph LR
+    M[Meter] --> L[Logger]
+    L --> P[Portal]
+```
+
+This paragraph sits beside the diagram above rather than below it. Add `{wrap=square, side=right, width=40}` after the fence word to control any single diagram. Options are `inline`, `square`, `tight`, `through`, `topAndBottom`, `behind` and `front`, positioned `left`, `right` or `center`.
+
+---
+
+End of demonstration.
 </textarea>
             </div>
 
@@ -936,7 +964,30 @@ graph TD
                 quoteBorder: 'CCCCCC'
             }
         };
-
+        // Everything outside the Template tab that a preset also controls.
+        const PRESET_LAYOUT = {
+            professional: { pageSize: 'A4',     landscape: false, margins: 'normal',
+                            toc: false, headerMode: 'none',  headerText: '',
+                            footerMode: 'page',     footerText: '', firstPage: true,
+                            imgWrap: 'inline', imgSide: 'center', imgWidth: '',  csFont: '' },
+            academic:     { pageSize: 'A4',     landscape: false, margins: 'wide',
+                            toc: true,  headerMode: 'title', headerText: '',
+                            footerMode: 'page',     footerText: '', firstPage: true,
+                            imgWrap: 'inline', imgSide: 'center', imgWidth: '80', csFont: '' },
+            corporate:    { pageSize: 'A4',     landscape: false, margins: 'normal',
+                            toc: true,  headerMode: 'text',  headerText: 'Confidential',
+                            footerMode: 'textPage', footerText: '© ' + new Date().getFullYear(),
+                            firstPage: true,
+                            imgWrap: 'square', imgSide: 'right', imgWidth: '45', csFont: '' },
+            technical:    { pageSize: 'A4',     landscape: false, margins: 'moderate',
+                            toc: true,  headerMode: 'title', headerText: '',
+                            footerMode: 'textPage', footerText: '', firstPage: false,
+                            imgWrap: 'topAndBottom', imgSide: 'center', imgWidth: '90', csFont: '' },
+            minimal:      { pageSize: 'A4',     landscape: false, margins: 'narrow',
+                            toc: false, headerMode: 'none',  headerText: '',
+                            footerMode: 'none',     footerText: '', firstPage: true,
+                            imgWrap: 'inline', imgSide: 'center', imgWidth: '',  csFont: '' }
+        };
         // Live theme. Rebuilt from the UI before every conversion.
 
         // Per-style font overrides. '' means "inherit from the theme"
@@ -3266,13 +3317,39 @@ graph TD
             function applyPresetToForm(key) {
                 const p = DOC_PRESETS[key];
                 if (!p) return;
-                els.bodyFont.value = p.bodyFont;
-                els.headFont.value = p.headingFont;
-                els.bodySize.value = (p.bodySize / 2).toFixed(1);
-                els.line.value = String(p.lineSpacing);
-                els.accent.value = wordToHex(p.h1Color);
+                const L = PRESET_LAYOUT[key] || PRESET_LAYOUT.professional;
+
+                // Template tab
+                els.bodyFont.value   = p.bodyFont;
+                els.headFont.value   = p.headingFont;
+                els.bodySize.value   = (p.bodySize / 2).toFixed(1);
+                els.line.value       = String(p.lineSpacing);
+                els.accent.value     = wordToHex(p.h1Color);
                 els.tableStyle.value = p.tableStyle;
                 els.titleRule.checked = !!p.titleRule;
+                els.fCs.value        = L.csFont;
+
+                // Page Layout tab
+                els.pageSize.value = L.pageSize;
+                els.orient.value   = L.landscape ? 'landscape' : 'portrait';
+                els.margins.value  = L.margins;
+                els.toc.checked    = !!L.toc;
+
+                // Header & Footer tab
+                els.headerMode.value = L.headerMode;
+                els.headerText.value = L.headerText;
+                els.footerMode.value = L.footerMode;
+                els.footerText.value = L.footerText;
+                els.firstPage.checked = !!L.firstPage;
+
+                // Diagrams tab
+                if (els.imgWrap)  els.imgWrap.value  = L.imgWrap;
+                if (els.imgSide)  els.imgSide.value  = L.imgSide;
+                if (els.imgWidth) els.imgWidth.value = L.imgWidth;
+
+                // A template switch is a clean slate
+                overrides = {};
+                customMargins = null;
             }
 
             for (const k of Object.keys(els)) {
