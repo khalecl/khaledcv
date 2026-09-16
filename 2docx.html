@@ -692,6 +692,29 @@ graph TD
                 <label>Quote size (pt)<input type="number" id="dsQuoteSize" min="6" max="24" step="0.5" placeholder="auto"></label>
                 <label>Table size (pt)<input type="number" id="dsTableSize" min="6" max="24" step="0.5" placeholder="auto"></label>
                 <label>Code size (pt)<input type="number" id="dsCodeSize" min="6" max="24" step="0.5" placeholder="auto"></label>
+                            <label>Diagram wrapping
+                    <select id="dsImgWrap">
+                        <option value="inline">In line with text</option>
+                        <option value="square">Square</option>
+                        <option value="tight">Tight</option>
+                        <option value="through">Through</option>
+                        <option value="topAndBottom">Top and bottom</option>
+                        <option value="behind">Behind text</option>
+                        <option value="front">In front of text</option>
+                    </select>
+                </label>
+
+                <label>Diagram position
+                    <select id="dsImgSide">
+                        <option value="center">Centre</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
+                </label>
+
+                <label>Diagram width (% of column)
+                    <input type="number" id="dsImgWidth" min="10" max="100" step="5" placeholder="natural">
+                </label>
             </div>
 
             <datalist id="dsFontList">
@@ -893,6 +916,7 @@ graph TD
             preset: 'professional',
             styleFonts: Object.assign({}, EMPTY_STYLE_FONTS),
             csFont: '',              // '' = let Word choose
+             image: { wrap: 'inline', side: 'center', widthPct: 0 },
             quoteSize: 0,            // 0 = derive from body size
             tableSize: 0,
             codeSize: 0,
@@ -1290,7 +1314,7 @@ graph TD
 
             // Extract mermaid blocks BEFORE marked processes them
             const mermaidBlocks = [];
-            md = md.replace(/```mermaid\s*\n([\s\S]*?)```/g, (match, code) => {
+            md = md.replace(/```mermaid[ \t]*([^\n]*)\n([\s\S]*?)```/g, (match, attrs, code) => {
                 const id = 'mermaid-placeholder-' + mermaidBlocks.length;
                 mermaidBlocks.push({ id, code: code.trim() });
                 return '<div id="' + id + '" class="mermaid-container"></div>';
@@ -1643,15 +1667,22 @@ graph TD
             let imageIndex = 0;
 
             // Pre-compile regexes once
-            const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/g;
+            // Capture an optional attribute string after the fence word:
+            //   ```mermaid {wrap=square, side=right, width=45}
+            const mermaidRegex = /```mermaid[ \t]*([^\n]*)\n([\s\S]*?)```/g;
 
             // Extract mermaid blocks FIRST (from raw markdown, before masking)
             const mermaidBlocksList = [];
             let mm;
             while ((mm = mermaidRegex.exec(markdown)) !== null) {
                 const key = 'mermaid_' + imageIndex++;
-                mermaidBlocksList.push({ key, code: mm[1].trim(), fullMatch: mm[0] });
-            }
+                mermaidBlocksList.push({
+                    key,
+                    code: mm[2].trim(),
+                    opts: parseImageOpts(mm[1]),
+                    fullMatch: mm[0]
+                });
+                            }
 
             // ---- Mask code + escaped dollars so math scanning never touches them ----
             // Mask fenced code blocks and inline code, and turn \$ into a sentinel.
@@ -2280,7 +2311,40 @@ graph TD
 	// Cache for repeated string building
         const imageXmlCache = new Map();
         
-     
+        // Parse "{wrap=square, side=right, width=45}" from a fence info string.
+        // Anything absent falls back to the global setting in DOC_THEME.image.
+        function parseImageOpts(attrStr) {
+            const base = (DOC_THEME && DOC_THEME.image) || {};
+            const out = {
+                wrap: base.wrap || 'inline',
+                side: base.side || 'center',
+                widthPct: base.widthPct || 0
+            };
+            if (!attrStr) return out;
+
+            const body = attrStr.replace(/[{}]/g, '').trim();
+            if (!body) return out;
+
+            const VALID_WRAP = ['inline', 'square', 'tight', 'through', 'topAndBottom', 'behind', 'front'];
+            const VALID_SIDE = ['left', 'right', 'center'];
+
+            for (const part of body.split(/[,;]/)) {
+                const bits = part.split('=');
+                if (bits.length !== 2) continue;
+                const k = bits[0].trim().toLowerCase();
+                const v = bits[1].trim();
+                if (k === 'wrap') {
+                    const match = VALID_WRAP.find(w => w.toLowerCase() === v.toLowerCase());
+                    if (match) out.wrap = match;
+                } else if (k === 'side' || k === 'align') {
+                    if (VALID_SIDE.indexOf(v.toLowerCase()) !== -1) out.side = v.toLowerCase();
+                } else if (k === 'width' || k === 'w') {
+                    const n = parseInt(v, 10);
+                    if (n > 0) out.widthPct = Math.min(n, 100);
+                }
+            }
+            return out;
+        }     
              // opts: { wrap, side, widthPct }
         //   wrap:  'inline' | 'square' | 'tight' | 'through' | 'topAndBottom' | 'behind' | 'front'
         //   side:  'left' | 'right' | 'center'
@@ -2446,7 +2510,23 @@ graph TD
                     const key = mermaidMatch[1];
                     const img = imageRelMap[key];
                     if (img) {
-                        xml += '<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r>' + buildImageXml(img.rId, img.width, img.height, false) + '</w:r></w:p>';
+                        const blk = mermaidBlocksList.find(b => b.key === key);
+                        const opts = (blk && blk.opts) || parseImageOpts('');
+                        const drawing = buildImageXml(img.rId, img.width, img.height, opts);
+
+                        if (opts.wrap === 'inline') {
+                            const jc = opts.side === 'left' ? 'left'
+                                     : opts.side === 'right' ? 'right' : 'center';
+                            xml += '<w:p><w:pPr><w:jc w:val="' + jc + '"/></w:pPr><w:r>'
+                                 + drawing + '</w:r></w:p>';
+                        } else {
+                            // An anchored image attaches to the paragraph that holds it.
+                            // Emitting it in a zero-height paragraph immediately before the
+                            // body text lets the following text flow around it.
+                            xml += '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'
+                                 + '<w:rPr><w:sz w:val="2"/></w:rPr></w:pPr><w:r>'
+                                 + drawing + '</w:r></w:p>';
+                        }
                     }
                     continue;
                 }
@@ -2644,6 +2724,7 @@ graph TD
             const STORE_KEY = 'docx_theme_v1';
 
             const els = {
+                                imgWrap: $('dsImgWrap'), imgSide: $('dsImgSide'), imgWidth: $('dsImgWidth'),
                 preset: $('dsPreset'), bodyFont: $('dsBodyFont'), headFont: $('dsHeadFont'),
                 bodySize: $('dsBodySize'), line: $('dsLine'), accent: $('dsAccent'),
                 pageSize: $('dsPageSize'), orient: $('dsOrient'), margins: $('dsMargins'),
@@ -2703,6 +2784,11 @@ graph TD
                 const accent = hexToWord(els.accent.value);
 
                 DOC_THEME = Object.assign({}, base, {
+                    image: {
+                        wrap: els.imgWrap.value,
+                        side: els.imgSide.value,
+                        widthPct: parseInt(els.imgWidth.value, 10) || 0
+                    },
                     preset: presetKey,
                     bodyFont: els.bodyFont.value,
                     headingFont: els.headFont.value,
