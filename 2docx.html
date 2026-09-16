@@ -384,79 +384,107 @@
             color: white !important;
             border-color: #667eea !important;
         }
-            .doc-settings {
+        .ds-panel {
             background: #fff;
             border: 1px solid #e2e5ea;
-            border-radius: 10px;
-            margin: 16px 0;
-            padding: 0 16px;
+            border-radius: 12px;
+            margin: 18px 0;
+            overflow: hidden;
         }
-        .doc-settings > summary {
-            cursor: pointer;
-            padding: 14px 0;
-            font-weight: 600;
-            font-size: 15px;
-            list-style: none;
-        }
-        .doc-settings > summary::-webkit-details-marker { display: none; }
-        .doc-settings[open] > summary { border-bottom: 1px solid #eef0f3; }
-        .ds-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 12px 16px;
-            padding: 16px 0;
-        }
-        .ds-grid label {
+        .ds-tabbar {
             display: flex;
-            flex-direction: column;
-            gap: 5px;
-            font-size: 12px;
-            color: #5c6370;
+            gap: 2px;
+            background: #f6f7f9;
+            border-bottom: 1px solid #e2e5ea;
+            padding: 6px 6px 0;
+            overflow-x: auto;
         }
-        .ds-grid select,
-        .ds-grid input[type="text"],
-        .ds-grid input[type="number"] {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 7px 8px;
+        .ds-tab {
+            border: none;
+            background: transparent;
+            padding: 10px 16px;
             font-size: 13px;
             font-family: inherit;
-            background: #fff;
-            min-height: 34px;
-        }
-        .ds-grid input[type="color"] {
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            height: 34px;
-            padding: 2px;
+            font-weight: 500;
+            color: #5c6370;
             cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            white-space: nowrap;
         }
-        .ds-grid label.ds-check {
-            flex-direction: row;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
+        .ds-tab:hover { background: #eceef1; color: #16181d; }
+        .ds-tab.is-active {
+            background: #fff;
             color: #16181d;
+            box-shadow: inset 0 -2px 0 #0f766e;
         }
+        .ds-pane { display: none; padding: 18px 20px 20px; }
+        .ds-pane.is-active { display: block; }
+
+        .ds-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px 16px;
+        }
+        .ds-row label {
+            display: flex; flex-direction: column; gap: 5px;
+            font-size: 12px; color: #5c6370;
+        }
+        .ds-row label.ds-wide { grid-column: span 2; }
+        .ds-row select,
+        .ds-row input[type="text"],
+        .ds-row input[type="number"],
+        .ds-row input[type="datetime-local"] {
+            border: 1px solid #ddd; border-radius: 6px;
+            padding: 7px 8px; font-size: 13px; font-family: inherit;
+            background: #fff; min-height: 34px; width: 100%;
+        }
+        .ds-row input[type="color"] {
+            border: 1px solid #ddd; border-radius: 6px;
+            height: 34px; padding: 2px; cursor: pointer; width: 100%;
+        }
+        .ds-row label.ds-check {
+            flex-direction: row; align-items: center; gap: 8px;
+            font-size: 13px; color: #16181d; align-self: end; min-height: 34px;
+        }
+        .ds-colorwrap { display: flex; gap: 6px; align-items: center; }
+        .ds-mini {
+            border: 1px solid #ddd; background: #fff; border-radius: 6px;
+            font-size: 11px; padding: 6px 8px; cursor: pointer; font-family: inherit;
+        }
+
+        .ds-fieldset {
+            border: 1px solid #eef0f3; border-radius: 10px;
+            padding: 14px 16px; margin: 14px 0;
+        }
+        .ds-legend {
+            font-size: 12px; font-weight: 600; color: #16181d;
+            text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px;
+        }
+
         .ds-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 0 0 16px;
+            display: flex; align-items: center; gap: 10px;
+            flex-wrap: wrap; padding-top: 6px;
         }
-        .ds-note { font-size: 12px; color: #8a8f98; }
+        .ds-note { font-size: 12px; color: #8a8f98; margin: 6px 0 0; }
+        .ds-note code {
+            background: #f2f4f6; padding: 1px 5px; border-radius: 4px; font-size: 11px;
+        }
+
+        .ds-import {
+            margin-top: 18px; padding: 16px;
+            border: 1px dashed #cfd4da; border-radius: 10px; background: #fafbfc;
+        }
+        .ds-import-head { font-size: 13px; font-weight: 600; color: #16181d; }
+        .ds-import-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .ds-import-report { font-size: 12px; margin-top: 10px; line-height: 1.6; }
+        .ds-import-report.ok  { color: #0f766e; }
+        .ds-import-report.bad { color: #b42318; }
+
         @media (max-width: 640px) {
-            .ds-grid { grid-template-columns: 1fr 1fr; }
-        }    
-                .ds-subhead {
-            font-size: 13px;
-            font-weight: 600;
-            color: #16181d;
-            padding: 6px 0 0;
-            border-top: 1px solid #eef0f3;
-            margin-top: 4px;
+            .ds-row { grid-template-columns: 1fr 1fr; }
+            .ds-row label.ds-wide { grid-column: span 2; }
+            .ds-tab { padding: 9px 11px; font-size: 12px; }
         }
-        .ds-subhead span { font-weight: 400; color: #8a8f98; }
     </style>
 </head>
 <body>
@@ -568,154 +596,184 @@ graph TD
 
         <div id="message"></div>
 
-        <details class="doc-settings" id="docSettings">
-            <summary>⚙️ Document Style &amp; Template</summary>
-            <div class="ds-grid">
+         <div class="ds-panel" id="docSettings">
+            <div class="ds-tabbar" role="tablist">
+                <button type="button" class="ds-tab is-active" data-tab="template">Template</button>
+                <button type="button" class="ds-tab" data-tab="styles">Styles</button>
+                <button type="button" class="ds-tab" data-tab="page">Page Layout</button>
+                <button type="button" class="ds-tab" data-tab="hf">Header &amp; Footer</button>
+                <button type="button" class="ds-tab" data-tab="media">Diagrams</button>
+                <button type="button" class="ds-tab" data-tab="props">Properties</button>
+            </div>
 
-                <label>Template
-                    <select id="dsPreset"></select>
-                </label>
-
-                <label>Body font
-                    <select id="dsBodyFont">
-                        <option>Segoe UI</option><option>Calibri</option>
-                        <option>Times New Roman</option><option>Georgia</option>
-                        <option>Arial</option><option>Cambria</option><option>Verdana</option>
-                    </select>
-                </label>
-
-                <label>Heading font
-                    <select id="dsHeadFont">
+            <!-- ── TEMPLATE ───────────────────────────────── -->
+            <section class="ds-pane is-active" data-pane="template">
+                <div class="ds-row">
+                    <label class="ds-wide">Built-in template
+                        <select id="dsPreset"></select>
+                    </label>
+                    <label>Body font<select id="dsBodyFont">
+                        <option>Segoe UI</option><option>Calibri</option><option>Times New Roman</option>
+                        <option>Georgia</option><option>Arial</option><option>Cambria</option><option>Verdana</option>
+                    </select></label>
+                    <label>Heading font<select id="dsHeadFont">
                         <option>Georgia</option><option>Calibri</option><option>Calibri Light</option>
-                        <option>Segoe UI</option><option>Times New Roman</option>
-                        <option>Cambria</option><option>Arial</option>
-                    </select>
-                </label>
-
-                <label>Body size (pt)
-                    <input type="number" id="dsBodySize" min="8" max="16" step="0.5" value="10.5">
-                </label>
-
-                <label>Line spacing
-                    <select id="dsLine">
-                        <option value="240">Single</option>
-                        <option value="264" selected>1.1</option>
-                        <option value="276">1.15</option>
-                        <option value="360">1.5</option>
-                        <option value="480">Double</option>
-                    </select>
-                </label>
-
-                <label>Accent colour
-                    <input type="color" id="dsAccent" value="#1F3A33">
-                </label>
-
-                <label>Page size
-                    <select id="dsPageSize">
-                        <option>A4</option><option>Letter</option><option>Legal</option><option>A5</option>
-                    </select>
-                </label>
-
-                <label>Orientation
-                    <select id="dsOrient">
-                        <option value="portrait">Portrait</option>
-                        <option value="landscape">Landscape</option>
-                    </select>
-                </label>
-
-                <label>Margins
-                    <select id="dsMargins">
-                        <option value="narrow">Narrow</option>
-                        <option value="normal" selected>Normal</option>
-                        <option value="moderate">Moderate</option>
-                        <option value="wide">Wide</option>
-                    </select>
-                </label>
-
-                <label>Table style
-                    <select id="dsTableStyle">
+                        <option>Segoe UI</option><option>Times New Roman</option><option>Cambria</option><option>Arial</option>
+                    </select></label>
+                    <label>Body size (pt)<input type="number" id="dsBodySize" min="8" max="16" step="0.5" value="10.5"></label>
+                    <label>Line spacing<select id="dsLine">
+                        <option value="240">Single</option><option value="264" selected>1.1</option>
+                        <option value="276">1.15</option><option value="360">1.5</option><option value="480">Double</option>
+                    </select></label>
+                    <label>Accent colour<input type="color" id="dsAccent" value="#1F3A33"></label>
+                    <label>Arabic font<input type="text" id="dsfCs" list="dsFontList" placeholder="Word default"></label>
+                    <label>Table style<select id="dsTableStyle">
                         <option value="lines">Horizontal lines</option>
                         <option value="grid">Full grid</option>
                         <option value="minimal">Minimal</option>
-                    </select>
-                </label>
+                    </select></label>
+                    <label class="ds-check"><input type="checkbox" id="dsTitleRule" checked> Rule under title</label>
+                </div>
 
-                <label>Header
-                    <select id="dsHeaderMode">
-                        <option value="none">None</option>
-                        <option value="title">Document title</option>
+                <div class="ds-import">
+                    <div class="ds-import-head">Use an existing Word document as the template</div>
+                    <p class="ds-note">Reads fonts, sizes, colours, spacing, indentation and page setup
+                       from a <code>.docx</code> or <code>.dotx</code>. Content is ignored.</p>
+                    <div class="ds-import-actions">
+                        <input type="file" id="dsImportFile" accept=".docx,.dotx" hidden>
+                        <label for="dsImportFile" class="upload-btn">📄 Choose Word file</label>
+                        <button type="button" id="dsImportClear" class="clear-btn">✕ Clear imported styles</button>
+                    </div>
+                    <div id="dsImportReport" class="ds-import-report"></div>
+                </div>
+            </section>
+
+            <!-- ── STYLES ─────────────────────────────────── -->
+            <section class="ds-pane" data-pane="styles">
+                <div class="ds-styleedit">
+                    <label class="ds-wide">Style to modify
+                        <select id="dsStylePick"></select>
+                    </label>
+                    <p class="ds-note" id="dsStyleState"></p>
+
+                    <div class="ds-fieldset">
+                        <div class="ds-legend">Font</div>
+                        <div class="ds-row">
+                            <label>Font<input type="text" id="dsSFont" list="dsFontList" placeholder="follow template"></label>
+                            <label>Size (pt)<input type="number" id="dsSSize" min="6" max="72" step="0.5" placeholder="auto"></label>
+                            <label>Colour
+                                <div class="ds-colorwrap">
+                                    <input type="color" id="dsSColor" value="#000000">
+                                    <button type="button" id="dsSColorClear" class="ds-mini">auto</button>
+                                </div>
+                            </label>
+                            <label>Style<select id="dsSWeight">
+                                <option value="">Follow template</option>
+                                <option value="regular">Regular</option>
+                                <option value="bold">Bold</option>
+                                <option value="italic">Italic</option>
+                                <option value="bolditalic">Bold italic</option>
+                            </select></label>
+                        </div>
+                    </div>
+
+                    <div class="ds-fieldset">
+                        <div class="ds-legend">Indentation</div>
+                        <div class="ds-row">
+                            <label>Left (cm)<input type="number" id="dsSIndLeft" min="0" max="15" step="0.25" placeholder="auto"></label>
+                            <label>Right (cm)<input type="number" id="dsSIndRight" min="0" max="15" step="0.25" placeholder="auto"></label>
+                            <label>First line (cm)<input type="number" id="dsSIndFirst" min="0" max="15" step="0.25" placeholder="auto"></label>
+                            <label>Alignment<select id="dsSAlign">
+                                <option value="">Follow template</option>
+                                <option value="left">Left</option>
+                                <option value="center">Centre</option>
+                                <option value="right">Right</option>
+                                <option value="both">Justified</option>
+                            </select></label>
+                        </div>
+                    </div>
+
+                    <div class="ds-fieldset">
+                        <div class="ds-legend">Spacing</div>
+                        <div class="ds-row">
+                            <label>Before (pt)<input type="number" id="dsSBefore" min="0" max="96" step="1" placeholder="auto"></label>
+                            <label>After (pt)<input type="number" id="dsSAfter" min="0" max="96" step="1" placeholder="auto"></label>
+                            <label>Line spacing<select id="dsSLine">
+                                <option value="">Follow template</option>
+                                <option value="240">Single</option>
+                                <option value="276">1.15</option>
+                                <option value="360">1.5</option>
+                                <option value="480">Double</option>
+                            </select></label>
+                            <label class="ds-check"><input type="checkbox" id="dsSKeepNext"> Keep with next</label>
+                        </div>
+                    </div>
+
+                    <div class="ds-actions">
+                        <button type="button" id="dsStyleReset" class="clear-btn">↺ Reset this style</button>
+                        <button type="button" id="dsStyleResetAll" class="clear-btn">↺ Reset all styles</button>
+                        <span class="ds-note">Blank fields follow the chosen template.</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ── PAGE LAYOUT ────────────────────────────── -->
+            <section class="ds-pane" data-pane="page">
+                <div class="ds-row">
+                    <label>Page size<select id="dsPageSize">
+                        <option>A4</option><option>Letter</option><option>Legal</option><option>A5</option>
+                    </select></label>
+                    <label>Orientation<select id="dsOrient">
+                        <option value="portrait">Portrait</option><option value="landscape">Landscape</option>
+                    </select></label>
+                    <label>Margins<select id="dsMargins">
+                        <option value="narrow">Narrow</option><option value="normal" selected>Normal</option>
+                        <option value="moderate">Moderate</option><option value="wide">Wide</option>
+                    </select></label>
+                    <label class="ds-check"><input type="checkbox" id="dsToc"> Table of contents</label>
+                </div>
+            </section>
+
+            <!-- ── HEADER & FOOTER ────────────────────────── -->
+            <section class="ds-pane" data-pane="hf">
+                <div class="ds-row">
+                    <label>Header<select id="dsHeaderMode">
+                        <option value="none">None</option><option value="title">Document title</option>
                         <option value="text">Custom text</option>
-                    </select>
-                </label>
-
-                <label>Header text
-                    <input type="text" id="dsHeaderText" placeholder="e.g. Company — Confidential">
-                </label>
-
-                <label>Footer
-                    <select id="dsFooterMode">
+                    </select></label>
+                    <label class="ds-wide">Header text<input type="text" id="dsHeaderText" placeholder="e.g. Company — Confidential"></label>
+                    <label>Footer<select id="dsFooterMode">
                         <option value="page">Page number</option>
                         <option value="textPage">Text + page number</option>
                         <option value="none">None</option>
-                    </select>
-                </label>
+                    </select></label>
+                    <label class="ds-wide">Footer text<input type="text" id="dsFooterText" placeholder="e.g. © 2026 Your Name"></label>
+                    <label class="ds-check"><input type="checkbox" id="dsFirstPage" checked> Different first page</label>
+                </div>
+            </section>
 
-                <label>Footer text
-                    <input type="text" id="dsFooterText" placeholder="e.g. © 2026 Your Name">
-                </label>
-
-                <label class="ds-check">
-                    <input type="checkbox" id="dsToc"> Insert table of contents
-                </label>
-
-                <label class="ds-check">
-                    <input type="checkbox" id="dsFirstPage" checked> Different first page
-                </label>
-
-                <label class="ds-check">
-                    <input type="checkbox" id="dsTitleRule" checked> Rule under title
-                </label>
-            </div>
-
-            <div class="ds-subhead">Per-style fonts <span>— blank = follow the template</span></div>
-            <div class="ds-grid">
-                <label>Normal text<input type="text" id="dsfNormal" list="dsFontList" placeholder="inherit"></label>
-                <label>Title<input type="text" id="dsfTitle" list="dsFontList" placeholder="inherit"></label>
-                <label>Heading 1<input type="text" id="dsfH1" list="dsFontList" placeholder="inherit"></label>
-                <label>Heading 2<input type="text" id="dsfH2" list="dsFontList" placeholder="inherit"></label>
-                <label>Heading 3<input type="text" id="dsfH3" list="dsFontList" placeholder="inherit"></label>
-                <label>Heading 4<input type="text" id="dsfH4" list="dsFontList" placeholder="inherit"></label>
-                <label>Quotes<input type="text" id="dsfQuote" list="dsFontList" placeholder="inherit"></label>
-                <label>Code blocks<input type="text" id="dsfCode" list="dsFontList" placeholder="inherit"></label>
-                <label>Tables<input type="text" id="dsfTable" list="dsFontList" placeholder="inherit"></label>
-                <label>Arabic / complex script<input type="text" id="dsfCs" list="dsFontList" placeholder="Word default"></label>
-                <label>Quote size (pt)<input type="number" id="dsQuoteSize" min="6" max="24" step="0.5" placeholder="auto"></label>
-                <label>Table size (pt)<input type="number" id="dsTableSize" min="6" max="24" step="0.5" placeholder="auto"></label>
-                <label>Code size (pt)<input type="number" id="dsCodeSize" min="6" max="24" step="0.5" placeholder="auto"></label>
-                            <label>Diagram wrapping
-                    <select id="dsImgWrap">
+            <!-- ── DIAGRAMS ───────────────────────────────── -->
+            <section class="ds-pane" data-pane="media">
+                <div class="ds-row">
+                    <label>Text wrapping<select id="dsImgWrap">
                         <option value="inline">In line with text</option>
-                        <option value="square">Square</option>
-                        <option value="tight">Tight</option>
-                        <option value="through">Through</option>
-                        <option value="topAndBottom">Top and bottom</option>
-                        <option value="behind">Behind text</option>
-                        <option value="front">In front of text</option>
-                    </select>
-                </label>
+                        <option value="square">Square</option><option value="tight">Tight</option>
+                        <option value="through">Through</option><option value="topAndBottom">Top and bottom</option>
+                        <option value="behind">Behind text</option><option value="front">In front of text</option>
+                    </select></label>
+                    <label>Position<select id="dsImgSide">
+                        <option value="center">Centre</option><option value="left">Left</option><option value="right">Right</option>
+                    </select></label>
+                    <label>Width (% of column)<input type="number" id="dsImgWidth" min="10" max="100" step="5" placeholder="natural"></label>
+                </div>
+                <p class="ds-note">Override any single diagram in the markdown:
+                   <code>```mermaid {wrap=square, side=right, width=40}</code></p>
+            </section>
 
-                <label>Diagram position
-                    <select id="dsImgSide">
-                        <option value="center">Centre</option>
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
-                    </select>
-                </label>
-
-                <label>Diagram width (% of column)
-                    <input type="number" id="dsImgWidth" min="10" max="100" step="5" placeholder="natural">
-                </label>
-            </div>
+            <!-- ── PROPERTIES (filled by Patch E4) ────────── -->
+            <section class="ds-pane" data-pane="props" id="dsPropsPane">
+                <p class="ds-note">Apply Part B of Patch Set 2 to populate this tab.</p>
+            </section>
 
             <datalist id="dsFontList">
                 <option>Segoe UI</option><option>Calibri</option><option>Calibri Light</option>
@@ -727,80 +785,7 @@ graph TD
                 <option>Traditional Arabic</option><option>Simplified Arabic</option>
                 <option>Dubai</option><option>Amiri</option>
             </datalist>
-            </div>
-            <div class="ds-actions">
-                <button type="button" id="dsReset" class="clear-btn">↺ Reset to template</button>
-                <span class="ds-note">Settings are saved in this browser.</span>
-            </div>
-              <details class="doc-settings" id="metaSettings">
-            <summary>🪪 Document Properties</summary>
-            <div class="ds-grid">
-
-                <label>Dates
-                    <select id="dmMode">
-                        <option value="auto">Automatic (plausible)</option>
-                        <option value="manual">Set manually</option>
-                    </select>
-                </label>
-
-                <label>Created
-                    <input type="datetime-local" id="dmCreated">
-                </label>
-
-                <label>Last modified
-                    <input type="datetime-local" id="dmModified">
-                </label>
-
-                <label>Revision number
-                    <input type="number" id="dmRevision" min="0" max="999" placeholder="auto">
-                </label>
-
-                <label>Editing time (min)
-                    <input type="number" id="dmEditMinutes" min="0" max="99999" placeholder="auto">
-                </label>
-
-                <label>Author
-                    <input type="text" id="dmAuthor" placeholder="Created by">
-                </label>
-
-                <label>Last modified by
-                    <input type="text" id="dmEditor" placeholder="same as author">
-                </label>
-
-                <label>Company
-                    <input type="text" id="dmCompany">
-                </label>
-
-                <label>Manager
-                    <input type="text" id="dmManager">
-                </label>
-
-                <label>Title
-                    <input type="text" id="dmTitle" placeholder="uses the # heading">
-                </label>
-
-                <label>Subject
-                    <input type="text" id="dmSubject">
-                </label>
-
-                <label>Category
-                    <input type="text" id="dmCategory">
-                </label>
-
-                <label>Keywords
-                    <input type="text" id="dmKeywords" placeholder="comma, separated">
-                </label>
-
-                <label>Comments
-                    <input type="text" id="dmComments">
-                </label>
-
-            </div>
-            <div class="ds-actions">
-                <button type="button" id="dmNow" class="clear-btn">🕒 Set both to now</button>
-                <span class="ds-note">Visible to anyone who opens File → Properties.</span>
-            </div>
-        </details>      
+        </div>     
 
 
 
@@ -914,6 +899,8 @@ graph TD
 
         let DOC_THEME = Object.assign({}, DOC_PRESETS.professional, {
             preset: 'professional',
+            styleOverrides: {},      // key -> partial style object; '' = inherit
+            csFont: '',              // complex-script (Arabic) font, '' = Word default
             styleFonts: Object.assign({}, EMPTY_STYLE_FONTS),
             csFont: '',              // '' = let Word choose
              image: { wrap: 'inline', side: 'center', widthPct: 0 },
@@ -966,6 +953,92 @@ graph TD
         function styleSize(explicit, fallback) {
             const v = parseInt(explicit, 10);
             return (v && v > 0) ? v : fallback;
+        }
+                // Every style the converter emits, in the order shown in the UI.
+        // `major` = uses the theme's heading font when no override is set.
+        const STYLE_DEFS = [
+            { key: 'normal', id: 'Normal',        label: 'Normal (body text)', major: false },
+            { key: 'title',  id: 'Title',         label: 'Title',              major: true  },
+            { key: 'h1',     id: 'Heading1',      label: 'Heading 1',          major: true  },
+            { key: 'h2',     id: 'Heading2',      label: 'Heading 2',          major: true  },
+            { key: 'h3',     id: 'Heading3',      label: 'Heading 3',          major: false },
+            { key: 'h4',     id: 'Heading4',      label: 'Heading 4',          major: false },
+            { key: 'quote',  id: 'Quote',         label: 'Quote',              major: false },
+            { key: 'code',   id: 'Code',          label: 'Code block',         major: false },
+            { key: 'list',   id: 'ListParagraph', label: 'List paragraph',     major: false },
+            { key: 'table',  id: 'TableText',     label: 'Table text',         major: false }
+        ];
+
+        // Word's internal units. The UI speaks pt and cm; the XML speaks
+        // half-points, twips and 240ths of a line.
+        const U = {
+            ptToHalf:  pt => Math.round(parseFloat(pt) * 2),
+            halfToPt:  hp => (parseFloat(hp) / 2),
+            ptToTwips: pt => Math.round(parseFloat(pt) * 20),
+            twipsToPt: tw => (parseFloat(tw) / 20),
+            cmToTwips: cm => Math.round(parseFloat(cm) * 567),
+            twipsToCm: tw => (parseFloat(tw) / 567),
+            multToLine: m => Math.round(parseFloat(m) * 240),
+            lineToMult: l => (parseFloat(l) / 240)
+        };
+
+        // What the active template says a style should look like, before
+        // any user override. Everything here is in XML units.
+        function templateStyleBase(key) {
+            const T = DOC_THEME;
+            const body = { font: '', sizeHp: T.bodySize, color: '', bold: false, italic: false,
+                           align: '', indLeft: 0, indFirst: 0, indRight: 0,
+                           before: 0, after: T.paraAfter, line: T.lineSpacing, keepNext: false };
+            switch (key) {
+                case 'normal': return body;
+                case 'title':  return Object.assign({}, body, { sizeHp: T.titleSize, color: T.titleColor,
+                                       after: 240, line: 240, keepNext: true });
+                case 'h1':     return Object.assign({}, body, { sizeHp: T.h1Size, color: T.h1Color, bold: true,
+                                       before: 320, after: 120, line: 240, keepNext: true });
+                case 'h2':     return Object.assign({}, body, { sizeHp: T.h2Size, color: T.h2Color, bold: true,
+                                       before: 240, after: 80, line: 240, keepNext: true });
+                case 'h3':     return Object.assign({}, body, { sizeHp: T.h3Size, color: T.h3Color, bold: true,
+                                       before: 200, after: 60, line: 240, keepNext: true });
+                case 'h4':     return Object.assign({}, body, { sizeHp: T.h4Size, color: T.h4Color, bold: true,
+                                       italic: true, before: 180, after: 60, line: 240, keepNext: true });
+                case 'quote':  return Object.assign({}, body, { italic: true, color: '404040',
+                                       indLeft: 680, indRight: 340, before: 120, after: 120 });
+                case 'code':   return Object.assign({}, body, { font: T.monoFont,
+                                       sizeHp: Math.max(16, T.bodySize - 2), color: '333333',
+                                       indLeft: 170, indRight: 170, before: 120, after: 120, line: 240 });
+                case 'list':   return Object.assign({}, body, { after: 60 });
+                case 'table':  return Object.assign({}, body, { sizeHp: Math.max(16, T.bodySize - 1),
+                                       before: 40, after: 40, line: 240 });
+                default:       return body;
+            }
+        }
+
+        // Template base + user override. An override key that is '' , null or
+        // undefined means "inherit" — only real values win.
+        function resolveStyle(key) {
+            const base = templateStyleBase(key);
+            const ov = (DOC_THEME.styleOverrides && DOC_THEME.styleOverrides[key]) || {};
+            const out = Object.assign({}, base);
+            for (const k of Object.keys(ov)) {
+                const v = ov[k];
+                if (v === '' || v === null || v === undefined) continue;
+                out[k] = v;
+            }
+            return out;
+        }
+
+        // rFonts for a resolved style. Falls back to the theme reference so the
+        // document stays theme-driven when nothing is overridden.
+        function resolvedFontXml(s, useMajor) {
+            const cs = DOC_THEME.csFont ? ' w:cs="' + escapeXml(DOC_THEME.csFont) + '"' : '';
+            if (s.font) {
+                const e = escapeXml(s.font);
+                return '<w:rFonts w:ascii="' + e + '" w:hAnsi="' + e + '" w:eastAsia="' + e + '"'
+                     + (cs || ' w:cs="' + e + '"') + '/>';
+            }
+            return useMajor
+                ? '<w:rFonts w:asciiTheme="majorHAnsi" w:hAnsiTheme="majorHAnsi"' + cs + '/>'
+                : (cs ? '<w:rFonts' + cs + '/>' : '');
         }
         // ===== END DOCUMENT STYLE ENGINE =====
                 // ===== DOCUMENT AUTHENTICITY LAYER =====
@@ -1155,6 +1228,12 @@ graph TD
                 DOC_THEME.bodyFont, DOC_THEME.headingFont, DOC_THEME.monoFont,
                 DOC_THEME.csFont
             ]);
+            // Any font named in a style override must be declared here too,
+            // or Word silently substitutes it.
+            const ovs = DOC_THEME.styleOverrides || {};
+            for (const k of Object.keys(ovs)) {
+                if (ovs[k] && ovs[k].font) names.add(ovs[k].font);
+            }
             // Any per-style override must also be declared or Word substitutes
             for (const k of Object.keys(DOC_THEME.styleFonts || {})) {
                 if (DOC_THEME.styleFonts[k]) names.add(DOC_THEME.styleFonts[k]);
@@ -2022,102 +2101,308 @@ graph TD
             return xml;
         }
 
-        function getStyles() {
+        // ===== STYLE IMPORT FROM A .DOCX / .DOTX =====
+
+        // Map the Word style IDs we care about onto our internal keys
+        const IMPORT_STYLE_MAP = {
+            'Normal': 'normal', 'Title': 'title',
+            'Heading1': 'h1', 'Heading2': 'h2', 'Heading3': 'h3', 'Heading4': 'h4',
+            'Quote': 'quote', 'IntenseQuote': 'quote',
+            'ListParagraph': 'list',
+            'HTMLPreformatted': 'code', 'PlainText': 'code'
+        };
+
+        function _attr(node, name) {
+            if (!node) return null;
+            // Word attributes are namespaced; getAttribute wants the prefixed form
+            return node.getAttribute('w:' + name) || node.getAttribute(name);
+        }
+
+        function _first(parent, tag) {
+            if (!parent) return null;
+            const byTag = parent.getElementsByTagName('w:' + tag);
+            if (byTag.length) return byTag[0];
+            const plain = parent.getElementsByTagName(tag);
+            return plain.length ? plain[0] : null;
+        }
+
+        // Direct children only — stops a style's rPr picking up a nested one
+        function _child(parent, tag) {
+            if (!parent) return null;
+            for (const n of parent.children) {
+                if (n.tagName === 'w:' + tag || n.tagName === tag) return n;
+            }
+            return null;
+        }
+
+        function _hasChild(parent, tag) {
+            const n = _child(parent, tag);
+            if (!n) return false;
+            const v = _attr(n, 'val');
+            return !(v === '0' || v === 'false');
+        }
+
+        // Pull one style's formatting into our override shape
+        function readStyleNode(styleNode, themeFonts) {
+            const out = {};
+            const rpr = _child(styleNode, 'rPr');
+            const ppr = _child(styleNode, 'pPr');
+
+            if (rpr) {
+                const rf = _child(rpr, 'rFonts');
+                if (rf) {
+                    const explicit = _attr(rf, 'ascii') || _attr(rf, 'hAnsi');
+                    const themed = _attr(rf, 'asciiTheme') || _attr(rf, 'hAnsiTheme');
+                    if (explicit) out.font = explicit;
+                    else if (themed && themeFonts) {
+                        out.font = /major/i.test(themed) ? (themeFonts.major || '') : (themeFonts.minor || '');
+                    }
+                }
+                const sz = _child(rpr, 'sz');
+                if (sz && _attr(sz, 'val')) out.sizeHp = parseInt(_attr(sz, 'val'), 10);
+                const col = _child(rpr, 'color');
+                if (col && _attr(col, 'val') && _attr(col, 'val') !== 'auto') {
+                    out.color = _attr(col, 'val').toUpperCase();
+                }
+                out.bold = _hasChild(rpr, 'b');
+                out.italic = _hasChild(rpr, 'i');
+            }
+
+            if (ppr) {
+                const sp = _child(ppr, 'spacing');
+                if (sp) {
+                    if (_attr(sp, 'before')) out.before = parseInt(_attr(sp, 'before'), 10);
+                    if (_attr(sp, 'after'))  out.after  = parseInt(_attr(sp, 'after'), 10);
+                    const rule = _attr(sp, 'lineRule');
+                    // 'exact'/'atLeast' are absolute twips; we only model 'auto' multiples
+                    if (_attr(sp, 'line') && (!rule || rule === 'auto')) {
+                        out.line = parseInt(_attr(sp, 'line'), 10);
+                    }
+                }
+                const ind = _child(ppr, 'ind');
+                if (ind) {
+                    if (_attr(ind, 'left'))      out.indLeft  = parseInt(_attr(ind, 'left'), 10);
+                    if (_attr(ind, 'right'))     out.indRight = parseInt(_attr(ind, 'right'), 10);
+                    if (_attr(ind, 'firstLine')) out.indFirst = parseInt(_attr(ind, 'firstLine'), 10);
+                }
+                const jc = _child(ppr, 'jc');
+                if (jc && _attr(jc, 'val')) out.align = _attr(jc, 'val');
+                out.keepNext = _hasChild(ppr, 'keepNext');
+            }
+
+            return out;
+        }
+
+        async function importStylesFromDocx(file) {
+            const buf = await file.arrayBuffer();
+            const zip = await JSZip.loadAsync(buf);
+
+            const stylesFile = zip.file('word/styles.xml');
+            if (!stylesFile) throw new Error('No word/styles.xml — is this really a Word file?');
+
+            const parser = new DOMParser();
+            const stylesDoc = parser.parseFromString(await stylesFile.async('string'), 'application/xml');
+            if (stylesDoc.getElementsByTagName('parsererror').length) {
+                throw new Error('styles.xml could not be parsed');
+            }
+
+            // Theme fonts, so theme-referenced styles resolve to real names
+            const themeFonts = { major: '', minor: '' };
+            const themeFile = zip.file('word/theme/theme1.xml');
+            if (themeFile) {
+                const td = parser.parseFromString(await themeFile.async('string'), 'application/xml');
+                const maj = td.getElementsByTagName('a:majorFont')[0] || td.getElementsByTagName('majorFont')[0];
+                const min = td.getElementsByTagName('a:minorFont')[0] || td.getElementsByTagName('minorFont')[0];
+                const latin = n => {
+                    if (!n) return '';
+                    const l = n.getElementsByTagName('a:latin')[0] || n.getElementsByTagName('latin')[0];
+                    return l ? (l.getAttribute('typeface') || '') : '';
+                };
+                themeFonts.major = latin(maj);
+                themeFonts.minor = latin(min);
+            }
+
+            // docDefaults gives us the true body size when Normal doesn't state one
+            let defaultSizeHp = 0;
+            const dd = stylesDoc.getElementsByTagName('w:docDefaults')[0];
+            if (dd) {
+                const sz = dd.getElementsByTagName('w:sz')[0];
+                if (sz && sz.getAttribute('w:val')) defaultSizeHp = parseInt(sz.getAttribute('w:val'), 10);
+            }
+
+            const overrides = {};
+            const found = [];
+            const nodes = stylesDoc.getElementsByTagName('w:style');
+            for (const node of nodes) {
+                const id = node.getAttribute('w:styleId');
+                const key = IMPORT_STYLE_MAP[id];
+                if (!key || overrides[key]) continue;       // first match wins
+                const st = readStyleNode(node, themeFonts);
+                if (Object.keys(st).length) {
+                    overrides[key] = st;
+                    found.push(id);
+                }
+            }
+
+            if (overrides.normal && !overrides.normal.sizeHp && defaultSizeHp) {
+                overrides.normal.sizeHp = defaultSizeHp;
+            }
+
+            // Page setup from the first section of the document
+            let page = null;
+            const docFile = zip.file('word/document.xml');
+            if (docFile) {
+                const dxml = parser.parseFromString(await docFile.async('string'), 'application/xml');
+                const sect = dxml.getElementsByTagName('w:sectPr')[0];
+                if (sect) {
+                    const pgSz = sect.getElementsByTagName('w:pgSz')[0];
+                    const pgMar = sect.getElementsByTagName('w:pgMar')[0];
+                    page = {};
+                    if (pgSz) {
+                        page.w = parseInt(pgSz.getAttribute('w:w'), 10) || 0;
+                        page.h = parseInt(pgSz.getAttribute('w:h'), 10) || 0;
+                        page.landscape = (pgSz.getAttribute('w:orient') === 'landscape');
+                    }
+                    if (pgMar) {
+                        page.margins = {
+                            top:    parseInt(pgMar.getAttribute('w:top'), 10) || 1418,
+                            right:  parseInt(pgMar.getAttribute('w:right'), 10) || 1276,
+                            bottom: parseInt(pgMar.getAttribute('w:bottom'), 10) || 1418,
+                            left:   parseInt(pgMar.getAttribute('w:left'), 10) || 1418
+                        };
+                    }
+                }
+            }
+
+            return { overrides, themeFonts, page, found };
+        }
+
+        // Match imported page dimensions back to a named size, within tolerance
+        function matchPageSize(w, h) {
+            for (const name of Object.keys(PAGE_SIZES)) {
+                const p = PAGE_SIZES[name];
+                if (Math.abs(p.w - w) < 60 && Math.abs(p.h - h) < 60) return name;
+                if (Math.abs(p.h - w) < 60 && Math.abs(p.w - h) < 60) return name;   // landscape
+            }
+            return null;
+        }
+        // ===== END STYLE IMPORT =====
+         function getStyles() {
             const T = DOC_THEME;
-            const txt = (T.textColor && T.textColor !== 'auto')
-                ? '<w:color w:val="' + T.textColor + '"/>' : '';
+
+            function pPr(s, outlineLvl) {
+                let p = '<w:pPr><w:widowControl/>';
+                if (s.keepNext) p += '<w:keepNext/>';
+                if (outlineLvl !== undefined && outlineLvl < 2) p += '<w:keepLines/>';
+                p += '<w:spacing w:before="' + s.before + '" w:after="' + s.after + '"'
+                   + ' w:line="' + s.line + '" w:lineRule="auto"/>';
+                if (s.indLeft || s.indRight || s.indFirst) {
+                    p += '<w:ind'
+                       + (s.indLeft  ? ' w:left="' + s.indLeft + '"'   : '')
+                       + (s.indRight ? ' w:right="' + s.indRight + '"' : '')
+                       + (s.indFirst ? ' w:firstLine="' + s.indFirst + '"' : '')
+                       + '/>';
+                }
+                if (s.align) p += '<w:jc w:val="' + s.align + '"/>';
+                if (outlineLvl !== undefined) p += '<w:outlineLvl w:val="' + outlineLvl + '"/>';
+                return p;
+            }
+
+            function rPr(s, useMajor) {
+                let r = '<w:rPr>' + resolvedFontXml(s, useMajor);
+                if (s.bold)   r += '<w:b/>';
+                if (s.italic) r += '<w:i/>';
+                r += '<w:sz w:val="' + s.sizeHp + '"/><w:szCs w:val="' + s.sizeHp + '"/>';
+                if (s.color && s.color !== 'auto') r += '<w:color w:val="' + s.color + '"/>';
+                return r + '</w:rPr>';
+            }
+
+            const nrm = resolveStyle('normal');
 
             let s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
                 + '<w:docDefaults><w:rPrDefault><w:rPr>'
-                + '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi"/>'
-                + '<w:sz w:val="' + T.bodySize + '"/><w:szCs w:val="' + T.bodySize + '"/>'
+                + '<w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi"'
+                + ' w:eastAsiaTheme="minorHAnsi" w:cstheme="minorBidi"/>'
+                + '<w:sz w:val="' + nrm.sizeHp + '"/><w:szCs w:val="' + nrm.sizeHp + '"/>'
                 + '<w:lang w:val="en-GB" w:eastAsia="en-US" w:bidi="ar-SA"/>'
                 + '</w:rPr></w:rPrDefault>'
                 + '<w:pPrDefault><w:pPr><w:widowControl/>'
-                + '<w:spacing w:after="' + T.paraAfter + '" w:line="' + T.lineSpacing + '" w:lineRule="auto"/>'
+                + '<w:spacing w:after="' + nrm.after + '" w:line="' + nrm.line + '" w:lineRule="auto"/>'
                 + '</w:pPr></w:pPrDefault></w:docDefaults>';
 
             // Normal
-            s += '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:widowControl/>'
-                + '<w:spacing w:after="' + T.paraAfter + '" w:line="' + T.lineSpacing + '" w:lineRule="auto"/>'
-                + '</w:pPr><w:rPr>' + styleFontXml('normal', false) + txt + '</w:rPr></w:style>';
+            s += '<w:style w:type="paragraph" w:default="1" w:styleId="Normal">'
+               + '<w:name w:val="Normal"/><w:qFormat/>'
+               + pPr(nrm) + '</w:pPr>' + rPr(nrm, false) + '</w:style>';
 
             // Title
-            s += '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:keepNext/>'
-                + (T.titleRule ? '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr>' : '')
-                + '<w:spacing w:before="0" w:after="240" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr>' + styleFontXml('title', true)
-                + '<w:sz w:val="' + T.titleSize + '"/><w:szCs w:val="' + T.titleSize + '"/>'
-                + '<w:color w:val="' + T.titleColor + '"/></w:rPr></w:style>';
+            const ttl = resolveStyle('title');
+            s += '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/>'
+               + '<w:basedOn w:val="Normal"/><w:qFormat/>'
+               + pPr(ttl)
+               + (T.titleRule ? '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="6" w:color="A6A6A6"/></w:pBdr>' : '')
+               + '</w:pPr>' + rPr(ttl, true) + '</w:style>';
 
-            // Headings 1-4, driven by the theme
-            const heads = [
-
-                { id: 'Heading1', slot: 'h1', nm: 'heading 1', sz: T.h1Size, col: T.h1Color, before: 320, after: 120, lvl: 0, major: true,  ital: false },
-                { id: 'Heading2', slot: 'h2', nm: 'heading 2', sz: T.h2Size, col: T.h2Color, before: 240, after: 80,  lvl: 1, major: true,  ital: false },
-                { id: 'Heading3', slot: 'h3', nm: 'heading 3', sz: T.h3Size, col: T.h3Color, before: 200, after: 60,  lvl: 2, major: false, ital: false },
-                { id: 'Heading4', slot: 'h4', nm: 'heading 4', sz: T.h4Size, col: T.h4Color, before: 180, after: 60,  lvl: 3, major: false, ital: true  }
-            ];
-            for (const h of heads) {
-                s += '<w:style w:type="paragraph" w:styleId="' + h.id + '"><w:name w:val="' + h.nm + '"/>'
-                    + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
-                    + '<w:pPr><w:keepNext/>' + (h.lvl < 2 ? '<w:keepLines/>' : '')
-                    + '<w:spacing w:before="' + h.before + '" w:after="' + h.after + '" w:line="240" w:lineRule="auto"/>'
-                    + '<w:jc w:val="left"/><w:outlineLvl w:val="' + h.lvl + '"/></w:pPr>'
-
-                    + '<w:rPr>'
-                    + styleFontXml(h.slot, h.major)
-                    + '<w:b/>' + (h.ital ? '<w:i/>' : '')
-                    + '<w:sz w:val="' + h.sz + '"/><w:szCs w:val="' + h.sz + '"/>'
-                    + '<w:color w:val="' + h.col + '"/></w:rPr></w:style>';
+            // Headings
+            const HEAD = [['h1', 'Heading1', 'heading 1', 0, true],
+                          ['h2', 'Heading2', 'heading 2', 1, true],
+                          ['h3', 'Heading3', 'heading 3', 2, false],
+                          ['h4', 'Heading4', 'heading 4', 3, false]];
+            for (const [key, id, nm, lvl, major] of HEAD) {
+                const st = resolveStyle(key);
+                s += '<w:style w:type="paragraph" w:styleId="' + id + '"><w:name w:val="' + nm + '"/>'
+                   + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/>'
+                   + pPr(st, lvl) + '</w:pPr>'
+                   + rPr(st, major) + '</w:style>';
             }
 
             // Quote
-            s += '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="' + T.quoteBorder + '"/></w:pBdr>'
-                + '<w:spacing w:before="120" w:after="120"/><w:ind w:left="680" w:right="340"/>'
-                + '<w:jc w:val="left"/></w:pPr><w:rPr>' + styleFontXml('quote', false)
-                + '<w:i/><w:sz w:val="' + styleSize(T.quoteSize, T.bodySize) + '"/>'
-                + '<w:color w:val="404040"/></w:rPr></w:style>';
+            const qt = resolveStyle('quote');
+            s += '<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/>'
+               + '<w:basedOn w:val="Normal"/><w:qFormat/>'
+               + pPr(qt)
+               + '<w:pBdr><w:left w:val="single" w:sz="12" w:space="8" w:color="' + T.quoteBorder + '"/></w:pBdr>'
+               + '</w:pPr>' + rPr(qt, false) + '</w:style>';
 
             // Code
-            s += '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/><w:basedOn w:val="Normal"/>'
-                + '<w:pPr><w:pBdr>'
-                + '<w:top w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
-                + '<w:left w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
-                + '<w:bottom w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
-                + '<w:right w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/></w:pBdr>'
-                + '<w:shd w:val="clear" w:color="auto" w:fill="' + T.codeFill + '"/>'
-                + '<w:spacing w:before="120" w:after="120" w:line="240" w:lineRule="auto"/>'
-                + '<w:ind w:left="170" w:right="170"/><w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr><w:rFonts w:ascii="' + escapeXml(T.styleFonts.code || T.monoFont) + '"'
-                + ' w:hAnsi="' + escapeXml(T.styleFonts.code || T.monoFont) + '"/>'
-                + '<w:color w:val="333333"/>'
-                + '<w:sz w:val="' + styleSize(T.codeSize, Math.max(16, T.bodySize - 2)) + '"/></w:rPr></w:style>';
-
+            const cd = resolveStyle('code');
+            s += '<w:style w:type="paragraph" w:styleId="Code"><w:name w:val="Code"/>'
+               + '<w:basedOn w:val="Normal"/>'
+               + pPr(cd)
+               + '<w:pBdr>'
+               + '<w:top w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
+               + '<w:left w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
+               + '<w:bottom w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/>'
+               + '<w:right w:val="single" w:sz="4" w:space="4" w:color="' + T.codeBorder + '"/></w:pBdr>'
+               + '<w:shd w:val="clear" w:color="auto" w:fill="' + T.codeFill + '"/>'
+               + '</w:pPr>'
+               + '<w:rPr><w:rFonts w:ascii="' + escapeXml(cd.font || T.monoFont) + '"'
+               + ' w:hAnsi="' + escapeXml(cd.font || T.monoFont) + '"/>'
+               + '<w:sz w:val="' + cd.sizeHp + '"/>'
+               + (cd.color && cd.color !== 'auto' ? '<w:color w:val="' + cd.color + '"/>' : '')
+               + '</w:rPr></w:style>';
 
             // List paragraph
-            s += '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:qFormat/>'
-                + '<w:pPr><w:spacing w:before="0" w:after="60" w:line="' + T.lineSpacing + '" w:lineRule="auto"/>'
-                + '<w:ind w:left="0" w:firstLine="0"/><w:contextualSpacing/></w:pPr></w:style>';
+            const lp = resolveStyle('list');
+            s += '<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/>'
+               + '<w:basedOn w:val="Normal"/><w:qFormat/>'
+               + pPr(lp) + '<w:contextualSpacing/></w:pPr>'
+               + rPr(lp, false) + '</w:style>';
 
             // Table text
-            s += '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/><w:basedOn w:val="Normal"/>'
-                + '<w:pPr><w:spacing w:before="40" w:after="40" w:line="240" w:lineRule="auto"/><w:jc w:val="left"/></w:pPr>'
-                + '<w:rPr>' + styleFontXml('table', false)
-                + '<w:sz w:val="' + styleSize(T.tableSize, Math.max(16, T.bodySize - 1)) + '"/></w:rPr></w:style>';
+            const tb = resolveStyle('table');
+            s += '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/>'
+               + '<w:basedOn w:val="Normal"/>'
+               + pPr(tb) + '</w:pPr>' + rPr(tb, false) + '</w:style>';
 
-
-            // TOC levels 1-3 (needed so a generated TOC is not unstyled)
+            // TOC levels
             for (let i = 1; i <= 3; i++) {
                 s += '<w:style w:type="paragraph" w:styleId="TOC' + i + '"><w:name w:val="toc ' + i + '"/>'
-                    + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/>'
-                    + '<w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="' + themeUsableWidth() + '"/></w:tabs>'
-                    + '<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
-                    + '<w:ind w:left="' + ((i - 1) * 220) + '"/></w:pPr></w:style>';
+                   + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/>'
+                   + '<w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="' + themeUsableWidth() + '"/></w:tabs>'
+                   + '<w:spacing w:after="0" w:line="240" w:lineRule="auto"/>'
+                   + '<w:ind w:left="' + ((i - 1) * 220) + '"/></w:pPr></w:style>';
             }
 
             s += '</w:styles>';
@@ -2719,76 +3004,82 @@ graph TD
             return xml;
         }
                 // ===== SETTINGS PANEL WIRING =====
+         // ===== SETTINGS PANEL WIRING =====
         (function initDocSettings() {
             const $ = id => document.getElementById(id);
-            const STORE_KEY = 'docx_theme_v1';
+            const STORE_KEY = 'docx_theme_v2';
 
+            const panel = $('docSettings');
+            if (!panel) return;
+
+            // ---- tabs ----
+            panel.querySelectorAll('.ds-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    panel.querySelectorAll('.ds-tab').forEach(b => b.classList.remove('is-active'));
+                    panel.querySelectorAll('.ds-pane').forEach(p => p.classList.remove('is-active'));
+                    btn.classList.add('is-active');
+                    const pane = panel.querySelector('[data-pane="' + btn.dataset.tab + '"]');
+                    if (pane) pane.classList.add('is-active');
+                });
+            });
+
+            // ---- template-level controls ----
             const els = {
-                                imgWrap: $('dsImgWrap'), imgSide: $('dsImgSide'), imgWidth: $('dsImgWidth'),
                 preset: $('dsPreset'), bodyFont: $('dsBodyFont'), headFont: $('dsHeadFont'),
                 bodySize: $('dsBodySize'), line: $('dsLine'), accent: $('dsAccent'),
+                fCs: $('dsfCs'), tableStyle: $('dsTableStyle'), titleRule: $('dsTitleRule'),
                 pageSize: $('dsPageSize'), orient: $('dsOrient'), margins: $('dsMargins'),
-                tableStyle: $('dsTableStyle'), headerMode: $('dsHeaderMode'),
-                headerText: $('dsHeaderText'), footerMode: $('dsFooterMode'),
-                footerText: $('dsFooterText'), toc: $('dsToc'),
-                firstPage: $('dsFirstPage'), titleRule: $('dsTitleRule'),
-                fNormal: $('dsfNormal'), fTitle: $('dsfTitle'),
-                fH1: $('dsfH1'), fH2: $('dsfH2'), fH3: $('dsfH3'), fH4: $('dsfH4'),
-                fQuote: $('dsfQuote'), fCode: $('dsfCode'), fTable: $('dsfTable'),
-                fCs: $('dsfCs'),
-                quoteSize: $('dsQuoteSize'), tableSize: $('dsTableSize'),
-                codeSize: $('dsCodeSize'),
-                reset: $('dsReset')
+                toc: $('dsToc'),
+                headerMode: $('dsHeaderMode'), headerText: $('dsHeaderText'),
+                footerMode: $('dsFooterMode'), footerText: $('dsFooterText'),
+                firstPage: $('dsFirstPage'),
+                imgWrap: $('dsImgWrap'), imgSide: $('dsImgSide'), imgWidth: $('dsImgWidth')
             };
-
-
-            // Bail out quietly if the markup is not present
-            if (!els.preset) return;
 
             for (const key of Object.keys(DOC_PRESETS)) {
                 const o = document.createElement('option');
-                o.value = key;
-                o.textContent = DOC_PRESETS[key].label;
+                o.value = key; o.textContent = DOC_PRESETS[key].label;
                 els.preset.appendChild(o);
             }
 
+            // ---- style editor controls ----
+            const se = {
+                pick: $('dsStylePick'), state: $('dsStyleState'),
+                font: $('dsSFont'), size: $('dsSSize'), color: $('dsSColor'),
+                colorClear: $('dsSColorClear'), weight: $('dsSWeight'),
+                indLeft: $('dsSIndLeft'), indRight: $('dsSIndRight'),
+                indFirst: $('dsSIndFirst'), align: $('dsSAlign'),
+                before: $('dsSBefore'), after: $('dsSAfter'), line: $('dsSLine'),
+                keepNext: $('dsSKeepNext'),
+                reset: $('dsStyleReset'), resetAll: $('dsStyleResetAll')
+            };
+
+            for (const d of STYLE_DEFS) {
+                const o = document.createElement('option');
+                o.value = d.key; o.textContent = d.label;
+                se.pick.appendChild(o);
+            }
+
+            let overrides = {};              // key -> partial style
+            let colorSet = false;            // whether the colour picker is "in use"
+
             function hexToWord(h) { return (h || '').replace('#', '').toUpperCase(); }
             function wordToHex(w) { return '#' + (w || '000000'); }
-
-            // Shift an accent colour darker for the H2 tone
             function darken(hex, amt) {
                 const n = parseInt(hex, 16);
                 if (isNaN(n)) return hex;
-                const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-                    .map(v => Math.max(0, Math.round(v * (1 - amt))));
-                return c.map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+                return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+                    .map(v => Math.max(0, Math.round(v * (1 - amt))))
+                    .map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
             }
 
-            function applyPresetToForm(key) {
-                const p = DOC_PRESETS[key];
-                if (!p) return;
-                els.bodyFont.value = p.bodyFont;
-                els.headFont.value = p.headingFont;
-                els.bodySize.value = (p.bodySize / 2).toFixed(1);
-                els.line.value = String(p.lineSpacing);
-                els.accent.value = wordToHex(p.h1Color);
-                els.tableStyle.value = p.tableStyle;
-                els.titleRule.checked = !!p.titleRule;
-                                ['fNormal','fTitle','fH1','fH2','fH3','fH4','fQuote','fCode','fTable','fCs',
-                 'quoteSize','tableSize','codeSize'].forEach(k => { if (els[k]) els[k].value = ''; });
-            }
-
+            // ---- push the form into DOC_THEME ----
             function readForm() {
                 const presetKey = els.preset.value || 'professional';
                 const base = DOC_PRESETS[presetKey] || DOC_PRESETS.professional;
                 const accent = hexToWord(els.accent.value);
 
                 DOC_THEME = Object.assign({}, base, {
-                    image: {
-                        wrap: els.imgWrap.value,
-                        side: els.imgSide.value,
-                        widthPct: parseInt(els.imgWidth.value, 10) || 0
-                    },
                     preset: presetKey,
                     bodyFont: els.bodyFont.value,
                     headingFont: els.headFont.value,
@@ -2800,6 +3091,7 @@ graph TD
                     titleRule: els.titleRule.checked,
                     tableStyle: els.tableStyle.value,
                     tableBorderColor: els.tableStyle.value === 'grid' ? accent : base.tableBorderColor,
+                    csFont: els.fCs.value.trim(),
                     pageSize: els.pageSize.value,
                     landscape: els.orient.value === 'landscape',
                     margins: Object.assign({}, MARGIN_PRESETS[els.margins.value] || MARGIN_PRESETS.normal),
@@ -2810,135 +3102,151 @@ graph TD
                     differentFirstPage: els.firstPage.checked,
                     toc: els.toc.checked,
                     tocDepth: 3,
-                    styleFonts: {
-                        normal: els.fNormal.value.trim(),
-                        title:  els.fTitle.value.trim(),
-                        h1:     els.fH1.value.trim(),
-                        h2:     els.fH2.value.trim(),
-                        h3:     els.fH3.value.trim(),
-                        h4:     els.fH4.value.trim(),
-                        quote:  els.fQuote.value.trim(),
-                        code:   els.fCode.value.trim(),
-                        table:  els.fTable.value.trim(),
-                        header: ''
-                    },
-                    csFont: els.fCs.value.trim(),
-                    quoteSize: els.quoteSize.value ? Math.round(parseFloat(els.quoteSize.value) * 2) : 0,
-                    tableSize: els.tableSize.value ? Math.round(parseFloat(els.tableSize.value) * 2) : 0,
-                    codeSize:  els.codeSize.value  ? Math.round(parseFloat(els.codeSize.value) * 2)  : 0
+                    styleOverrides: overrides,
+                    image: {
+                        wrap: els.imgWrap ? els.imgWrap.value : 'inline',
+                        side: els.imgSide ? els.imgSide.value : 'center',
+                        widthPct: els.imgWidth ? (parseInt(els.imgWidth.value, 10) || 0) : 0
+                    }
                 });
 
+                // Custom margins from an imported document survive the preset rebuild
+                if (customMargins) DOC_THEME.margins = Object.assign({}, customMargins);
             }
 
-            function save() {
-                try {
-                    const snap = {};
-                    for (const k of Object.keys(els)) {
-                        const el = els[k];
-                        if (!el || k === 'reset') continue;
-                        snap[k] = el.type === 'checkbox' ? el.checked : el.value;
-                    }
-                    localStorage.setItem(STORE_KEY, JSON.stringify(snap));
-                } catch (e) {
-                    // Storage can be disabled (private mode, file:// in some browsers).
-                    // Settings still work for this session.
+            let customMargins = null;
+
+            // ---- style editor: load / save the selected style ----
+            function currentKey() { return se.pick.value || 'normal'; }
+
+            function loadStyleIntoForm() {
+                const key = currentKey();
+                const ov = overrides[key] || {};
+                const eff = resolveStyle(key);
+
+                se.font.value     = ov.font || '';
+                se.size.value     = ov.sizeHp ? U.halfToPt(ov.sizeHp) : '';
+                se.indLeft.value  = (ov.indLeft  !== undefined && ov.indLeft  !== '') ? U.twipsToCm(ov.indLeft).toFixed(2)  : '';
+                se.indRight.value = (ov.indRight !== undefined && ov.indRight !== '') ? U.twipsToCm(ov.indRight).toFixed(2) : '';
+                se.indFirst.value = (ov.indFirst !== undefined && ov.indFirst !== '') ? U.twipsToCm(ov.indFirst).toFixed(2) : '';
+                se.before.value   = (ov.before   !== undefined && ov.before   !== '') ? U.twipsToPt(ov.before).toFixed(0)   : '';
+                se.after.value    = (ov.after    !== undefined && ov.after    !== '') ? U.twipsToPt(ov.after).toFixed(0)    : '';
+                se.line.value     = ov.line ? String(ov.line) : '';
+                se.align.value    = ov.align || '';
+                se.keepNext.checked = !!ov.keepNext;
+
+                if (ov.bold === undefined && ov.italic === undefined) se.weight.value = '';
+                else if (ov.bold && ov.italic) se.weight.value = 'bolditalic';
+                else if (ov.bold)              se.weight.value = 'bold';
+                else if (ov.italic)            se.weight.value = 'italic';
+                else                           se.weight.value = 'regular';
+
+                colorSet = !!ov.color;
+                se.color.value = wordToHex(ov.color || eff.color || '000000');
+                se.colorClear.textContent = colorSet ? 'clear' : 'auto';
+
+                const n = Object.keys(ov).length;
+                se.state.textContent = n
+                    ? n + ' setting' + (n === 1 ? '' : 's') + ' overridden — everything else follows the template.'
+                    : 'No overrides. This style follows the template exactly.';
+            }
+
+            function saveStyleFromForm() {
+                const key = currentKey();
+                const ov = {};
+
+                if (se.font.value.trim()) ov.font = se.font.value.trim();
+                if (se.size.value !== '') ov.sizeHp = U.ptToHalf(se.size.value);
+                if (colorSet)             ov.color = hexToWord(se.color.value);
+
+                if (se.weight.value) {
+                    ov.bold   = (se.weight.value === 'bold' || se.weight.value === 'bolditalic');
+                    ov.italic = (se.weight.value === 'italic' || se.weight.value === 'bolditalic');
                 }
-            }
+                if (se.indLeft.value  !== '') ov.indLeft  = U.cmToTwips(se.indLeft.value);
+                if (se.indRight.value !== '') ov.indRight = U.cmToTwips(se.indRight.value);
+                if (se.indFirst.value !== '') ov.indFirst = U.cmToTwips(se.indFirst.value);
+                if (se.align.value)           ov.align    = se.align.value;
+                if (se.before.value !== '')   ov.before   = U.ptToTwips(se.before.value);
+                if (se.after.value  !== '')   ov.after    = U.ptToTwips(se.after.value);
+                if (se.line.value)            ov.line     = parseInt(se.line.value, 10);
+                if (se.keepNext.checked)      ov.keepNext = true;
 
-            function load() {
-                try {
-                    const raw = localStorage.getItem(STORE_KEY);
-                    if (!raw) return false;
-                    const snap = JSON.parse(raw);
-                    for (const k of Object.keys(snap)) {
-                        const el = els[k];
-                        if (!el) continue;
-                        if (el.type === 'checkbox') el.checked = !!snap[k];
-                        else el.value = snap[k];
-                    }
-                    return true;
-                } catch (e) {
-                    return false;
-                }
-            }
+                if (Object.keys(ov).length) overrides[key] = ov;
+                else delete overrides[key];
 
-            function onChange(e) {
-                if (e && e.target === els.preset) applyPresetToForm(els.preset.value);
                 readForm();
+                loadStyleIntoForm();
                 save();
+            }
+
+            se.pick.addEventListener('change', loadStyleIntoForm);
+            [se.font, se.size, se.weight, se.indLeft, se.indRight, se.indFirst,
+             se.align, se.before, se.after, se.line, se.keepNext].forEach(el => {
+                el.addEventListener('change', saveStyleFromForm);
+                if (el.type === 'text' || el.type === 'number') {
+                    el.addEventListener('input', saveStyleFromForm);
+                }
+            });
+            se.color.addEventListener('input', () => {
+                colorSet = true;
+                se.colorClear.textContent = 'clear';
+                saveStyleFromForm();
+            });
+            se.colorClear.addEventListener('click', () => {
+                colorSet = false;
+                se.colorClear.textContent = 'auto';
+                saveStyleFromForm();
+            });
+            se.reset.addEventListener('click', () => {
+                delete overrides[currentKey()];
+                readForm(); loadStyleIntoForm(); save();
+                showMessage('Style reset to the template.', 'success');
+            });
+            se.resetAll.addEventListener('click', () => {
+                overrides = {};
+                customMargins = null;
+                readForm(); loadStyleIntoForm(); save();
+                const rep = $('dsImportReport');
+                if (rep) { rep.textContent = ''; rep.className = 'ds-import-report'; }
+                showMessage('All style overrides cleared.', 'success');
+            });
+
+            // ---- template controls ----
+            function applyPresetToForm(key) {
+                const p = DOC_PRESETS[key];
+                if (!p) return;
+                els.bodyFont.value = p.bodyFont;
+                els.headFont.value = p.headingFont;
+                els.bodySize.value = (p.bodySize / 2).toFixed(1);
+                els.line.value = String(p.lineSpacing);
+                els.accent.value = wordToHex(p.h1Color);
+                els.tableStyle.value = p.tableStyle;
+                els.titleRule.checked = !!p.titleRule;
             }
 
             for (const k of Object.keys(els)) {
                 const el = els[k];
-                if (!el || k === 'reset') continue;
-                el.addEventListener('change', onChange);
+                if (!el) continue;
+                el.addEventListener('change', e => {
+                    if (e.target === els.preset) applyPresetToForm(els.preset.value);
+                    if (e.target === els.margins) customMargins = null;
+                    readForm(); loadStyleIntoForm(); save();
+                });
                 if (el.type === 'text' || el.type === 'number') {
                     el.addEventListener('input', () => { readForm(); save(); });
                 }
             }
 
-            els.reset.addEventListener('click', () => {
-                applyPresetToForm(els.preset.value);
-                readForm();
-                save();
-                showMessage('Style reset to template defaults.', 'success');
-            });
-
-            if (!load()) applyPresetToForm('professional');
-            readForm();
-        })();
-        // ===== END SETTINGS PANEL WIRING =====
-                // ===== DOCUMENT PROPERTIES WIRING =====
-        (function initDocMeta() {
-            const $ = id => document.getElementById(id);
-            const STORE_KEY = 'docx_meta_v1';
-
-            const els = {
-                mode: $('dmMode'), created: $('dmCreated'), modified: $('dmModified'),
-                revision: $('dmRevision'), editMinutes: $('dmEditMinutes'),
-                author: $('dmAuthor'), editor: $('dmEditor'), company: $('dmCompany'),
-                manager: $('dmManager'), title: $('dmTitle'), subject: $('dmSubject'),
-                category: $('dmCategory'), keywords: $('dmKeywords'), comments: $('dmComments')
-            };
-            if (!els.mode) return;
-
-            function localStamp(d) {
-                const p = n => String(n).padStart(2, '0');
-                return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate())
-                     + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
-            }
-
-            function syncDateFields() {
-                const manual = els.mode.value === 'manual';
-                els.created.disabled = !manual;
-                els.modified.disabled = !manual;
-                els.created.parentElement.style.opacity = manual ? '1' : '0.45';
-                els.modified.parentElement.style.opacity = manual ? '1' : '0.45';
-            }
-
-            function readForm() {
-                DOC_META = Object.assign({}, DOC_META, {
-                    mode: els.mode.value,
-                    author: els.author.value || 'Author',
-                    lastEditor: els.editor.value,
-                    company: els.company.value,
-                    manager: els.manager.value,
-                    title: els.title.value,
-                    subject: els.subject.value,
-                    category: els.category.value,
-                    keywords: els.keywords.value,
-                    comments: els.comments.value,
-                    createdISO: els.created.value,
-                    modifiedISO: els.modified.value,
-                    revision: parseInt(els.revision.value, 10) || 0,
-                    editMinutes: parseInt(els.editMinutes.value, 10) || 0
-                });
-            }
-
+            // ---- persistence ----
             function save() {
                 try {
-                    const snap = {};
-                    for (const k of Object.keys(els)) snap[k] = els[k].value;
+                    const snap = { fields: {}, overrides, customMargins };
+                    for (const k of Object.keys(els)) {
+                        const el = els[k];
+                        if (!el) continue;
+                        snap.fields[k] = (el.type === 'checkbox') ? el.checked : el.value;
+                    }
                     localStorage.setItem(STORE_KEY, JSON.stringify(snap));
                 } catch (e) { /* storage unavailable — session only */ }
             }
@@ -2948,44 +3256,90 @@ graph TD
                     const raw = localStorage.getItem(STORE_KEY);
                     if (!raw) return false;
                     const snap = JSON.parse(raw);
-                    for (const k of Object.keys(snap)) if (els[k]) els[k].value = snap[k];
+                    for (const k of Object.keys(snap.fields || {})) {
+                        const el = els[k];
+                        if (!el) continue;
+                        if (el.type === 'checkbox') el.checked = !!snap.fields[k];
+                        else el.value = snap.fields[k];
+                    }
+                    overrides = snap.overrides || {};
+                    customMargins = snap.customMargins || null;
                     return true;
                 } catch (e) { return false; }
             }
 
-            for (const k of Object.keys(els)) {
-                els[k].addEventListener('change', () => { syncDateFields(); readForm(); save(); });
-                els[k].addEventListener('input',  () => { readForm(); save(); });
+            // ---- import from .docx ----
+            const importFile = $('dsImportFile');
+            const importClear = $('dsImportClear');
+            const report = $('dsImportReport');
+
+            function say(msg, ok) {
+                if (!report) return;
+                report.textContent = msg;
+                report.className = 'ds-import-report ' + (ok ? 'ok' : 'bad');
             }
 
-            const nowBtn = $('dmNow');
-            if (nowBtn) nowBtn.addEventListener('click', () => {
-                const s = localStamp(new Date());
-                els.mode.value = 'manual';
-                els.created.value = s;
-                els.modified.value = s;
-                syncDateFields(); readForm(); save();
-                showMessage('Document dates set to now.', 'success');
+            if (importFile) importFile.addEventListener('change', async e => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                say('Reading ' + file.name + ' …', true);
+                try {
+                    const res = await importStylesFromDocx(file);
+
+                    if (!res.found.length) {
+                        say('No matching styles found in that file. It may use custom style names rather than Word\u2019s built-ins.', false);
+                        return;
+                    }
+
+                    overrides = Object.assign({}, overrides, res.overrides);
+
+                    if (res.themeFonts.minor) els.bodyFont.value = res.themeFonts.minor;
+                    if (res.themeFonts.major) els.headFont.value = res.themeFonts.major;
+
+                    let pageMsg = '';
+                    if (res.page) {
+                        if (res.page.w && res.page.h) {
+                            const named = matchPageSize(res.page.w, res.page.h);
+                            if (named) {
+                                els.pageSize.value = named;
+                                els.orient.value = res.page.landscape ? 'landscape' : 'portrait';
+                                pageMsg = ' Page: ' + named + (res.page.landscape ? ' landscape.' : '.');
+                            } else {
+                                pageMsg = ' Page size was non-standard and was left unchanged.';
+                            }
+                        }
+                        if (res.page.margins) {
+                            customMargins = res.page.margins;
+                            pageMsg += ' Margins imported.';
+                        }
+                    }
+
+                    readForm();
+                    loadStyleIntoForm();
+                    save();
+
+                    say('Imported ' + res.found.length + ' style(s): ' + res.found.join(', ') + '.' + pageMsg
+                        + ' Open the Styles tab to adjust or clear any of them.', true);
+                } catch (err) {
+                    say('Could not read that file: ' + (err && err.message ? err.message : 'unknown error'), false);
+                } finally {
+                    e.target.value = '';   // allow re-picking the same file
+                }
             });
 
-            if (!load()) {
-                els.author.value = DOC_META.author;
-                els.company.value = DOC_META.company;
-            }
-            syncDateFields();
-            readForm();
+            if (importClear) importClear.addEventListener('click', () => {
+                overrides = {};
+                customMargins = null;
+                readForm(); loadStyleIntoForm(); save();
+                say('Imported styles cleared. Back to the built-in template.', true);
+            });
 
-            // Keep the existing Author box in the preview header in sync
-            const legacyAuthor = document.getElementById('authorInput');
-            if (legacyAuthor) {
-                legacyAuthor.value = els.author.value || legacyAuthor.value;
-                legacyAuthor.addEventListener('input', () => {
-                    els.author.value = legacyAuthor.value;
-                    readForm(); save();
-                });
-                els.author.addEventListener('input', () => { legacyAuthor.value = els.author.value; });
-            }
+            // ---- boot ----
+            if (!load()) applyPresetToForm('professional');
+            readForm();
+            loadStyleIntoForm();
         })();
+        // ===== END SETTINGS PANEL WIRING =====
         // ===== END DOCUMENT PROPERTIES WIRING =====
     </script>
 </body>
