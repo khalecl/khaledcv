@@ -772,7 +772,57 @@ graph TD
 
             <!-- ── PROPERTIES (filled by Patch E4) ────────── -->
             <section class="ds-pane" data-pane="props" id="dsPropsPane">
-                <p class="ds-note">Apply Part B of Patch Set 2 to populate this tab.</p>
+                <div class="ds-row">
+                    <label>Dates
+                        <select id="dmMode">
+                            <option value="auto">Automatic (plausible)</option>
+                            <option value="manual">Set manually</option>
+                        </select>
+                    </label>
+                    <label>Created
+                        <input type="datetime-local" id="dmCreated">
+                    </label>
+                    <label>Last modified
+                        <input type="datetime-local" id="dmModified">
+                    </label>
+                    <label>Revision number
+                        <input type="number" id="dmRevision" min="0" max="999" placeholder="auto">
+                    </label>
+                    <label>Editing time (min)
+                        <input type="number" id="dmEditMinutes" min="0" max="99999" placeholder="auto">
+                    </label>
+                    <label>Author
+                        <input type="text" id="dmAuthor" placeholder="Created by">
+                    </label>
+                    <label>Last modified by
+                        <input type="text" id="dmEditor" placeholder="same as author">
+                    </label>
+                    <label>Company
+                        <input type="text" id="dmCompany">
+                    </label>
+                    <label>Manager
+                        <input type="text" id="dmManager">
+                    </label>
+                    <label>Title
+                        <input type="text" id="dmTitle" placeholder="uses the # heading">
+                    </label>
+                    <label>Subject
+                        <input type="text" id="dmSubject">
+                    </label>
+                    <label>Category
+                        <input type="text" id="dmCategory">
+                    </label>
+                    <label>Keywords
+                        <input type="text" id="dmKeywords" placeholder="comma, separated">
+                    </label>
+                    <label>Comments
+                        <input type="text" id="dmComments">
+                    </label>
+                </div>
+                <div class="ds-actions">
+                    <button type="button" id="dmNow" class="clear-btn">🕒 Set both to now</button>
+                    <span class="ds-note">Visible to anyone who opens File → Properties.</span>
+                </div>
             </section>
 
             <datalist id="dsFontList">
