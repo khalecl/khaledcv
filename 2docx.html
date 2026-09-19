@@ -2104,7 +2104,9 @@ End of demonstration.
                     xml += '<w:r>' + rpr({ italic: true }) + '<w:t xml:space="preserve">'
                          + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (part.type === 'code') {
-                    xml += '<w:r>' + rpr({ fonts: 'Courier New', color: 'C7254E' })
+                    const _cd = resolveStyle('code');
+                    xml += '<w:r>' + rpr({ fonts: (_cd.font || DOC_THEME.monoFont),
+                                           color: (_cd.color && _cd.color !== 'auto') ? _cd.color : null })
                          + '<w:t xml:space="preserve">' + escapeXml(textContent) + '</w:t></w:r>';
                 } else if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(textContent)) {
                     const chunks = textContent.split(/([\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+)/u);
@@ -3169,7 +3171,7 @@ End of demonstration.
                     let codeRuns = '';
                     code.forEach((cl, ci) => {
                         if (ci > 0) codeRuns += '<w:r><w:br/></w:r>';
-                        codeRuns += '<w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>'
+                        codeRuns += '<w:r><w:rPr><w:rFonts w:ascii="' + escapeXml(resolveStyle('code').font || DOC_THEME.monoFont) + '" w:hAnsi="' + escapeXml(resolveStyle('code').font || DOC_THEME.monoFont) + '"/></w:rPr>'
                                   + '<w:t xml:space="preserve">' + cl + '</w:t></w:r>';
                     });
                     xml += '<w:p><w:pPr><w:pStyle w:val="Code"/></w:pPr>' + codeRuns + '</w:p>';
