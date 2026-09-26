@@ -669,6 +669,22 @@ End of demonstration.
                         <option value="grid">Full grid</option>
                         <option value="minimal">Minimal</option>
                     </select></label>
+                                        <label>Cell alignment<select id="dsTblAlign">
+                        <option value="left">Left</option><option value="center">Centre</option>
+                        <option value="right">Right</option><option value="both">Justified</option>
+                    </select></label>
+                    <label>Header alignment<select id="dsTblHeadAlign">
+                        <option value="left">Left</option><option value="center">Centre</option>
+                        <option value="right">Right</option>
+                    </select></label>
+                    <label>Cell vertical<select id="dsTblVAlign">
+                        <option value="top">Top</option><option value="center">Middle</option>
+                        <option value="bottom">Bottom</option>
+                    </select></label>
+                    <label>Header vertical<select id="dsTblHeadVAlign">
+                        <option value="center">Middle</option><option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                    </select></label>
                     <label class="ds-check"><input type="checkbox" id="dsTitleRule" checked> Rule under title</label>
                 </div>
                 
@@ -1039,6 +1055,10 @@ End of demonstration.
             styleFonts: Object.assign({}, EMPTY_STYLE_FONTS),
             csFont: '',              // '' = let Word choose
              image: { wrap: 'inline', side: 'center', widthPct: 0 },
+                         tableAlign: 'left',
+            tableHeadAlign: 'left',
+            tableVAlign: 'top',
+            tableHeadVAlign: 'center',
             quoteSize: 0,            // 0 = derive from body size
             tableSize: 0,
             codeSize: 0,
@@ -2564,7 +2584,9 @@ End of demonstration.
                 if (outlineLvl !== undefined && outlineLvl < 2) p += '<w:keepLines/>';
                 p += '<w:spacing w:before="' + s.before + '" w:after="' + s.after + '"'
                    + ' w:line="' + s.line + '" w:lineRule="auto"/>';
-                if (s.indLeft || s.indRight || s.indFirst || s.indHanging) {
+                if (s.noInd) {
+                    p += '<w:ind w:left="0" w:right="0" w:firstLine="0"/>';
+                } else if (s.indLeft || s.indRight || s.indFirst || s.indHanging) {
                     p += '<w:ind'
                        + (s.indLeft  ? ' w:left="' + s.indLeft + '"'   : '')
                        + (s.indRight ? ' w:right="' + s.indRight + '"' : '')
@@ -2659,11 +2681,14 @@ End of demonstration.
                + pPr(lp) + '<w:contextualSpacing/></w:pPr>'
                + rPr(lp, false) + '</w:style>';
 
-            // Table text
+            // Table text — deliberately NOT based on Normal. A body indent must
+            // never leak into cells: the cell is already the container.
             const tb = resolveStyle('table');
             s += '<w:style w:type="paragraph" w:styleId="TableText"><w:name w:val="Table Text"/>'
-               + '<w:basedOn w:val="Normal"/>'
-               + pPr(tb) + '</w:pPr>' + rPr(tb, false) + '</w:style>';
+               + pPr(tb)
+               + '<w:ind w:left="' + (tb.indLeft || 0) + '" w:right="' + (tb.indRight || 0) + '"'
+               + ' w:firstLine="0"/>'
+               + '<w:contextualSpacing/></w:pPr>' + rPr(tb, false) + '</w:style>';
 
             // TOC levels
             for (let i = 1; i <= 3; i++) {
@@ -2806,10 +2831,16 @@ End of demonstration.
                     if (isHeader && T.tableHeaderFill && T.tableHeaderFill !== 'FFFFFF') {
                         xml += '<w:shd w:val="clear" w:color="auto" w:fill="' + T.tableHeaderFill + '"/>';
                     }
-                    xml += '<w:vAlign w:val="' + (isHeader ? 'center' : 'top') + '"/>';
+                    xml += '<w:vAlign w:val="' + (isHeader ? (T.tableHeadVAlign || 'center')
+                                                           : (T.tableVAlign || 'top')) + '"/>';
                     xml += '</w:tcPr>';
+                    // Markdown's :---: wins. Otherwise the panel default.
+                    const fallback = isHeader ? (T.tableHeadAlign || 'left') : (T.tableAlign || 'left');
+                    const useJc = jc || fallback;
                     xml += '<w:p><w:pPr><w:pStyle w:val="TableText"/>';
-                    if (jc) xml += '<w:jc w:val="' + jc + '"/>';
+                    // Belt and braces: kill any inherited indent at paragraph level too
+                    xml += '<w:ind w:left="0" w:right="0" w:firstLine="0"/>';
+                    xml += '<w:jc w:val="' + useJc + '"/>';
                     if (isHeader) xml += '<w:rPr><w:b/></w:rPr>';
                     xml += '</w:pPr>';
                     xml += formatTextWithInlineOmml(cell.trim(), ommlMap || {}, isHeader);
@@ -3302,7 +3333,9 @@ End of demonstration.
                 headerMode: $('dsHeaderMode'), headerText: $('dsHeaderText'),
                 footerMode: $('dsFooterMode'), footerText: $('dsFooterText'),
                 firstPage: $('dsFirstPage'),
-                imgWrap: $('dsImgWrap'), imgSide: $('dsImgSide'), imgWidth: $('dsImgWidth')
+                imgWrap: $('dsImgWrap'), imgSide: $('dsImgSide'), imgWidth: $('dsImgWidth'),
+                tblAlign: $('dsTblAlign'), tblHeadAlign: $('dsTblHeadAlign'),
+                tblVAlign: $('dsTblVAlign'), tblHeadVAlign: $('dsTblHeadVAlign')
             };
 
             for (const key of Object.keys(DOC_PRESETS)) {
@@ -3371,6 +3404,10 @@ End of demonstration.
                     differentFirstPage: els.firstPage.checked,
                     toc: els.toc.checked,
                     tocDepth: 3,
+                                        tableAlign: els.tblAlign.value,
+                    tableHeadAlign: els.tblHeadAlign.value,
+                    tableVAlign: els.tblVAlign.value,
+                    tableHeadVAlign: els.tblHeadVAlign.value,
                     styleOverrides: overrides,
                     image: {
                         wrap: els.imgWrap ? els.imgWrap.value : 'inline',
@@ -3795,6 +3832,80 @@ End of demonstration.
             });
 
             tplRefreshList();
+                        // ---- inline help ----
+            const HELP = {
+                dsPreset: 'A complete look: fonts, sizes, colours, page setup, header/footer and diagram defaults. Switching resets every tab and clears per-style edits.',
+                dsBodyFont: 'Font for ordinary paragraphs, lists and tables.',
+                dsHeadFont: 'Font for the title and headings 1 and 2.',
+                dsBodySize: 'Size of ordinary paragraph text, in points. Headings scale from the template, not from this.',
+                dsLine: 'Space between lines within one paragraph. Double is standard for academic work.',
+                dsAccent: 'Colour for Heading 1. Heading 2 is derived slightly darker. Does not affect body text.',
+                dsfCs: 'Font Word uses for Arabic and other complex scripts. Leave blank to let Word choose.',
+                dsTableStyle: 'Border treatment: full grid, horizontal lines only, or just top and bottom.',
+                dsTblAlign: 'Horizontal alignment inside body cells, used when the markdown separator row does not specify one.',
+                dsTblHeadAlign: 'Horizontal alignment inside header cells.',
+                dsTblVAlign: 'Where text sits vertically in a body cell when the row is taller than one line.',
+                dsTblHeadVAlign: 'Where header text sits vertically. Middle suits tall headers.',
+                dsTitleRule: 'Draws a thin horizontal rule beneath the document title.',
+                dsPageSize: 'Paper size. A4 outside North America, Letter inside it.',
+                dsOrient: 'Landscape gives wide tables more room but suits body text poorly.',
+                dsMargins: 'Page margins. Narrower margins widen tables, since tables span the full text column.',
+                dsToc: 'Inserts a table of contents after the title, then a page break. Word asks to update fields when the file opens — say yes, or page numbers stay blank.',
+                dsHeaderMode: 'Text across the top of every page. "Document title" uses your first # heading.',
+                dsHeaderText: 'Used only when Header is set to Custom text.',
+                dsFooterMode: 'Bottom of every page. "Text + page number" puts your text left and the number right.',
+                dsFooterText: 'Used only when Footer includes text.',
+                dsFirstPage: 'Suppresses the header AND footer on page one. Word ties the two together — you cannot have one without the other.',
+                dsImgWrap: 'How body text flows around a diagram. "In line" treats it as one large character on its own line.',
+                dsImgSide: 'Which side of the page the diagram sits on. Text flows on the opposite side.',
+                dsImgWidth: 'Diagram width as a percentage of the text column. Blank keeps its natural size.',
+                dsStylePick: 'Choose which style to modify. Every setting below is blank by default, meaning it follows the template.',
+                dsSFont: 'Overrides the font for this style only. Blank follows the template.',
+                dsSSize: 'Overrides size for this style, in points.',
+                dsSColor: 'Overrides text colour for this style. Press "auto" to go back to the template colour.',
+                dsSWeight: 'Bold and italic for this style. "Follow template" leaves it as the template defines.',
+                dsSIndLeft: 'How far the whole paragraph is pushed in from the left margin, in centimetres.',
+                dsSIndRight: 'How far the paragraph is pulled in from the right margin.',
+                dsSIndFirst: 'Extra indent applied to the first line only. Classic book paragraph style.',
+                dsSIndHang: 'Opposite of first line: the first line starts at the margin and the rest are indented. Word cannot do both — hanging wins.',
+                dsSAlign: 'Left, centre, right, or justified (flush both edges).',
+                dsSBefore: 'Blank space above each paragraph of this style, in points.',
+                dsSAfter: 'Blank space below each paragraph of this style.',
+                dsSLine: 'Line spacing within a paragraph of this style. Overrides the template value.',
+                dsSKeepNext: 'Stops Word leaving this paragraph alone at the bottom of a page. Use it for headings.',
+                dsStyleReset: 'Clears every override on the selected style.',
+                dsStyleResetAll: 'Clears overrides on all styles. Use this if templates seem to have no effect.',
+                dsImportFile: 'Reads fonts, sizes, colours, spacing, indentation and page setup out of a Word file. Content is ignored. Many documents use direct formatting rather than styles, and little will be found in those.',
+                dsImportClear: 'Discards everything read from a Word file and returns to the built-in template.',
+                dsTplPick: 'Your saved templates. Selecting does not apply — press Load.',
+                dsTplName: 'Name for a new template, or an existing name to overwrite it.',
+                dsTplSave: 'Saves every setting and per-style override under this name, in this browser.',
+                dsTplLoad: 'Applies the selected saved template to all tabs.',
+                dsTplDelete: 'Permanently removes the selected saved template.',
+                dsTplExport: 'Downloads the selected template as a .json file you can send to a colleague.',
+                dsTplImportFile: 'Loads a .json template file and applies it.',
+                dmMode: 'Automatic invents plausible created and modified dates. Manual uses exactly what you set.',
+                dmCreated: 'Shown in Word under File, Properties. Manual mode only.',
+                dmModified: 'Shown in Word under File, Properties. Cannot be earlier than Created — it is clamped if it is.',
+                dmRevision: 'How many times Word thinks the document was saved. Blank picks a plausible number.',
+                dmEditMinutes: 'Total editing time recorded in the file. Blank picks a plausible number.',
+                dmAuthor: 'The document author. Visible to anyone who opens File, Properties.',
+                dmEditor: 'Who last saved it. Blank uses the author.',
+                dmCompany: 'Company field in the document properties.',
+                dmManager: 'Manager field in the document properties.',
+                dmTitle: 'Document title property. Blank uses your first # heading.',
+                dmKeywords: 'Comma-separated keywords, searchable in Windows and SharePoint.',
+                dmNow: 'Switches to manual mode and sets both dates to right now.'
+            };
+
+            for (const id of Object.keys(HELP)) {
+                const el = document.getElementById(id);
+                if (!el) continue;
+                el.setAttribute('title', HELP[id]);
+                // Put it on the surrounding label too, so hovering the text works
+                const lab = el.closest('label');
+                if (lab && !lab.getAttribute('title')) lab.setAttribute('title', HELP[id]);
+            }
             // ---- boot ----
             if (!load()) applyPresetToForm('professional');
             readForm();
