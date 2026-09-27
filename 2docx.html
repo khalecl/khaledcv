@@ -2960,6 +2960,16 @@ End of demonstration.
                 emuW = maxW;
                 emuH = Math.round(emuH * ratio);
             }
+            // A wrapped diagram narrower than half the column is unreadable.
+            // Scale it up to the floor, keeping aspect ratio, never past the column.
+            if (wrap !== 'inline') {
+                const minW = Math.min(Math.round(columnEmu * 0.5), columnEmu);
+                if (emuW < minW) {
+                    const ratio = minW / emuW;
+                    emuW = minW;
+                    emuH = Math.round(emuH * ratio);
+                }
+            }
 
             const id = Math.floor(Math.random() * 100000);
             const WPNS = ' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"';
@@ -3105,12 +3115,29 @@ End of demonstration.
                             xml += '<w:p><w:pPr><w:jc w:val="' + jc + '"/></w:pPr><w:r>'
                                  + drawing + '</w:r></w:p>';
                         } else {
-                            // An anchored image attaches to the paragraph that holds it.
-                            // Emitting it in a zero-height paragraph immediately before the
-                            // body text lets the following text flow around it.
-                            xml += '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'
-                                 + '<w:rPr><w:sz w:val="2"/></w:rPr></w:pPr><w:r>'
-                                 + drawing + '</w:r></w:p>';
+                            // An anchored image belongs to the paragraph that holds it.
+                            // Find the next real body paragraph and put the drawing
+                            // inside it, so the diagram travels with its own text
+                            // instead of floating off a blank paragraph.
+                            let j = i + 1;
+                            while (j < lines.length && lines[j].trim() === '') j++;
+
+                            const nxt = (j < lines.length) ? lines[j].trim() : '';
+                            const isPlain = nxt
+                                && !nxt.startsWith('#') && !nxt.startsWith('|')
+                                && !nxt.startsWith('>') && !nxt.startsWith('```')
+                                && !nxt.startsWith('::')
+                                && !/^[\*\-\+]\s/.test(nxt) && !/^\d+\.\s/.test(nxt);
+
+                            if (isPlain) {
+                                xml += '<w:p><w:r>' + drawing + '</w:r>'
+                                     + formatTextWithInlineOmml(nxt, ommlMap) + '</w:p>';
+                                i = j;   // that line is consumed
+                            } else {
+                                xml += '<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'
+                                     + '<w:rPr><w:sz w:val="2"/></w:rPr></w:pPr><w:r>'
+                                     + drawing + '</w:r></w:p>';
+                            }
                         }
                     }
                     continue;
@@ -3188,9 +3215,55 @@ End of demonstration.
                         + '<w:numId w:val="' + activeBulletNumId + '"/></w:numPr></w:pPr>'
                         + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
                 }
-                else if (line.match(/^>\s/)) {
-                    const text = line.replace(/^>\s/, '');
-                    xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>' + formatTextWithInlineOmml(text, ommlMap) + '</w:p>';
+                else if (line.match(/^>/)) {
+                    // Collect the whole blockquote block, then strip the markers
+                    // so nested tables, equations and lists are parsed normally.
+                    const qRaw = [];
+                    while (i < lines.length && lines[i].match(/^>/)) {
+                        qRaw.push(lines[i].replace(/^>\s?/, ''));
+                        i++;
+                    }
+                    i--;   // the outer loop increments
+
+                    for (let q = 0; q < qRaw.length; q++) {
+                        const qLine = qRaw[q];
+                        const qTrim = qLine.trim();
+
+                        if (qTrim === '') continue;   // bare '>' separator
+
+                        // Table inside the quote
+                        if (qTrim.startsWith('|') && q + 1 < qRaw.length
+                            && TABLE_SEPARATOR_REGEX.test(qRaw[q + 1])) {
+                            const tableLines = [];
+                            while (q < qRaw.length && qRaw[q].trim().startsWith('|')) {
+                                tableLines.push(qRaw[q]);
+                                q++;
+                            }
+                            q--;
+                            xml += buildTable(tableLines, ommlMap);
+                            continue;
+                        }
+
+                        // Display equation placeholder inside the quote
+                        const qMath = qTrim.match(/^::latex_display::(.+)::$/);
+                        if (qMath && ommlMap[qMath[1]]) {
+                            xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/><w:jc w:val="center"/></w:pPr>'
+                                 + ommlMap[qMath[1]] + '</w:p>';
+                            continue;
+                        }
+
+                        // Bullet inside the quote
+                        const qBul = qTrim.match(/^[\*\-\+]\s+(.*)$/);
+                        if (qBul) {
+                            xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/>'
+                                 + '<w:ind w:left="1020" w:hanging="220"/></w:pPr>'
+                                 + formatTextWithInlineOmml('• ' + qBul[1], ommlMap) + '</w:p>';
+                            continue;
+                        }
+
+                        xml += '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr>'
+                             + formatTextWithInlineOmml(qLine, ommlMap) + '</w:p>';
+                    }
                 }
                 else if (line.trim().startsWith('```')) {
                     i++;
