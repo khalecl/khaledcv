@@ -1871,18 +1871,57 @@ End of demonstration.
         // Render mermaid code to offscreen SVG and capture as PNG base64
         async function mermaidToBase64Png(code) {
             const container = document.createElement('div');
-            container.style.cssText = 'position:absolute;left:-9999px;top:0;background:#fff;padding:20px;';
+            container.style.cssText = 'position:absolute;left:-20000px;top:0;background:#fff;'
+                + 'padding:30px;overflow:visible;display:inline-block;width:auto;';
             document.body.appendChild(container);
             mermaidCounter++;
             const graphId = 'mermaid-export-' + mermaidCounter;
             try {
                 const { svg } = await mermaid.render(graphId, code);
                 container.innerHTML = svg;
-                // Wait for SVG to layout
-                await new Promise(r => setTimeout(r, 100));
+
+                // Mermaid sets an inline max-width and lets labels overflow it.
+                // Size the SVG from its own viewBox instead, with margin for spill.
+                const svgEl = container.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.maxWidth = 'none';
+                    svgEl.style.width = 'auto';
+                    svgEl.style.height = 'auto';
+                    svgEl.style.overflow = 'visible';
+
+                    let vbW = 0, vbH = 0;
+                    const vb = svgEl.getAttribute('viewBox');
+                    if (vb) {
+                        const p = vb.split(/[\s,]+/).map(Number);
+                        if (p.length === 4) { vbW = p[2]; vbH = p[3]; }
+                    }
+                    // Real ink extents, which can exceed the viewBox
+                    let bb = null;
+                    try { bb = svgEl.getBBox(); } catch (e) { bb = null; }
+                    if (bb && bb.width > 0) {
+                        vbW = Math.max(vbW, bb.x + bb.width, bb.width);
+                        vbH = Math.max(vbH, bb.y + bb.height, bb.height);
+                        if (bb.x < 0 || bb.y < 0) {
+                            svgEl.setAttribute('viewBox',
+                                bb.x + ' ' + bb.y + ' ' + (vbW - Math.min(0, bb.x)) + ' ' + (vbH - Math.min(0, bb.y)));
+                        }
+                    }
+                    if (vbW > 0 && vbH > 0) {
+                        svgEl.setAttribute('width', Math.ceil(vbW));
+                        svgEl.setAttribute('height', Math.ceil(vbH));
+                        svgEl.style.width = Math.ceil(vbW) + 'px';
+                        svgEl.style.height = Math.ceil(vbH) + 'px';
+                        container.style.width = Math.ceil(vbW) + 80 + 'px';
+                    }
+                }
+
+                // Two frames plus a beat, so fonts and layout settle before capture
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+                await new Promise(r => setTimeout(r, 150));
+
                 const base64 = await elementToBase64Png(container);
-                const width = container.offsetWidth;
-                const height = container.offsetHeight;
+                const width = container.scrollWidth || container.offsetWidth;
+                const height = container.scrollHeight || container.offsetHeight;
                 return { base64, width, height };
             } catch (e) {
                 console.error('Mermaid render error:', e);
@@ -2768,17 +2807,66 @@ End of demonstration.
             const colCount = Math.max(...rowData.map(r => r.cells.length));
 
             const weights = new Array(colCount).fill(1);
+            const longestWord = new Array(colCount).fill(1);
             for (const row of rowData) {
                 for (let c = 0; c < colCount; c++) {
-                    const len = (row.cells[c] || '').length;
-                    if (len > weights[c]) weights[c] = len;
+                    const cell = (row.cells[c] || '');
+                    if (cell.length > weights[c]) weights[c] = cell.length;
+                    // Longest unbreakable run — a column must never split one of these
+                    for (const w of cell.split(/\s+/)) {
+                        const clean = w.replace(/[*_`]/g, '');
+                        if (clean.length > longestWord[c]) longestWord[c] = clean.length;
+                    }
                 }
             }
             for (let c = 0; c < colCount; c++) {
                 weights[c] = Math.min(Math.max(weights[c], 6), 60);
             }
-            const totalW = weights.reduce((a, b) => a + b, 0);
-            const colTwips = weights.map(w => Math.round(USABLE_WIDTH * w / totalW));
+
+            // Proportional pass
+            let totalW = weights.reduce((a, b) => a + b, 0);
+            let colTwips = weights.map(w => Math.round(USABLE_WIDTH * w / totalW));
+
+            // Floor pass: every column must fit its longest word plus cell padding.
+            // ~118 twips per character is a safe average for 10-11pt text.
+            const CHAR_TWIPS = 118;
+            const CELL_PAD = 300;
+            const floors = longestWord.map(n => Math.min(Math.round(n * CHAR_TWIPS) + CELL_PAD,
+                                                         Math.round(USABLE_WIDTH * 0.6)));
+
+            let deficit = 0;
+            const locked = new Array(colCount).fill(false);
+            for (let c = 0; c < colCount; c++) {
+                if (colTwips[c] < floors[c]) {
+                    deficit += floors[c] - colTwips[c];
+                    colTwips[c] = floors[c];
+                    locked[c] = true;
+                }
+            }
+
+            // Reclaim the deficit from columns that have room above their own floor
+            if (deficit > 0) {
+                let slack = 0;
+                for (let c = 0; c < colCount; c++) {
+                    if (!locked[c]) slack += Math.max(0, colTwips[c] - floors[c]);
+                }
+                if (slack > 0) {
+                    const take = Math.min(deficit, slack);
+                    for (let c = 0; c < colCount; c++) {
+                        if (locked[c]) continue;
+                        const room = Math.max(0, colTwips[c] - floors[c]);
+                        colTwips[c] -= Math.round(take * room / slack);
+                    }
+                }
+                // If the floors alone exceed the page, scale everything down together.
+                const sum = colTwips.reduce((a, b) => a + b, 0);
+                if (sum > USABLE_WIDTH) {
+                    const k = USABLE_WIDTH / sum;
+                    colTwips = colTwips.map(v => Math.max(400, Math.round(v * k)));
+                }
+            }
+
+            // Absorb rounding into the last column
             colTwips[colCount - 1] += USABLE_WIDTH - colTwips.reduce((a, b) => a + b, 0);
 
             // Border set depends on the theme's table style
