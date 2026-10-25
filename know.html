@@ -1,1686 +1,1122 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Knowledge Base Generator v3</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        :root {
-            --bg: #0a0a0f;
-            --surface: #12121a;
-            --surface2: #1a1a26;
-            --border: #2a2a3a;
-            --text: #e8e8f0;
-            --text-dim: #8888a0;
-            --accent: #6c5ce7;
-            --accent2: #a29bfe;
-            --accent-glow: rgba(108, 92, 231, 0.15);
-            --success: #00b894;
-            --danger: #ff6b6b;
-            --warning: #fdcb6e;
-            --radius: 12px;
-        }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Ambient background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(ellipse at 30% 20%, rgba(108, 92, 231, 0.06) 0%, transparent 50%),
-                        radial-gradient(ellipse at 70% 80%, rgba(162, 155, 254, 0.04) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .shell {
-            max-width: 1300px;
-            margin: 0 auto;
-            padding: 32px 24px;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Header */
-        .masthead {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .masthead h1 {
-            font-size: 2.4em;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            background: linear-gradient(135deg, var(--accent2), var(--accent), #fd79a8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-        }
-
-        .masthead p {
-            color: var(--text-dim);
-            font-size: 1em;
-            max-width: 520px;
-            margin: 0 auto;
-        }
-
-        .badge {
-            display: inline-block;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--accent2);
-            padding: 4px 14px;
-            border-radius: 999px;
-            font-size: 0.75em;
-            font-weight: 500;
-            margin-top: 12px;
-            letter-spacing: 0.04em;
-        }
-
-        /* Layout */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 800px) {
-            .grid-2 { grid-template-columns: 1fr; }
-        }
-
-        /* Cards */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-        }
-
-        .card h3 {
-            font-size: 1em;
-            font-weight: 500;
-            color: var(--text-dim);
-            margin-bottom: 16px;
-            letter-spacing: 0.02em;
-        }
-
-        /* Upload zone */
-        .drop-zone {
-            border: 2px dashed var(--border);
-            border-radius: var(--radius);
-            padding: 48px 24px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            background: var(--surface);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .drop-zone::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: var(--accent-glow);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .drop-zone:hover::before,
-        .drop-zone.dragover::before {
-            opacity: 1;
-        }
-
-        .drop-zone:hover {
-            border-color: var(--accent);
-        }
-
-        .drop-zone.dragover {
-            border-color: var(--accent2);
-            transform: scale(1.01);
-        }
-
-        .drop-icon {
-            font-size: 2.4em;
-            margin-bottom: 12px;
-            display: block;
-        }
-
-        .drop-zone h2 {
-            font-size: 1.15em;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .drop-zone p {
-            color: var(--text-dim);
-            font-size: 0.85em;
-            margin-bottom: 16px;
-        }
-
-        .supported-formats {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            justify-content: center;
-            margin-top: 12px;
-        }
-
-        .fmt-tag {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            color: var(--accent2);
-            padding: 2px 10px;
-            border-radius: 999px;
-            font-size: 0.7em;
-            font-weight: 500;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .file-input { display: none; }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 0.88em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-
-        .btn-accent {
-            background: var(--accent);
-            color: white;
-            box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
-        }
-        .btn-accent:hover:not(:disabled) {
-            background: var(--accent2);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 24px rgba(108, 92, 231, 0.4);
-        }
-
-        .btn-ghost {
-            background: var(--surface2);
-            color: var(--text);
-            border: 1px solid var(--border);
-        }
-        .btn-ghost:hover:not(:disabled) {
-            border-color: var(--accent);
-            color: var(--accent2);
-        }
-
-        .btn-danger {
-            background: rgba(255, 107, 107, 0.1);
-            color: var(--danger);
-            border: 1px solid rgba(255, 107, 107, 0.2);
-        }
-        .btn-danger:hover:not(:disabled) {
-            background: rgba(255, 107, 107, 0.2);
-        }
-
-        .btn-upload {
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            color: white;
-            padding: 12px 28px;
-            border-radius: 999px;
-            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.35);
-        }
-        .btn-upload:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(108, 92, 231, 0.5);
-        }
-
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        /* File list */
-        .file-list {
-            display: none;
-            margin-top: 16px;
-        }
-        .file-list.show { display: block; }
-
-        .file-list h3 {
-            font-size: 0.9em;
-            color: var(--text-dim);
-            margin-bottom: 10px;
-        }
-
-        .file-items {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 14px;
-            max-height: 240px;
-            overflow-y: auto;
-        }
-
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 14px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.85em;
-        }
-
-        .file-item-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-
-        .file-item-icon {
-            font-size: 1.2em;
-            flex-shrink: 0;
-        }
-
-        .file-item-name {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .file-item-size {
-            color: var(--text-dim);
-            font-size: 0.8em;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .file-item-remove {
-            background: none;
-            border: none;
-            color: var(--danger);
-            cursor: pointer;
-            font-size: 1.1em;
-            padding: 4px;
-            opacity: 0.6;
-            transition: opacity 0.2s;
-        }
-        .file-item-remove:hover { opacity: 1; }
-
-        /* Inputs */
-        .field { margin-bottom: 14px; }
-
-        .field label {
-            display: block;
-            font-size: 0.8em;
-            color: var(--text-dim);
-            margin-bottom: 5px;
-            font-weight: 500;
-        }
-
-        .field input, .field textarea {
-            width: 100%;
-            padding: 10px 14px;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            font-family: inherit;
-            font-size: 0.9em;
-            transition: border-color 0.2s;
-        }
-
-        .field input:focus, .field textarea:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .field textarea {
-            min-height: 70px;
-            resize: vertical;
-        }
-
-        .field input::placeholder, .field textarea::placeholder {
-            color: var(--text-dim);
-            opacity: 0.5;
-        }
-
-        /* Checkboxes */
-        .checkbox-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            font-size: 0.88em;
-            color: var(--text-dim);
-            cursor: pointer;
-        }
-
-        .checkbox-row input[type="checkbox"] {
-            accent-color: var(--accent);
-            width: 16px;
-            height: 16px;
-        }
-
-        /* Progress */
-        .progress-wrap {
-            display: none;
-            margin-top: 16px;
-        }
-
-        .progress-track {
-            width: 100%;
-            height: 6px;
-            background: var(--surface2);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-
-        .progress-bar {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--accent), var(--accent2));
-            border-radius: 3px;
-            transition: width 0.4s ease;
-        }
-
-        .progress-label {
-            text-align: center;
-            color: var(--text-dim);
-            font-size: 0.82em;
-        }
-
-        /* Results */
-        .results {
-            display: none;
-            margin-top: 32px;
-            animation: fadeUp 0.5s ease;
-        }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .results-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .results-title {
-            font-size: 1.3em;
-            font-weight: 700;
-        }
-
-        /* Stats */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 14px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 600px) {
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        .stat {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 18px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--accent2));
-        }
-
-        .stat-val {
-            font-size: 2em;
-            font-weight: 700;
-            color: var(--accent2);
-            line-height: 1;
-            margin-bottom: 4px;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .stat-lbl {
-            font-size: 0.78em;
-            color: var(--text-dim);
-            letter-spacing: 0.03em;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 2px;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 20px;
-        }
-
-        .tab {
-            padding: 12px 22px;
-            background: none;
-            border: none;
-            font-family: inherit;
-            font-size: 0.88em;
-            color: var(--text-dim);
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .tab:hover { color: var(--text); }
-
-        .tab.active {
-            color: var(--accent2);
-            border-bottom-color: var(--accent);
-        }
-
-        /* Output panels */
-        .panel { display: none; }
-        .panel.active { display: block; }
-
-        .panel-info {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 14px;
-            font-size: 0.85em;
-            color: var(--text-dim);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .output-box {
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8em;
-            max-height: 450px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            color: var(--text);
-            line-height: 1.6;
-        }
-
-        .output-box::-webkit-scrollbar {
-            width: 6px;
-        }
-        .output-box::-webkit-scrollbar-track {
-            background: var(--surface);
-        }
-        .output-box::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 3px;
-        }
-
-        /* Alerts */
-        #alertBox {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            max-width: 420px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .toast {
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-size: 0.88em;
-            font-weight: 500;
-            animation: slideIn 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(24px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .toast.success {
-            background: rgba(0, 184, 148, 0.15);
-            border: 1px solid rgba(0, 184, 148, 0.3);
-            color: var(--success);
-        }
-
-        .toast.error {
-            background: rgba(255, 107, 107, 0.15);
-            border: 1px solid rgba(255, 107, 107, 0.3);
-            color: var(--danger);
-        }
-
-        .toast.info {
-            background: rgba(108, 92, 231, 0.15);
-            border: 1px solid rgba(108, 92, 231, 0.3);
-            color: var(--accent2);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Pack Builder - 2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f4f0;--panel:#ffffff;--panel2:#efede7;--line:#e0ddd5;--text:#1c1b19;--dim:#6a675f;
+  --acc:#2f5d50;--accText:#ffffff;--accSoft:#e3ece7;--warn:#8a5d00;--warnBg:#fbf1d9;
+  --bad:#a2322a;--badBg:#fbe7e4;--ok:#2d6a3a;--okBg:#e2f1e5;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04);
+  --r:10px;--mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--sans:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121412;--panel:#1a1d1b;--panel2:#222624;--line:#2f3431;--text:#e7e9e6;--dim:#9aa19c;
+  --acc:#7fc4ad;--accText:#0f1a16;--accSoft:#1f3029;--warn:#e6b85c;--warnBg:#33291a;
+  --bad:#f08a80;--badBg:#3a201d;--ok:#8fd19c;--okBg:#1c2e20;--shadow:none;}}
+:root[data-theme="dark"]{
+  --bg:#121412;--panel:#1a1d1b;--panel2:#222624;--line:#2f3431;--text:#e7e9e6;--dim:#9aa19c;
+  --acc:#7fc4ad;--accText:#0f1a16;--accSoft:#1f3029;--warn:#e6b85c;--warnBg:#33291a;
+  --bad:#f08a80;--badBg:#3a201d;--ok:#8fd19c;--okBg:#1c2e20;--shadow:none;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
+body{min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:12px 20px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:15px;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+.brand .mark{width:22px;height:22px;border-radius:6px;background:var(--acc);display:inline-block;position:relative}
+.brand .mark::after{content:'';position:absolute;inset:6px 5px;border:2px solid var(--accText);border-left:none;border-right:none}
+.brand small{font-weight:500;color:var(--dim)}
+.steps{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.stepbtn{border:1px solid transparent;background:none;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--dim);display:flex;align-items:center;gap:6px}
+.stepbtn .n{width:20px;height:20px;border-radius:50%;display:inline-grid;place-items:center;font-size:12px;background:var(--panel2);color:var(--dim);font-weight:600}
+.stepbtn.on{color:var(--text);border-color:var(--line);background:var(--panel)}
+.stepbtn.on .n{background:var(--acc);color:var(--accText)}
+.stepbtn:disabled{opacity:.4;cursor:not-allowed}
+.icon{background:none;border:none;cursor:pointer;color:var(--dim);padding:4px 7px;border-radius:6px;line-height:1}
+.icon:hover:not(:disabled){background:var(--panel2);color:var(--text)}
+.icon:disabled{opacity:.3;cursor:default}
+main{max-width:1440px;margin:0 auto;padding:20px}
+.step{display:none}.step.on{display:block}
+h2{font-size:18px;font-weight:650;letter-spacing:-.01em;margin-bottom:4px}
+.lede{color:var(--dim);margin-bottom:18px;max-width:720px}
+.grid1{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:18px}
+@media(max-width:900px){.grid1{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);font-weight:600;margin-bottom:12px}
+.card+.card{margin-top:14px}
+.drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:34px 20px;text-align:center;cursor:pointer;background:var(--panel);transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--acc);background:var(--accSoft)}
+.drop strong{display:block;font-size:15px;margin-bottom:4px}
+.drop p{color:var(--dim);font-size:13px}
+.fmts{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:12px}
+.fmts span,.fext{font-family:var(--mono);font-size:11px;padding:1px 7px;border-radius:5px;background:var(--panel2);color:var(--dim);text-transform:uppercase}
+.files{margin-top:14px}
+.fhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:var(--dim);font-size:13px}
+.fitem{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);margin-bottom:6px}
+.fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{color:var(--dim);font-family:var(--mono);font-size:12px}
+.fstat{font-size:12px;color:var(--dim);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fstat.busy{color:var(--acc)}.fstat.done{color:var(--ok)}.fstat.err{color:var(--bad)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--dim);margin-bottom:4px;font-weight:500}
+.field input[type=text],.field textarea,.field select,select.sel,input.txt{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.field textarea{min-height:60px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.check{display:flex;gap:9px;align-items:flex-start;margin-bottom:10px;cursor:pointer}
+.check input{accent-color:var(--acc);margin-top:3px}
+.check small{display:block;color:var(--dim);font-size:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--acc)}
+.btn.pri{background:var(--acc);color:var(--accText);border-color:var(--acc)}
+.btn.pri:hover:not(:disabled){filter:brightness(1.08)}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.muted{color:var(--dim)}
+/* review */
+.review{display:grid;grid-template-columns:230px minmax(0,1fr) minmax(0,1.1fr);gap:14px;align-items:start}
+@media(max-width:1100px){.review{grid-template-columns:200px minmax(0,1fr)}.pv{grid-column:1/-1}}
+@media(max-width:720px){.review{grid-template-columns:1fr}}
+.doclist{display:flex;flex-direction:column;gap:6px}
+.doc{text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:9px 10px;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:2px 8px;align-items:center}
+.doc.on{border-color:var(--acc);background:var(--accSoft)}
+.dname{font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dmeta{grid-column:2/4;color:var(--dim);font-size:12px}
+.dot{width:8px;height:8px;border-radius:50%}.dot.warn{background:var(--warn)}
+.qual{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{font-size:12px;padding:2px 9px;border-radius:999px;background:var(--panel2);color:var(--dim)}
+.chip b{color:var(--text);font-weight:600}
+.note{font-size:13px;padding:8px 10px;border-radius:8px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.note.warn{background:var(--warnBg);color:var(--warn)}.note.info{background:var(--accSoft);color:var(--text)}.note.bad{background:var(--badBg);color:var(--bad)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar .grow{flex:1;min-width:160px}
+.outline{max-height:calc(100vh - 330px);min-height:240px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.srow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:5px 8px 5px calc(8px + var(--lvl,0) * 16px);border-bottom:1px solid var(--line);cursor:pointer}
+.srow:last-child{border-bottom:none}
+.srow.on{background:var(--accSoft)}
+.srow.off .stitle{color:var(--dim);text-decoration:line-through}
+.srow input[type=checkbox]{accent-color:var(--acc)}
+.stitle{border:1px solid transparent;background:transparent;padding:3px 6px;border-radius:6px;width:100%;min-width:0}
+.stitle:hover{border-color:var(--line)}.stitle:focus{background:var(--panel2)}
+.smeta{font-size:11.5px;color:var(--dim);font-family:var(--mono);white-space:nowrap}
+.pv{position:sticky;top:70px}
+.pvhead{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.pvhead h4{font-size:14px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;background:var(--panel);padding:5px 10px;cursor:pointer;font-size:12px;color:var(--dim)}
+.seg button.on{background:var(--acc);color:var(--accText)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.pvbody{border:1px solid var(--line);border-radius:8px;background:var(--panel);max-height:calc(100vh - 170px);min-height:300px;overflow:auto;padding:16px 18px}
+.md{font-size:14px;line-height:1.65}
+.md h1,.md h2,.md h3,.md h4{margin:1em 0 .4em;line-height:1.3}
+.md h1{font-size:1.35em}.md h2{font-size:1.2em}.md h3{font-size:1.05em}
+.md p,.md ul,.md ol,.md blockquote,.md table,.md pre{margin-bottom:.8em}
+.md ul,.md ol{padding-left:1.4em}
+.md blockquote{border-left:3px solid var(--line);padding-left:10px;color:var(--dim)}
+.md table{border-collapse:collapse;font-size:13px;display:block;overflow:auto}
+.md th,.md td{border:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.md th{background:var(--panel2)}
+.md pre,.mdraw{font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-word}
+.md pre{background:var(--panel2);padding:10px;border-radius:6px}
+.pnav{display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:10px;color:var(--dim)}
+.pdfpage{display:block;margin:0 auto;border:1px solid var(--line);max-width:100%}
+/* export */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stat b{display:block;font-size:20px;font-family:var(--mono);font-weight:500}
+.stat span{font-size:12px;color:var(--dim)}
+.outfiles{border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.ofrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
+.ofrow:last-child{border-bottom:none}
+.ofrow.on{background:var(--accSoft)}
+.ofname{font-family:var(--mono);font-size:12.5px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ofname small{display:block;font-family:var(--sans);color:var(--dim);font-size:12px}
+.viewer{margin-top:14px}
+.viewer pre{border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:14px;max-height:520px;overflow:auto;font-family:var(--mono);font-size:12px;white-space:pre-wrap;word-break:break-word}
+.grid3{display:grid;grid-template-columns:320px minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:900px){.grid3{grid-template-columns:1fr}}
+#toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:50;max-width:min(420px,calc(100vw - 32px))}
+.toast{padding:10px 14px;border-radius:8px;background:var(--panel);border:1px solid var(--line);box-shadow:0 6px 20px rgba(0,0,0,.12);font-size:13px}
+.toast.err{border-color:var(--bad);color:var(--bad)}.toast.ok{border-color:var(--ok);color:var(--ok)}
+.empty{padding:40px;text-align:center;color:var(--dim)}
+</style>
 </head>
 <body>
-    <div id="alertBox"></div>
+<header class="top">
+  <div class="brand"><span class="mark"></span>Knowledge Pack Builder <small>v4</small></div>
+  <nav class="steps">
+    <button class="stepbtn on" data-step="1"><span class="n">1</span>Add files</button>
+    <button class="stepbtn" data-step="2" disabled><span class="n">2</span>Review</button>
+    <button class="stepbtn" data-step="3" disabled><span class="n">3</span>Export</button>
+  </nav>
+  <button class="icon" id="btnTheme" title="Toggle light / dark">◐</button>
+</header>
 
-    <div class="shell">
-        <div class="masthead">
-            <h1>Universal Knowledge Base Generator</h1>
-            <p>Convert any document into structured knowledge databases optimized for AI consumption</p>
-            <span class="badge">v3.0 — All Formats · Client-Side Processing · No Server Needed</span>
-        </div>
-
-        <div class="grid-2">
-            <!-- LEFT COLUMN -->
-            <div>
-                <div class="drop-zone" id="dropZone">
-                    <span class="drop-icon">📂</span>
-                    <h2>Drop files here</h2>
-                    <p>or click to browse — supports all major document types</p>
-                    <input class="file-input" id="fileInput" type="file" multiple
-                        accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.tsv,.pptx,.ppt,.txt,.md,.rtf,.html,.htm,.xml,.json,.epub,.odt,.ods,.odp,.log,.ini,.cfg,.yaml,.yml,.tex" />
-                    <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">
-                        Select Files
-                    </button>
-                    <div class="supported-formats">
-                        <span class="fmt-tag">PDF</span>
-                        <span class="fmt-tag">DOCX</span>
-                        <span class="fmt-tag">XLSX</span>
-                        <span class="fmt-tag">CSV</span>
-                        <span class="fmt-tag">PPTX</span>
-                        <span class="fmt-tag">TXT</span>
-                        <span class="fmt-tag">MD</span>
-                        <span class="fmt-tag">HTML</span>
-                        <span class="fmt-tag">RTF</span>
-                        <span class="fmt-tag">EPUB</span>
-                        <span class="fmt-tag">JSON</span>
-                        <span class="fmt-tag">XML</span>
-                        <span class="fmt-tag">ODT</span>
-                        <span class="fmt-tag">YAML</span>
-                        <span class="fmt-tag">TEX</span>
-                    </div>
-                </div>
-
-                <div class="file-list" id="fileList">
-                    <h3>📎 Selected Files — <span id="fileCount">0</span></h3>
-                    <div class="file-items" id="fileItems"></div>
-                    <div class="btn-row">
-                        <button class="btn btn-accent" id="processBtn" onclick="processBatch()">
-                            ⚡ Process All
-                        </button>
-                        <button class="btn btn-ghost" onclick="clearFiles()">Clear</button>
-                    </div>
-                </div>
-
-                <div class="progress-wrap" id="progressWrap">
-                    <div class="progress-track">
-                        <div class="progress-bar" id="progressBar"></div>
-                    </div>
-                    <div class="progress-label" id="progressLabel">Processing…</div>
-                </div>
-            </div>
-
-            <!-- RIGHT COLUMN -->
-            <div>
-                <div class="card">
-                    <h3>📋 Collection Metadata</h3>
-                    <div class="field">
-                        <label>Collection Title</label>
-                        <input type="text" id="collectionTitle" placeholder="e.g., AI Engineering Knowledge Base" />
-                    </div>
-                    <div class="field">
-                        <label>Domain / Category</label>
-                        <input type="text" id="domain" placeholder="e.g., Machine Learning, Energy Systems" />
-                    </div>
-                    <div class="field">
-                        <label>Notes</label>
-                        <textarea id="notes" placeholder="Additional context…"></textarea>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-top: 16px;">
-                    <h3>⚙️ Options</h3>
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="includeMetadata" checked />
-                        Include metadata in all formats
-                    </label>
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="highlightConcepts" checked />
-                        Extract & highlight key concepts
-                    </label>
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="aggregateConcepts" checked />
-                        Aggregate concepts across documents
-                    </label>
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="preserveStructure" checked />
-                        Preserve document structure (headings, tables)
-                    </label>
-                </div>
-            </div>
-        </div>
-
-        <!-- RESULTS -->
-        <div class="results" id="resultsSection">
-            <div class="results-head">
-                <div class="results-title">📊 Knowledge Base Ready</div>
-                <div class="btn-row">
-                    <button class="btn btn-accent" onclick="downloadAllFormats()">⬇ Download All</button>
-                    <button class="btn btn-ghost" onclick="copyActiveTab()">📋 Copy</button>
-                    <button class="btn btn-danger" onclick="clearResults()">✕ Reset</button>
-                </div>
-            </div>
-
-            <div class="stats-row">
-                <div class="stat">
-                    <div class="stat-val" id="statFiles">0</div>
-                    <div class="stat-lbl">Files</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-val" id="statWords">0</div>
-                    <div class="stat-lbl">Words</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-val" id="statSections">0</div>
-                    <div class="stat-lbl">Sections</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-val" id="statConcepts">0</div>
-                    <div class="stat-lbl">Concepts</div>
-                </div>
-            </div>
-
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab(event,'enhanced_txt')">📝 Enhanced Text</button>
-                <button class="tab" onclick="switchTab(event,'ai_json')">🧠 AI-Optimized JSON</button>
-                <button class="tab" onclick="switchTab(event,'structured_json')">🔍 Structured JSON</button>
-                <button class="tab" onclick="switchTab(event,'jsonl')">🎓 JSONL Training</button>
-            </div>
-
-            <div id="panel-enhanced_txt" class="panel active">
-                <div class="panel-info">
-                    <span>Enhanced Text — optimized for Claude & AI readers</span>
-                    <button class="btn btn-ghost" onclick="downloadFormat('enhanced_txt')">Download .txt</button>
-                </div>
-                <div class="output-box" id="out-enhanced_txt"></div>
-            </div>
-
-            <div id="panel-ai_json" class="panel">
-                <div class="panel-info">
-                    <span>🧠 AI-Optimized JSON — semantic book/document structure for LLM comprehension</span>
-                    <button class="btn btn-ghost" onclick="downloadFormat('ai_json')">Download .json</button>
-                </div>
-                <div class="ai-json-desc" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:0.82em;color:var(--text-dim);line-height:1.7;">
-                    <strong style="color:var(--accent2);">Why this format?</strong> Unlike flat text, this JSON gives AI models:
-                    <span style="color:var(--text);">hierarchical document structure</span> with chapters → sections → passages,
-                    <span style="color:var(--text);">per-passage metadata</span> (position, word count, topic tags),
-                    <span style="color:var(--text);">a topic graph</span> linking concepts to where they appear,
-                    <span style="color:var(--text);">reading-order context</span> (prev/next passage IDs), and
-                    <span style="color:var(--text);">chunked passages</span> sized for embedding models (~500 words each).
-                </div>
-                <div class="output-box" id="out-ai_json"></div>
-            </div>
-
-            <div id="panel-structured_json" class="panel">
-                <div class="panel-info">
-                    <span>Structured JSON — for semantic search & databases</span>
-                    <button class="btn btn-ghost" onclick="downloadFormat('structured_json')">Download .json</button>
-                </div>
-                <div class="output-box" id="out-structured_json"></div>
-            </div>
-
-            <div id="panel-jsonl" class="panel">
-                <div class="panel-info">
-                    <span>JSONL — instruction-output pairs for fine-tuning</span>
-                    <button class="btn btn-ghost" onclick="downloadFormat('jsonl')">Download .jsonl</button>
-                </div>
-                <div class="output-box" id="out-jsonl"></div>
-            </div>
-        </div>
+<main>
+<!-- STEP 1 -->
+<section class="step on" id="step1">
+  <h2>Turn documents into a clean knowledge pack</h2>
+  <p class="lede">Everything runs in your browser. The output is Markdown with real headings, page markers and tables, sized for Claude Projects, plus optional retrieval chunks.</p>
+  <div class="grid1">
+    <div>
+      <div class="drop" id="drop">
+        <strong>Drop files here or click to browse</strong>
+        <p>Books, standards, reports, slides, spreadsheets</p>
+        <div class="fmts"><span>pdf</span><span>docx</span><span>pptx</span><span>xlsx</span><span>csv</span><span>epub</span><span>odt</span><span>html</span><span>md</span><span>txt</span><span>rtf</span><span>json</span><span>xml</span><span>yaml</span><span>tex</span></div>
+        <input type="file" id="fileInput" multiple hidden accept=".pdf,.docx,.pptx,.xlsx,.xls,.ods,.csv,.tsv,.epub,.odt,.html,.htm,.md,.markdown,.txt,.rtf,.json,.xml,.yaml,.yml,.tex,.log,.ini,.cfg">
+      </div>
+      <div class="files">
+        <div class="fhead"><span><b id="fileCount">0</b> files</span><button class="btn sm" id="btnClear">Clear all</button></div>
+        <div id="fileItems"></div>
+        <div class="empty" id="emptyFiles">No files yet.</div>
+      </div>
     </div>
+    <div>
+      <div class="card">
+        <h3>Collection</h3>
+        <div class="field"><label for="optTitle">Title</label><input type="text" id="optTitle" placeholder="e.g. Energy Management Standards"></div>
+        <div class="field"><label for="optNotes">Notes for the reader (optional)</label><textarea id="optNotes" placeholder="What this pack is for, which edition, etc."></textarea></div>
+      </div>
+      <div class="card">
+        <h3>Extraction</h3>
+        <div class="field"><label for="optSplit">Split into sections at</label>
+          <select id="optSplit"><option value="1">Chapters (level 1)</option><option value="2" selected>Sections (level 2)</option><option value="3">Subsections (level 3)</option></select></div>
+        <label class="check"><input type="checkbox" id="optHF" checked><span>Remove repeating headers, footers and page numbers<small>PDFs with 4+ pages</small></span></label>
+        <div class="row2">
+          <div class="field"><label for="optOCR">OCR for scanned pages</label><select id="optOCR"><option value="off">Off</option><option value="auto">Pages without text</option></select></div>
+          <div class="field"><label for="optLang">OCR language</label><select id="optLang"><option value="eng">English</option><option value="ara">Arabic</option><option value="eng+ara">English + Arabic</option></select></div>
+        </div>
+        <p class="muted" style="font-size:12px">OCR downloads about 10 MB the first time and is slow (several seconds per page).</p>
+        <div class="actions"><button class="btn pri" id="btnBuild" disabled>Extract &amp; review →</button></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <script>
-        // ── PDF.js setup ──
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+<!-- STEP 2 -->
+<section class="step" id="step2">
+  <h2>Review the structure</h2>
+  <p class="lede">Untick sections you don't need (contents, index, copyright pages are untick­ed already), fix titles, merge fragments, and check the text against the original page.</p>
+  <div class="review">
+    <div><div class="doclist" id="docList"></div>
+      <div class="actions"><button class="btn pri" id="toExport">Continue to export →</button></div></div>
+    <div>
+      <div id="quality"></div>
+      <div class="toolbar">
+        <input class="txt grow" id="docTitle" title="Document title used in the pack" placeholder="Title">
+        <input class="txt grow" id="docSource" title="Source name written into every file (edit to remove download-site tags)" placeholder="Source name">
+        <select class="sel" id="docSplit" style="width:auto" title="Re-split this document (resets edits)">
+          <option value="1">Split: level 1</option><option value="2">Split: level 2</option><option value="3">Split: level 3</option></select>
+      </div>
+      <div class="toolbar"><button class="btn sm" id="incAll">Include all</button><button class="btn sm" id="incNone">Exclude all</button><span class="muted" id="docSum" style="font-size:12px;margin-left:auto"></span></div>
+      <div class="outline" id="outline"></div>
+    </div>
+    <div class="pv">
+      <div class="pvhead"><h4 id="pvTitle">Preview</h4>
+        <div class="seg" id="pvSeg"><button data-pv="render" class="on">Rendered</button><button data-pv="md">Markdown</button><button data-pv="orig">Original</button></div></div>
+      <div class="pvbody" id="pvBody"></div>
+    </div>
+  </div>
+</section>
 
-        let selectedFiles = [];
-        let aggregated = resetAggregated();
+<!-- STEP 3 -->
+<section class="step" id="step3">
+  <h2>Export</h2>
+  <p class="lede">Upload the <code>.md</code> files (or the ZIP's contents) to the project. <code>index.md</code> tells the reader how the pack is organised.</p>
+  <div class="grid3">
+    <div class="card">
+      <h3>Output</h3>
+      <div class="field"><label for="optMax">Max size per file</label>
+        <select id="optMax"><option value="25000">~25k tokens</option><option value="50000" selected>~50k tokens</option><option value="100000">~100k tokens</option><option value="0">No limit</option></select></div>
+      <label class="check"><input type="checkbox" id="optMarkers" checked><span>Page markers <code>[p.N]</code><small>Lets the reader cite original pages</small></span></label>
+      <label class="check"><input type="checkbox" id="optJsonl"><span>chunks.jsonl<small>Retrieval chunks with heading path and pages</small></span></label>
+      <div class="field" style="padding-left:24px"><label for="optChunk">Words per chunk</label><select id="optChunk"><option value="250">250</option><option value="400" selected>400</option><option value="700">700</option></select></div>
+      <label class="check"><input type="checkbox" id="optCombined"><span>One combined file<small>All documents in knowledge.md</small></span></label>
+      <div class="actions"><button class="btn pri" id="btnZip">Download ZIP</button></div>
+    </div>
+    <div>
+      <div class="stats" id="stats"></div>
+      <div class="outfiles" id="outFiles"></div>
+      <div class="viewer" id="viewer"></div>
+    </div>
+  </div>
+</section>
+</main>
+<div id="toasts"></div>
 
-        function resetAggregated() {
-            return {
-                enhanced_txt: '',
-                structured_json: {
-                    collection_metadata: {
-                        title: '',
-                        domain: '',
-                        notes: '',
-                        generated: new Date().toISOString(),
-                        concepts: []
-                    },
-                    sections: []
-                },
-                jsonl: [],
-                ai_json: '',
-                allConcepts: new Set(),
-                totalWords: 0
-            };
+<script>
+'use strict';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'value') e.value = v;
+    else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat()) { if (c == null || c === false) continue; e.append(c.nodeType ? c : document.createTextNode(String(c))); }
+  return e;
+}
+const clean = t => String(t || '').normalize('NFKC').replace(/\u00AD/g, '').replace(/[ \t\u00A0\u2000-\u200B]+/g, ' ').trim();
+const fmt = n => Number(n || 0).toLocaleString('en-US');
+const fmtBytes = b => b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+const extOf = n => (n.split('.').pop() || '').toLowerCase();
+const words = t => (t.match(/\S+/g) || []).length;
+function estTok(t) { const ar = (t.match(/[\u0600-\u06FF]/g) || []).length; return Math.ceil((t.length - ar) / 4 + ar / 2); }
+function slug(t) { return String(t).toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-').slice(0, 60); }
+let _uid = 0; const uid = () => 'i' + (++_uid);
+const decode = buf => new TextDecoder('utf-8').decode(buf);
+const newQ = () => ({ pages: 0, emptyPages: [], ocrPages: [], hfRemoved: 0, outline: false, warnings: [], truncated: 0 });
+function toast(msg, type) { const t = el('div', { class: 'toast ' + (type || ''), text: msg }); $('#toasts').append(t); setTimeout(() => t.remove(), type === 'err' ? 7000 : 3500); }
+function joinLines(lines) {
+  let out = '';
+  for (const l of lines) {
+    if (!l) continue;
+    if (!out) { out = l; continue; }
+    if (/\p{L}-$/u.test(out) && /^\p{Ll}/u.test(l)) out = out.slice(0, -1) + l; else out += ' ' + l;
+  }
+  return out;
+}
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector('script[src="' + src + '"]')) return res();
+    const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.append(s);
+  });
+}
+
+/* ---------- state ---------- */
+const S = { files: [], cur: null, sec: null, pv: 'render', pvPage: 1, pack: null, view: null };
+const docs = () => S.files.filter(f => f.doc).map(f => f.doc);
+const curDoc = () => docs().find(d => d.id === S.cur);
+
+/* ---------- PDF ---------- */
+function pdfLines(items) {
+  const its = [];
+  for (const t of items) {
+    if (!('str' in t) || !t.str) continue;
+    const [a, b, c, d, e, f] = t.transform;
+    its.push({ s: t.str, x: e, y: f, w: t.width || 0, size: Math.hypot(c, d) || Math.hypot(a, b) || 10 });
+  }
+  its.sort((p, q) => (q.y - p.y) || (p.x - q.x));
+  const lines = []; let cur = null;
+  for (const it of its) {
+    if (cur && Math.abs(cur.y - it.y) <= Math.max(1.5, Math.min(cur.size, it.size) * 0.45)) cur.items.push(it);
+    else { cur = { y: it.y, size: it.size, items: [it] }; lines.push(cur); }
+  }
+  return lines.map(l => {
+    l.items.sort((p, q) => p.x - q.x);
+    let t = '', end = null, sz = 0, best = -1;
+    for (const it of l.items) {
+      if (end != null) { const gap = it.x - end; if (gap > it.size * 0.12 && !/\s$/.test(t) && !/^\s/.test(it.s)) t += ' '; }
+      t += it.s; end = it.x + it.w;
+      if (it.s.trim().length > best) { best = it.s.trim().length; sz = it.size; }
+    }
+    return { t: clean(t), y: l.y, size: sz || l.size };
+  }).filter(l => l.t);
+}
+let _ocrWorker = null;
+async function getOCR(lang) {
+  await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+  return Tesseract.createWorker(lang);
+}
+async function parsePDF(buf, opts, prog) {
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+  const N = pdf.numPages, q = newQ(); q.pages = N;
+  const pages = [];
+  for (let i = 1; i <= N; i++) {
+    if (i % 5 === 1) prog('page ' + i + '/' + N);
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    pages.push({ n: i, lines: pdfLines(tc.items), ocr: null });
+    page.cleanup();
+  }
+  // scanned pages
+  let worker = null;
+  for (const pg of pages) {
+    const chars = pg.lines.reduce((s, l) => s + l.t.length, 0);
+    if (chars >= 25) continue;
+    if (opts.ocr !== 'auto') { q.emptyPages.push(pg.n); continue; }
+    try {
+      if (!worker) { prog('loading OCR…'); worker = await getOCR(opts.lang); }
+      prog('OCR page ' + pg.n + '/' + N);
+      const page = await pdf.getPage(pg.n);
+      const vp = page.getViewport({ scale: 2 });
+      const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height;
+      await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      const { data } = await worker.recognize(cv);
+      if ((data.text || '').trim().length > 10) { pg.ocr = data.text; q.ocrPages.push(pg.n); } else q.emptyPages.push(pg.n);
+    } catch (e) { q.emptyPages.push(pg.n); q.warnings.push('OCR failed on page ' + pg.n + ': ' + e.message); }
+  }
+  if (worker) await worker.terminate();
+
+  // headers / footers
+  if (opts.hf && N >= 4) {
+    const key = t => t.toLowerCase().replace(/\d+/g, '#').replace(/\s+/g, ' ').trim();
+    const cnt = new Map();
+    pages.forEach(pg => {
+      const edge = new Set([...pg.lines.slice(0, 2), ...pg.lines.slice(-2)].map(l => key(l.t)));
+      edge.forEach(k => cnt.set(k, (cnt.get(k) || 0) + 1));
+    });
+    const thr = Math.max(3, Math.ceil(N * 0.4));
+    pages.forEach(pg => {
+      const edge = new Set([...pg.lines.slice(0, 2), ...pg.lines.slice(-2)]);
+      pg.lines = pg.lines.filter(l => {
+        if (!edge.has(l)) return true;
+        const k = key(l.t);
+        if ((cnt.get(k) || 0) >= thr || /^(page\s*)?#(\s*(of|\/)\s*#)?$/.test(k) || /^[ivxl]{1,5}$/.test(k)) { q.hfRemoved++; return false; }
+        return true;
+      });
+    });
+  }
+
+  // outline (bookmarks)
+  const outline = []; let maxDepth = 0;
+  try {
+    const ol = await pdf.getOutline();
+    const walk = async (items, depth) => {
+      for (const it of items) {
+        let page = null;
+        try { let dest = it.dest; if (typeof dest === 'string') dest = await pdf.getDestination(dest); if (dest && dest[0]) page = (await pdf.getPageIndex(dest[0])) + 1; } catch (e) { }
+        if (page && clean(it.title)) { outline.push({ title: clean(it.title), depth, page }); maxDepth = Math.max(maxDepth, depth); }
+        if (it.items && it.items.length && depth < 3) await walk(it.items, depth + 1);
+      }
+    };
+    if (ol) await walk(ol, 1);
+  } catch (e) { }
+  const useOutline = outline.length >= 3; q.outline = useOutline;
+  const base = useOutline ? maxDepth : 0;
+
+  // font statistics
+  const r2 = s => Math.round(s * 2) / 2;
+  const sizeCount = new Map();
+  pages.forEach(pg => pg.lines.forEach(l => sizeCount.set(r2(l.size), (sizeCount.get(r2(l.size)) || 0) + l.t.length)));
+  let body = 10, best = -1; sizeCount.forEach((c, s) => { if (c > best) { best = c; body = s; } });
+  const isHead = l => l.size >= body * 1.15 && l.t.length >= 2 && l.t.length <= 150 && /\p{L}/u.test(l.t) && !/[.,;]$/.test(l.t);
+  const hsizes = [...new Set(pages.flatMap(pg => pg.lines.filter(isHead).map(l => r2(l.size))))].sort((a, b) => b - a);
+  const numRe = /^(\d+(?:\.\d+){1,3})\.?\s+\p{Lu}/u;
+  const fontLevel = l => {
+    if (isHead(l)) { const i = hsizes.indexOf(r2(l.size)); return Math.min(6, base + (i <= 0 ? 1 : i === 1 ? 2 : 3)); }
+    const m = numRe.exec(l.t);
+    if (m && l.t.length < 100 && !/[.,;]$/.test(l.t) && l.size >= body * 0.95) return Math.min(6, base + m[1].split('.').length);
+    return 0;
+  };
+  const norm = t => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+  const blocks = [];
+  for (const pg of pages) {
+    blocks.push({ k: 'pg', n: pg.n });
+    const ol = useOutline ? outline.filter(o => o.page === pg.n) : [];
+    const lines = pg.lines;
+    const matched = new Set();
+    for (let j = 0; j < lines.length; j++) {
+      for (const o of ol) {
+        if (matched.has(o)) continue;
+        const a = norm(lines[j].t), b = norm(o.title);
+        if (!a || !b) continue;
+        if (a === b || a.startsWith(b) || (b.startsWith(a) && a.length >= Math.min(6, b.length))) {
+          lines[j].head = o.depth; lines[j].headT = o.title; matched.add(o);
+          let acc = a;
+          for (let k = j + 1; k < Math.min(lines.length, j + 3) && acc.length < b.length; k++) {
+            const nx = norm(lines[k].t); if (nx && b.startsWith(acc + nx)) { acc += nx; lines[k].skip = true; } else break;
+          }
+          break;
         }
-
-        // ── Init ──
-        document.addEventListener('DOMContentLoaded', () => {
-            const dz = document.getElementById('dropZone');
-            const fi = document.getElementById('fileInput');
-
-            fi.addEventListener('change', e => {
-                addFiles(Array.from(e.target.files));
-            });
-
-            dz.addEventListener('click', e => {
-                if (e.target.tagName !== 'BUTTON') fi.click();
-            });
-
-            dz.addEventListener('dragover', e => {
-                e.preventDefault();
-                dz.classList.add('dragover');
-            });
-
-            dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-
-            dz.addEventListener('drop', e => {
-                e.preventDefault();
-                dz.classList.remove('dragover');
-                addFiles(Array.from(e.dataTransfer.files));
-            });
-        });
-
-        // ── File Management ──
-        function addFiles(newFiles) {
-            const existing = new Set(selectedFiles.map(f => f.name + f.size));
-            newFiles.forEach(f => {
-                if (!existing.has(f.name + f.size)) {
-                    selectedFiles.push(f);
-                }
-            });
-            renderFileList();
-        }
-
-        function renderFileList() {
-            const el = document.getElementById('fileList');
-            const items = document.getElementById('fileItems');
-            const count = document.getElementById('fileCount');
-
-            if (!selectedFiles.length) {
-                el.classList.remove('show');
-                return;
-            }
-
-            items.innerHTML = selectedFiles.map((f, i) => `
-                <div class="file-item">
-                    <div class="file-item-info">
-                        <span class="file-item-icon">${getFileIcon(f.name)}</span>
-                        <span class="file-item-name">${f.name}</span>
-                        <span class="file-item-size">${formatBytes(f.size)}</span>
-                    </div>
-                    <button class="file-item-remove" onclick="removeFile(${i})" title="Remove">✕</button>
-                </div>
-            `).join('');
-
-            count.textContent = selectedFiles.length;
-            el.classList.add('show');
-        }
-
-        function removeFile(i) {
-            selectedFiles.splice(i, 1);
-            renderFileList();
-        }
-
-        function clearFiles() {
-            selectedFiles = [];
-            document.getElementById('fileInput').value = '';
-            renderFileList();
-        }
-
-        function getFileIcon(name) {
-            const ext = name.split('.').pop().toLowerCase();
-            const icons = {
-                pdf: '📕', docx: '📘', doc: '📘', xlsx: '📊', xls: '📊',
-                csv: '📊', tsv: '📊', pptx: '📙', ppt: '📙', txt: '📄',
-                md: '📝', rtf: '📄', html: '🌐', htm: '🌐', xml: '🔖',
-                json: '🔧', epub: '📖', odt: '📘', ods: '📊', odp: '📙',
-                log: '📋', ini: '⚙️', cfg: '⚙️', yaml: '⚙️', yml: '⚙️',
-                tex: '📐'
-            };
-            return icons[ext] || '📄';
-        }
-
-        function formatBytes(b) {
-            if (b < 1024) return b + ' B';
-            if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-            return (b / 1048576).toFixed(1) + ' MB';
-        }
-
-        // ── File Reading / Extraction ──
-
-        async function extractText(file) {
-            const ext = file.name.split('.').pop().toLowerCase();
-            const buffer = await file.arrayBuffer();
-
-            try {
-                switch (ext) {
-                    case 'pdf':     return await extractPDF(buffer);
-                    case 'docx':    return await extractDOCX(buffer);
-                    case 'doc':     return await extractDOCX(buffer); // mammoth handles some .doc
-                    case 'xlsx':
-                    case 'xls':
-                    case 'ods':     return extractSpreadsheet(buffer, ext);
-                    case 'csv':
-                    case 'tsv':     return await readAsText(file);
-                    case 'pptx':
-                    case 'ppt':
-                    case 'odp':     return await extractPPTX(buffer);
-                    case 'epub':    return await extractEPUB(buffer);
-                    case 'rtf':     return extractRTF(await readAsText(file));
-                    case 'html':
-                    case 'htm':     return extractHTML(await readAsText(file));
-                    case 'md':      return extractMarkdown(await readAsText(file));
-                    case 'xml':     return extractXML(await readAsText(file));
-                    case 'json':    return extractJSON(await readAsText(file));
-                    case 'odt':     return await extractODT(buffer);
-                    case 'yaml':
-                    case 'yml':
-                    case 'tex':
-                    case 'txt':
-                    case 'log':
-                    case 'ini':
-                    case 'cfg':
-                    default:        return await readAsText(file);
-                }
-            } catch (err) {
-                console.error(`Error extracting ${file.name}:`, err);
-                // Fallback: try reading as plain text
-                try {
-                    return await readAsText(file);
-                } catch (e2) {
-                    throw new Error(`Cannot read ${file.name}: ${err.message}`);
-                }
-            }
-        }
-
-        function readAsText(file) {
-            return new Promise((resolve, reject) => {
-                const r = new FileReader();
-                r.onload = () => resolve(r.result);
-                r.onerror = () => reject(r.error);
-                r.readAsText(file);
-            });
-        }
-
-        // PDF extraction
-        async function extractPDF(buffer) {
-            const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
-            const pages = [];
-            for (let i = 1; i <= doc.numPages; i++) {
-                const page = await doc.getPage(i);
-                const content = await page.getTextContent();
-                const text = content.items.map(item => item.str).join(' ');
-                if (text.trim()) pages.push(`[Page ${i}]\n${text}`);
-            }
-            return pages.join('\n\n');
-        }
-
-        // DOCX extraction via mammoth
-        async function extractDOCX(buffer) {
-            const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-            return result.value;
-        }
-
-        // Spreadsheet extraction via SheetJS
-        function extractSpreadsheet(buffer, ext) {
-            const wb = XLSX.read(buffer, { type: 'array' });
-            const parts = [];
-            wb.SheetNames.forEach(name => {
-                const sheet = wb.Sheets[name];
-                const csv = XLSX.utils.sheet_to_csv(sheet);
-                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                parts.push(`[Sheet: ${name}]`);
-                // Build a readable table
-                if (json.length > 0) {
-                    const header = json[0];
-                    parts.push(header.join(' | '));
-                    parts.push('-'.repeat(60));
-                    json.slice(1).forEach(row => {
-                        parts.push(row.join(' | '));
-                    });
-                }
-                parts.push('');
-            });
-            return parts.join('\n');
-        }
-
-        // PPTX extraction via JSZip in SheetJS
-        async function extractPPTX(buffer) {
-            // Use JSZip (bundled with SheetJS) to unzip and read slide XMLs
-            try {
-                const zip = await loadZip(buffer);
-                const slides = [];
-                const slideFiles = Object.keys(zip.files)
-                    .filter(n => n.match(/ppt\/slides\/slide\d+\.xml/))
-                    .sort((a, b) => {
-                        const na = parseInt(a.match(/slide(\d+)/)[1]);
-                        const nb = parseInt(b.match(/slide(\d+)/)[1]);
-                        return na - nb;
-                    });
-
-                for (const sf of slideFiles) {
-                    const xml = await zip.files[sf].async('string');
-                    const text = stripXMLTags(xml);
-                    const num = sf.match(/slide(\d+)/)[1];
-                    if (text.trim()) slides.push(`[Slide ${num}]\n${text}`);
-                }
-                return slides.join('\n\n');
-            } catch (e) {
-                return `[Could not extract PPTX: ${e.message}]`;
-            }
-        }
-
-        // EPUB extraction
-        async function extractEPUB(buffer) {
-            try {
-                const zip = await loadZip(buffer);
-                const htmlFiles = Object.keys(zip.files)
-                    .filter(n => n.match(/\.(x?html?|xml)$/i) && !n.includes('META-INF') && !n.includes('mimetype'))
-                    .sort();
-
-                const parts = [];
-                for (const f of htmlFiles) {
-                    const content = await zip.files[f].async('string');
-                    const text = stripHTMLTags(content);
-                    if (text.trim().length > 20) parts.push(text.trim());
-                }
-                return parts.join('\n\n---\n\n');
-            } catch (e) {
-                return `[Could not extract EPUB: ${e.message}]`;
-            }
-        }
-
-        // ODT extraction
-        async function extractODT(buffer) {
-            try {
-                const zip = await loadZip(buffer);
-                if (zip.files['content.xml']) {
-                    const xml = await zip.files['content.xml'].async('string');
-                    return stripXMLTags(xml);
-                }
-                return '[ODT: content.xml not found]';
-            } catch (e) {
-                return `[Could not extract ODT: ${e.message}]`;
-            }
-        }
-
-        // RTF: strip formatting codes
-        function extractRTF(text) {
-            return text
-                .replace(/\{\\[^{}]*\}/g, '')
-                .replace(/\\[a-z]+\d*\s?/gi, '')
-                .replace(/[{}]/g, '')
-                .replace(/\s+/g, ' ')
-                .trim();
-        }
-
-        // HTML: get text content
-        function extractHTML(html) {
-            return stripHTMLTags(html);
-        }
-
-        // Markdown: convert to plain text
-        function extractMarkdown(md) {
-            // Use marked to convert, then strip HTML
-            const html = marked.parse(md);
-            return stripHTMLTags(html);
-        }
-
-        // XML: strip all tags
-        function extractXML(xml) {
-            return stripXMLTags(xml);
-        }
-
-        // JSON: pretty-print or flatten
-        function extractJSON(text) {
-            try {
-                const obj = JSON.parse(text);
-                return flattenJSON(obj);
-            } catch {
-                return text;
-            }
-        }
-
-        function flattenJSON(obj, prefix = '') {
-            const lines = [];
-            if (Array.isArray(obj)) {
-                obj.forEach((item, i) => {
-                    if (typeof item === 'object' && item !== null) {
-                        lines.push(flattenJSON(item, `${prefix}[${i}]`));
-                    } else {
-                        lines.push(`${prefix}[${i}]: ${item}`);
-                    }
-                });
-            } else if (typeof obj === 'object' && obj !== null) {
-                for (const [k, v] of Object.entries(obj)) {
-                    const key = prefix ? `${prefix}.${k}` : k;
-                    if (typeof v === 'object' && v !== null) {
-                        lines.push(flattenJSON(v, key));
-                    } else {
-                        lines.push(`${key}: ${v}`);
-                    }
-                }
-            } else {
-                lines.push(`${prefix}: ${obj}`);
-            }
-            return lines.join('\n');
-        }
-
-        // ── Zip utility (using JSZip via CDN) ──
-        let JSZipLoaded = null;
-        async function loadZip(buffer) {
-            if (!JSZipLoaded) {
-                // Dynamically load JSZip
-                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
-                JSZipLoaded = true;
-            }
-            return await JSZip.loadAsync(buffer);
-        }
-
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-                const s = document.createElement('script');
-                s.src = src;
-                s.onload = resolve;
-                s.onerror = reject;
-                document.head.appendChild(s);
-            });
-        }
-
-        // ── Text Helpers ──
-        function stripHTMLTags(html) {
-            const tmp = document.createElement('div');
-            tmp.innerHTML = html;
-            // Remove scripts and styles
-            tmp.querySelectorAll('script, style, link, meta').forEach(el => el.remove());
-            return (tmp.textContent || tmp.innerText || '').replace(/\s+/g, ' ').trim();
-        }
-
-        function stripXMLTags(xml) {
-            return xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        }
-
-        // ── Concept Extraction ──
-        function extractConcepts(text) {
-            // Heuristic extraction: capitalized multi-word phrases, technical terms, etc.
-            const concepts = new Set();
-            // Multi-word capitalized phrases
-            const multiWord = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g) || [];
-            multiWord.forEach(m => {
-                if (m.split(' ').length <= 5 && m.length > 5 && m.length < 60) concepts.add(m);
-            });
-
-            // ALL CAPS terms (acronyms)
-            const acronyms = text.match(/\b[A-Z]{2,8}\b/g) || [];
-            acronyms.forEach(a => {
-                if (!['THE', 'AND', 'FOR', 'NOT', 'BUT', 'ARE', 'WAS', 'HAS', 'HIS', 'HER', 'HIM',
-                       'ITS', 'YOU', 'ALL', 'CAN', 'HAD', 'HER', 'ONE', 'OUR', 'OUT', 'DAY', 'GET',
-                       'HAS', 'HIM', 'HOW', 'ITS', 'MAY', 'NEW', 'NOW', 'OLD', 'SEE', 'WAY', 'WHO',
-                       'DID', 'LET', 'SAY', 'SHE', 'TOO', 'USE', 'PDF', 'DOC', 'TXT', 'CSV'].includes(a)) {
-                    concepts.add(a);
-                }
-            });
-
-            // Technical patterns: word-word, CamelCase
-            const camel = text.match(/\b[A-Z][a-z]+[A-Z][A-Za-z]+\b/g) || [];
-            camel.forEach(c => concepts.add(c));
-
-            return Array.from(concepts).slice(0, 100);
-        }
-
-        // ── Section Splitting ──
-        function splitIntoSections(text, filename) {
-            const lines = text.split('\n');
-            const sections = [];
-            let currentTitle = filename;
-            let currentContent = [];
-            let sectionIdx = 0;
-
-            const headingRegex = /^(?:\[(?:Page|Slide|Sheet)[^\]]*\]|#{1,6}\s+.+|[A-Z][A-Z\s]{4,60}$|Chapter\s+\d+|Section\s+\d+|PART\s+[IVX\d]+)/;
-
-            lines.forEach(line => {
-                if (headingRegex.test(line.trim()) && currentContent.length > 0) {
-                    sections.push(makeSection(currentTitle, currentContent.join('\n'), filename, sectionIdx++));
-                    currentTitle = line.trim();
-                    currentContent = [];
-                } else {
-                    currentContent.push(line);
-                }
-            });
-
-            if (currentContent.length > 0) {
-                sections.push(makeSection(currentTitle, currentContent.join('\n'), filename, sectionIdx));
-            }
-
-            // If no sections detected, treat whole text as one section
-            if (sections.length === 0 && text.trim()) {
-                sections.push(makeSection(filename, text, filename, 0));
-            }
-
-            return sections;
-        }
-
-        function makeSection(title, content, filename, idx) {
-            const words = content.trim().split(/\s+/).filter(w => w.length > 0);
-            const concepts = extractConcepts(content);
-            return {
-                section_id: `${filename}:s${idx}`,
-                title: title.replace(/[\[\]#]/g, '').trim() || `Section ${idx + 1}`,
-                content: content.trim(),
-                source_file: filename,
-                metadata: {
-                    word_count: words.length,
-                    char_count: content.length,
-                    key_concepts: concepts.slice(0, 15)
-                }
-            };
-        }
-
-        // ── Format Generation ──
-        function generateEnhancedText(sections, metadata) {
-            const lines = [];
-            lines.push('=' .repeat(80));
-            lines.push('KNOWLEDGE BASE: ' + (metadata.title || 'Untitled Collection'));
-            lines.push('Domain: ' + (metadata.domain || 'General'));
-            lines.push('Generated: ' + new Date().toISOString());
-            if (metadata.notes) lines.push('Notes: ' + metadata.notes);
-            lines.push('='.repeat(80));
-            lines.push('');
-
-            let currentFile = '';
-            sections.forEach(s => {
-                if (s.source_file !== currentFile) {
-                    currentFile = s.source_file;
-                    lines.push('');
-                    lines.push('─'.repeat(70));
-                    lines.push(`SOURCE: ${currentFile}`);
-                    lines.push('─'.repeat(70));
-                }
-                lines.push('');
-                lines.push(`## ${s.title}`);
-                lines.push(`[Words: ${s.metadata.word_count} | Concepts: ${s.metadata.key_concepts.length}]`);
-                if (s.metadata.key_concepts.length > 0) {
-                    lines.push(`Key Concepts: ${s.metadata.key_concepts.join(', ')}`);
-                }
-                lines.push('');
-                lines.push(s.content);
-            });
-
-            return lines.join('\n');
-        }
-
-        function generateJSONL(sections) {
-            return sections.map(s => {
-                // Create instruction-output training pairs
-                const pairs = [];
-                // Summary pair
-                pairs.push(JSON.stringify({
-                    instruction: `Summarize the following section from "${s.source_file}": ${s.title}`,
-                    input: s.content.substring(0, 2000),
-                    output: `This section titled "${s.title}" from ${s.source_file} contains ${s.metadata.word_count} words covering: ${s.metadata.key_concepts.slice(0, 5).join(', ') || 'general content'}.`,
-                    source_file: s.source_file
-                }));
-
-                // Q&A pair
-                if (s.metadata.key_concepts.length > 0) {
-                    pairs.push(JSON.stringify({
-                        instruction: `What are the key concepts discussed in "${s.title}"?`,
-                        input: '',
-                        output: `The key concepts in "${s.title}" include: ${s.metadata.key_concepts.join(', ')}.`,
-                        source_file: s.source_file
-                    }));
-                }
-
-                return pairs.join('\n');
-            }).join('\n');
-        }
-
-        // ── AI-Optimized JSON Generator ──
-        // Creates a deeply semantic structure for LLM comprehension of books/documents
-        function generateAIJson(sections, metadata) {
-            const CHUNK_TARGET = 500; // target words per passage chunk
-
-            // Group sections by source file (= document)
-            const docMap = new Map();
-            sections.forEach(s => {
-                if (!docMap.has(s.source_file)) docMap.set(s.source_file, []);
-                docMap.get(s.source_file).push(s);
-            });
-
-            // Build topic index: concept → list of passage IDs where it appears
-            const topicIndex = {};
-
-            // Build documents array
-            const documents = [];
-            let globalPassageIdx = 0;
-
-            docMap.forEach((docSections, filename) => {
-                const docConcepts = new Set();
-                const chapters = [];
-                let docWordCount = 0;
-
-                // Treat each section as a chapter, chunk its content into passages
-                docSections.forEach((section, secIdx) => {
-                    const passages = chunkText(section.content, CHUNK_TARGET);
-                    const passageObjects = [];
-
-                    passages.forEach((pText, pIdx) => {
-                        const pid = `p_${globalPassageIdx}`;
-                        const pWords = pText.trim().split(/\s+/).filter(w => w).length;
-                        const pConcepts = extractConcepts(pText).slice(0, 10);
-                        docWordCount += pWords;
-
-                        // Build topic index entries
-                        pConcepts.forEach(c => {
-                            docConcepts.add(c);
-                            if (!topicIndex[c]) topicIndex[c] = [];
-                            topicIndex[c].push(pid);
-                        });
-
-                        passageObjects.push({
-                            id: pid,
-                            position: pIdx + 1,
-                            total_in_section: passages.length,
-                            text: pText.trim(),
-                            word_count: pWords,
-                            topics: pConcepts,
-                            prev: pIdx > 0 ? `p_${globalPassageIdx - 1}` : null,
-                            next: null // filled below
-                        });
-
-                        // Link previous passage's next pointer
-                        if (passageObjects.length > 1) {
-                            passageObjects[passageObjects.length - 2].next = pid;
-                        }
-
-                        globalPassageIdx++;
-                    });
-
-                    // Cross-link last passage of previous chapter to first of this one
-                    if (chapters.length > 0) {
-                        const prevChapterPassages = chapters[chapters.length - 1].passages;
-                        if (prevChapterPassages.length > 0 && passageObjects.length > 0) {
-                            prevChapterPassages[prevChapterPassages.length - 1].next = passageObjects[0].id;
-                            passageObjects[0].prev = prevChapterPassages[prevChapterPassages.length - 1].id;
-                        }
-                    }
-
-                    chapters.push({
-                        chapter_index: secIdx + 1,
-                        title: section.title,
-                        summary: buildSectionSummary(section),
-                        key_topics: section.metadata.key_concepts.slice(0, 10),
-                        passage_count: passageObjects.length,
-                        word_count: passageObjects.reduce((s, p) => s + p.word_count, 0),
-                        passages: passageObjects
-                    });
-                });
-
-                documents.push({
-                    source_file: filename,
-                    document_type: inferDocType(filename),
-                    total_chapters: chapters.length,
-                    total_words: docWordCount,
-                    key_topics: Array.from(docConcepts).slice(0, 30),
-                    table_of_contents: chapters.map(ch => ({
-                        chapter: ch.chapter_index,
-                        title: ch.title,
-                        passages: ch.passage_count
-                    })),
-                    chapters: chapters
-                });
-            });
-
-            // Build the final AI-optimized JSON
-            const aiJson = {
-                _schema: "ai-knowledge-base-v1",
-                _description: "Semantic document structure optimized for LLM comprehension. Each passage is chunked for embedding models (~500 words). Use topic_graph to find where concepts appear. Use prev/next IDs to traverse reading order.",
-                _usage_hints: {
-                    retrieval: "Query topic_graph to find passage IDs, then fetch those passages for context.",
-                    summarization: "Use chapter.summary fields for high-level overview, drill into passages for detail.",
-                    qa: "Combine table_of_contents navigation with passage-level text for grounded answers.",
-                    embedding: "Each passage is pre-chunked to ~500 words — feed directly to embedding models.",
-                    traversal: "Follow prev/next links on passages to read in document order."
-                },
-                collection: {
-                    title: metadata.title || 'Knowledge Collection',
-                    domain: metadata.domain || 'General',
-                    notes: metadata.notes || '',
-                    generated_at: new Date().toISOString(),
-                    total_documents: documents.length,
-                    total_passages: globalPassageIdx,
-                    total_words: documents.reduce((s, d) => s + d.total_words, 0),
-                    all_topics: Array.from(aggregated.allConcepts).slice(0, 200)
-                },
-                topic_graph: Object.fromEntries(
-                    Object.entries(topicIndex)
-                        .sort((a, b) => b[1].length - a[1].length)
-                        .slice(0, 200)
-                ),
-                documents: documents
-            };
-
-            return JSON.stringify(aiJson, null, 2);
-        }
-
-        // Chunk text into ~targetWords-sized passages, splitting on paragraph/sentence boundaries
-        function chunkText(text, targetWords) {
-            const paragraphs = text.split(/\n\s*\n|\n/).filter(p => p.trim());
-            const chunks = [];
-            let current = [];
-            let currentWords = 0;
-
-            paragraphs.forEach(para => {
-                const pWords = para.trim().split(/\s+/).length;
-
-                if (currentWords + pWords > targetWords * 1.3 && current.length > 0) {
-                    chunks.push(current.join('\n\n'));
-                    current = [para];
-                    currentWords = pWords;
-                } else {
-                    current.push(para);
-                    currentWords += pWords;
-                }
-            });
-
-            if (current.length > 0) {
-                chunks.push(current.join('\n\n'));
-            }
-
-            // If entire text was one block with no paragraph breaks, split by sentences
-            if (chunks.length === 1 && currentWords > targetWords * 2) {
-                const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
-                chunks.length = 0;
-                current = [];
-                currentWords = 0;
-
-                sentences.forEach(sent => {
-                    const sWords = sent.trim().split(/\s+/).length;
-                    if (currentWords + sWords > targetWords && current.length > 0) {
-                        chunks.push(current.join(' '));
-                        current = [sent.trim()];
-                        currentWords = sWords;
-                    } else {
-                        current.push(sent.trim());
-                        currentWords += sWords;
-                    }
-                });
-                if (current.length > 0) chunks.push(current.join(' '));
-            }
-
-            return chunks.length > 0 ? chunks : [text];
-        }
-
-        function buildSectionSummary(section) {
-            const words = section.content.trim().split(/\s+/);
-            // Use first ~60 words as a preview summary
-            const preview = words.slice(0, 60).join(' ');
-            const suffix = words.length > 60 ? '…' : '';
-            return `${section.title} — ${section.metadata.word_count} words. ${preview}${suffix}`;
-        }
-
-        function inferDocType(filename) {
-            const ext = filename.split('.').pop().toLowerCase();
-            const types = {
-                pdf: 'book/document', docx: 'document', doc: 'document',
-                xlsx: 'spreadsheet', xls: 'spreadsheet', csv: 'data/tabular',
-                tsv: 'data/tabular', pptx: 'presentation', ppt: 'presentation',
-                txt: 'plain-text', md: 'markdown', html: 'web-page', htm: 'web-page',
-                epub: 'ebook', rtf: 'document', xml: 'structured-data',
-                json: 'structured-data', yaml: 'config', yml: 'config',
-                odt: 'document', ods: 'spreadsheet', odp: 'presentation',
-                tex: 'academic-paper', log: 'log-file'
-            };
-            return types[ext] || 'unknown';
-        }
-
-        // ── Main Processing ──
-        async function processBatch() {
-            if (!selectedFiles.length) {
-                toast('Select files first', 'error');
-                return;
-            }
-
-            aggregated = resetAggregated();
-            const meta = {
-                title: document.getElementById('collectionTitle').value || 'Knowledge Collection',
-                domain: document.getElementById('domain').value || '',
-                notes: document.getElementById('notes').value || ''
-            };
-            aggregated.structured_json.collection_metadata.title = meta.title;
-            aggregated.structured_json.collection_metadata.domain = meta.domain;
-            aggregated.structured_json.collection_metadata.notes = meta.notes;
-
-            showProgress();
-            document.getElementById('processBtn').disabled = true;
-
-            let successCount = 0;
-
-            for (let i = 0; i < selectedFiles.length; i++) {
-                const file = selectedFiles[i];
-                updateProgress(((i) / selectedFiles.length) * 100, `Extracting: ${file.name}…`);
-
-                try {
-                    const text = await extractText(file);
-
-                    if (!text || text.trim().length === 0) {
-                        toast(`${file.name}: No text extracted`, 'error');
-                        continue;
-                    }
-
-                    // Split into sections
-                    const sections = splitIntoSections(text, file.name);
-
-                    // Collect concepts
-                    const fileConcepts = extractConcepts(text);
-                    fileConcepts.forEach(c => aggregated.allConcepts.add(c));
-
-                    // Add sections
-                    sections.forEach(s => {
-                        aggregated.structured_json.sections.push(s);
-                        aggregated.totalWords += s.metadata.word_count;
-                        s.metadata.key_concepts.forEach(c => aggregated.allConcepts.add(c));
-                    });
-
-                    successCount++;
-                } catch (err) {
-                    toast(`${file.name}: ${err.message}`, 'error');
-                }
-
-                // Allow UI to update
-                await new Promise(r => setTimeout(r, 50));
-            }
-
-            if (successCount > 0) {
-                updateProgress(100, 'Generating output formats…');
-                await new Promise(r => setTimeout(r, 100));
-
-                // Build all concepts list
-                aggregated.structured_json.collection_metadata.concepts = Array.from(aggregated.allConcepts);
-
-                // Generate enhanced text
-                aggregated.enhanced_txt = generateEnhancedText(
-                    aggregated.structured_json.sections, meta
-                );
-
-                // Generate JSONL
-                aggregated.jsonl = generateJSONL(aggregated.structured_json.sections);
-
-                // Generate AI-Optimized JSON
-                aggregated.ai_json = generateAIJson(aggregated.structured_json.sections, meta);
-
-                displayResults(successCount);
-                toast(`Processed ${successCount} file(s) successfully!`, 'success');
-            } else {
-                toast('No files were successfully processed', 'error');
-            }
-
-            hideProgress();
-            document.getElementById('processBtn').disabled = false;
-        }
-
-        function displayResults(fileCount) {
-            document.getElementById('statFiles').textContent = fileCount;
-            document.getElementById('statWords').textContent = aggregated.totalWords.toLocaleString();
-            document.getElementById('statSections').textContent = aggregated.structured_json.sections.length;
-            document.getElementById('statConcepts').textContent = aggregated.allConcepts.size;
-
-            document.getElementById('out-enhanced_txt').textContent = aggregated.enhanced_txt;
-            document.getElementById('out-ai_json').textContent = aggregated.ai_json;
-            document.getElementById('out-structured_json').textContent =
-                JSON.stringify(aggregated.structured_json, null, 2);
-            document.getElementById('out-jsonl').textContent = aggregated.jsonl;
-
-            document.getElementById('resultsSection').style.display = 'block';
-            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // ── Tabs ──
-        function switchTab(e, id) {
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('panel-' + id).classList.add('active');
-            e.target.classList.add('active');
-        }
-
-        // ── Download ──
-        function downloadFormat(fmt) {
-            let content, ext;
-            const stamp = new Date().toISOString().split('T')[0];
-            if (fmt === 'enhanced_txt') {
-                content = aggregated.enhanced_txt; ext = '.txt';
-            } else if (fmt === 'ai_json') {
-                content = aggregated.ai_json; ext = '.json';
-            } else if (fmt === 'structured_json') {
-                content = JSON.stringify(aggregated.structured_json, null, 2); ext = '.json';
-            } else {
-                content = aggregated.jsonl; ext = '.jsonl';
-            }
-            download(content, `knowledge-${fmt}-${stamp}${ext}`);
-        }
-
-        function downloadAllFormats() {
-            downloadFormat('enhanced_txt');
-            setTimeout(() => downloadFormat('ai_json'), 400);
-            setTimeout(() => downloadFormat('structured_json'), 800);
-            setTimeout(() => downloadFormat('jsonl'), 1200);
-        }
-
-        function download(content, filename) {
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        async function copyActiveTab() {
-            const active = document.querySelector('.panel.active .output-box');
-            if (!active) return;
-            try {
-                await navigator.clipboard.writeText(active.textContent);
-                toast('Copied to clipboard!', 'success');
-            } catch {
-                toast('Copy failed — try downloading instead', 'error');
-            }
-        }
-
-        // ── Clear ──
-        function clearResults() {
-            aggregated = resetAggregated();
-            selectedFiles = [];
-            document.getElementById('fileInput').value = '';
-            document.getElementById('resultsSection').style.display = 'none';
-            renderFileList();
-        }
-
-        // ── Progress ──
-        function showProgress() { document.getElementById('progressWrap').style.display = 'block'; }
-        function hideProgress() { document.getElementById('progressWrap').style.display = 'none'; }
-        function updateProgress(pct, text) {
-            document.getElementById('progressBar').style.width = pct + '%';
-            document.getElementById('progressLabel').textContent = text;
-        }
-
-        // ── Toast ──
-        function toast(msg, type = 'info') {
-            const box = document.getElementById('alertBox');
-            const el = document.createElement('div');
-            el.className = `toast ${type}`;
-            const icons = { success: '✓', error: '✕', info: 'ℹ' };
-            el.textContent = `${icons[type] || ''} ${msg}`;
-            box.appendChild(el);
-            setTimeout(() => el.remove(), type === 'error' ? 6000 : 3000);
-        }
-    </script>
+      }
+    }
+    ol.filter(o => !matched.has(o)).forEach(o => blocks.push({ k: 'h', l: o.depth, t: o.title }));
+    if (pg.ocr != null) {
+      pg.ocr.split(/\n\s*\n/).map(p => joinLines(p.split('\n').map(clean))).filter(Boolean).forEach(t => blocks.push({ k: 'p', t }));
+      continue;
+    }
+    let para = [], paraK = 'p', prev = null, hbuf = null;
+    const flush = () => { if (para.length) { const t = joinLines(para); if (t) blocks.push(paraK === 'li' ? { k: 'li', t, d: 0 } : { k: 'p', t }); } para = []; paraK = 'p'; };
+    const flushH = () => { if (hbuf) { blocks.push(hbuf); hbuf = null; } };
+    for (const l of lines) {
+      if (l.skip) continue;
+      if (l.head) { flush(); flushH(); blocks.push({ k: 'h', l: l.head, t: l.headT }); l.headish = true; prev = l; continue; }
+      const fl = fontLevel(l);
+      if (fl) {
+        flush();
+        if (hbuf && hbuf.l === fl && prev && prev.headish && (prev.y - l.y) < l.size * 2.2 && hbuf.t.length < 120) hbuf.t += ' ' + l.t;
+        else { flushH(); hbuf = { k: 'h', l: fl, t: l.t }; }
+        l.headish = true; prev = l; continue;
+      }
+      flushH();
+      const bullet = /^(?:[•●▪■◦‣∙·]|[-–—*](?=\s))\s*(.+)$/.exec(l.t);
+      const gap = prev ? prev.y - l.y : 0;
+      const brk = !prev || prev.headish || gap > Math.max(prev.size, l.size) * 1.9 || gap < 0 || Math.abs(prev.size - l.size) > 1;
+      if (bullet) { flush(); para = [bullet[1]]; paraK = 'li'; }
+      else if (/^\(?([a-z]|\d{1,2}|[ivx]{1,4})[).]\s+\S/i.test(l.t) && l.t.length > 4) { flush(); para = [l.t]; }
+      else { if (brk) flush(); para.push(l.t); }
+      prev = l;
+    }
+    flush(); flushH();
+  }
+  if (q.emptyPages.length) q.warnings.unshift(q.emptyPages.length + ' page(s) had no text layer, probably scanned: ' + rangeList(q.emptyPages));
+  return { blocks, q, pdf, unit: 'pdf' };
+}
+function rangeList(ns) {
+  const out = []; let a = null, b = null;
+  for (const n of ns) { if (a == null) { a = b = n; } else if (n === b + 1) b = n; else { out.push(a === b ? a : a + '–' + b); a = b = n; } }
+  if (a != null) out.push(a === b ? a : a + '–' + b);
+  return out.length > 12 ? out.slice(0, 12).join(', ') + ' …' : out.join(', ');
+}
+
+/* ---------- HTML-like sources (DOCX, HTML, EPUB) ---------- */
+const BLOCK_SEL = 'p,div,h1,h2,h3,h4,h5,h6,ul,ol,li,table,pre,blockquote,section,article,dl,dt,dd,figure,header,footer,main,aside,nav';
+function inline(n) {
+  let s = '';
+  for (const c of n.childNodes) {
+    if (c.nodeType === 3) s += c.textContent;
+    else if (c.nodeType === 1) {
+      const t = c.localName.toLowerCase();
+      if (t === 'br') s += ' ';
+      else if (t === 'script' || t === 'style') { }
+      else if (t === 'strong' || t === 'b') { const x = clean(inline(c)); if (x) s += ' **' + x + '** '; }
+      else if (t === 'em' || t === 'i') { const x = clean(inline(c)); if (x) s += ' *' + x + '* '; }
+      else if (t === 'sup') s += '^' + inline(c);
+      else if (t === 'img') { const alt = c.getAttribute('alt'); if (alt) s += ' [image: ' + alt + '] '; }
+      else s += inline(c);
+    }
+  }
+  return clean(s).replace(/\*\* ([.,;:)])/g, '**$1');
+}
+function tableRows(t) {
+  return [...t.querySelectorAll('tr')].filter(tr => tr.closest('table') === t)
+    .map(tr => [...tr.children].filter(c => /^(td|th)$/i.test(c.localName)).map(c => clean(c.textContent)))
+    .filter(r => r.some(Boolean));
+}
+function htmlToBlocks(node, blocks, depth) {
+  for (const n of node.childNodes) {
+    if (n.nodeType === 3) { const t = clean(n.textContent); if (t) blocks.push({ k: 'p', t }); continue; }
+    if (n.nodeType !== 1) continue;
+    const tag = n.localName.toLowerCase();
+    if (/^(script|style|noscript|template|svg|head|nav)$/.test(tag)) continue;
+    if (/^h[1-6]$/.test(tag)) { const t = clean(n.textContent); if (t) blocks.push({ k: 'h', l: +tag[1], t }); }
+    else if (tag === 'table') { const rows = tableRows(n); if (rows.length) blocks.push({ k: 'table', rows }); }
+    else if (tag === 'pre') { const t = n.textContent.replace(/\s+$/, ''); if (t.trim()) blocks.push({ k: 'code', lang: '', t }); }
+    else if (tag === 'ul' || tag === 'ol') {
+      for (const li of n.children) {
+        if (li.localName.toLowerCase() !== 'li') { htmlToBlocks(li, blocks, depth); continue; }
+        const own = el('div'); [...li.childNodes].forEach(c => { if (!(c.nodeType === 1 && /^(ul|ol)$/i.test(c.localName))) own.append(c.cloneNode(true)); });
+        const t = inline(own); if (t) blocks.push({ k: 'li', t, d: depth });
+        [...li.children].filter(c => /^(ul|ol)$/i.test(c.localName)).forEach(sub => htmlToBlocks(el('div', {}, sub.cloneNode(true)), blocks, depth + 1));
+      }
+    }
+    else if (tag === 'blockquote') { const t = inline(n); if (t) blocks.push({ k: 'q', t }); }
+    else if (tag === 'p' || tag === 'dt' || tag === 'dd' || tag === 'figcaption' || tag === 'caption' || !n.querySelector(BLOCK_SEL)) { const t = inline(n); if (t) blocks.push({ k: 'p', t }); }
+    else htmlToBlocks(n, blocks, depth);
+  }
+}
+function htmlToDoc(html) {
+  const d = new DOMParser().parseFromString(html, 'text/html');
+  const blocks = []; htmlToBlocks(d.body, blocks, 0);
+  return { blocks, q: newQ(), title: clean(d.title || '') || null };
+}
+async function parseDOCX(buf) {
+  const r = await mammoth.convertToHtml({ arrayBuffer: buf }, {
+    styleMap: ["p[style-name='Title'] => h1:fresh", "p[style-name='Subtitle'] => h2:fresh"]
+  });
+  const out = htmlToDoc('<body>' + r.value + '</body>'); out.title = null;
+  if (!out.blocks.some(b => b.k === 'h')) out.q.warnings.push('No Word heading styles found, so the document has no structure to split on.');
+  return out;
+}
+async function parseEPUB(buf) {
+  const zip = await JSZip.loadAsync(buf);
+  const cont = zip.file('META-INF/container.xml') ? await zip.file('META-INF/container.xml').async('string') : '';
+  const opfPath = (cont.match(/full-path="([^"]+)"/) || [])[1];
+  const q = newQ(); let paths = [], title = null;
+  if (opfPath && zip.file(opfPath)) {
+    const opf = new DOMParser().parseFromString(await zip.file(opfPath).async('string'), 'application/xml');
+    const base = opfPath.includes('/') ? opfPath.slice(0, opfPath.lastIndexOf('/') + 1) : '';
+    const man = {}; [...opf.getElementsByTagNameNS('*', 'item')].forEach(i => man[i.getAttribute('id')] = i.getAttribute('href'));
+    paths = [...opf.getElementsByTagNameNS('*', 'itemref')].map(r => man[r.getAttribute('idref')]).filter(Boolean).map(h => base + decodeURIComponent(h.split('#')[0]));
+    const t = opf.getElementsByTagNameNS('*', 'title')[0]; if (t) title = clean(t.textContent);
+  } else paths = Object.keys(zip.files).filter(n => /\.x?html?$/i.test(n)).sort();
+  const blocks = [];
+  for (const p of paths) {
+    const f = zip.file(p); if (!f) continue;
+    const s = await f.async('string');
+    let d = new DOMParser().parseFromString(s, 'application/xhtml+xml');
+    if (d.getElementsByTagName('parsererror').length) d = new DOMParser().parseFromString(s, 'text/html');
+    if (d.body) htmlToBlocks(d.body, blocks, 0);
+  }
+  return { blocks, q, title };
+}
+
+/* ---------- ODT ---------- */
+function odtWalk(node, blocks, inList) {
+  for (const n of node.children) {
+    const ln = n.localName;
+    if (ln === 'h') { const t = clean(n.textContent); if (t) blocks.push({ k: 'h', l: +(n.getAttribute('text:outline-level') || 1), t }); }
+    else if (ln === 'p') { const t = clean(n.textContent); if (t) blocks.push(inList ? { k: 'li', t, d: 0 } : { k: 'p', t }); }
+    else if (ln === 'list' || ln === 'list-item') odtWalk(n, blocks, true);
+    else if (ln === 'table') {
+      const rows = [...n.getElementsByTagNameNS('*', 'table-row')].map(r => [...r.children].filter(c => c.localName === 'table-cell').map(c => clean(c.textContent))).filter(r => r.some(Boolean));
+      if (rows.length) blocks.push({ k: 'table', rows });
+    }
+    else if (/^(sequence-decls|tracked-changes|variable-decls|user-field-decls)$/.test(ln)) { }
+    else odtWalk(n, blocks, inList);
+  }
+}
+async function parseODT(buf) {
+  const zip = await JSZip.loadAsync(buf);
+  if (!zip.file('content.xml')) throw new Error('content.xml not found');
+  const x = new DOMParser().parseFromString(await zip.file('content.xml').async('string'), 'application/xml');
+  const body = x.getElementsByTagNameNS('*', 'text')[0] || x.documentElement;
+  const blocks = []; odtWalk(body, blocks, false);
+  return { blocks, q: newQ() };
+}
+
+/* ---------- PPTX ---------- */
+const aText = p => clean([...p.getElementsByTagName('a:t')].map(t => t.textContent).join(''));
+async function parsePPTX(buf) {
+  const zip = await JSZip.loadAsync(buf);
+  const num = n => +(n.match(/(\d+)\.xml$/) || [0, 0])[1];
+  const slides = Object.keys(zip.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => num(a) - num(b));
+  const blocks = [], q = newQ(); q.pages = slides.length;
+  const parse = s => new DOMParser().parseFromString(s, 'application/xml');
+  for (const sp of slides) {
+    const n = num(sp);
+    const x = parse(await zip.file(sp).async('string'));
+    let title = '';
+    const body = [];
+    for (const shape of x.getElementsByTagName('p:sp')) {
+      const ph = shape.getElementsByTagName('p:ph')[0];
+      const type = ph ? (ph.getAttribute('type') || 'body') : null;
+      const paras = [...shape.getElementsByTagName('a:p')];
+      if (type === 'title' || type === 'ctrTitle') { title = paras.map(aText).filter(Boolean).join(' '); continue; }
+      if (type === 'sldNum' || type === 'dt' || type === 'ftr') continue;
+      for (const p of paras) {
+        const t = aText(p); if (!t) continue;
+        const pPr = p.getElementsByTagName('a:pPr')[0];
+        const lvl = pPr ? +(pPr.getAttribute('lvl') || 0) : 0;
+        body.push(ph ? { k: 'li', t, d: lvl } : { k: 'p', t });
+      }
+    }
+    for (const tbl of x.getElementsByTagName('a:tbl')) {
+      const rows = [...tbl.getElementsByTagName('a:tr')].map(tr => [...tr.getElementsByTagName('a:tc')].map(tc => [...tc.getElementsByTagName('a:p')].map(aText).filter(Boolean).join(' ')));
+      if (rows.length) body.push({ k: 'table', rows });
+    }
+    blocks.push({ k: 'h', l: 2, t: 'Slide ' + n + (title ? ': ' + title : '') });
+    blocks.push(...body);
+    const rels = zip.file('ppt/slides/_rels/slide' + n + '.xml.rels');
+    if (rels) {
+      const m = (await rels.async('string')).match(/Target="\.\.\/notesSlides\/(notesSlide\d+\.xml)"/);
+      const nf = m && zip.file('ppt/notesSlides/' + m[1]);
+      if (nf) {
+        const nx = parse(await nf.async('string'));
+        const notes = [...nx.getElementsByTagName('p:sp')].filter(s => { const ph = s.getElementsByTagName('p:ph')[0]; return ph && ph.getAttribute('type') === 'body'; })
+          .flatMap(s => [...s.getElementsByTagName('a:p')].map(aText)).filter(Boolean).join(' ');
+        if (notes) blocks.push({ k: 'note', t: notes });
+      }
+    }
+  }
+  return { blocks, q };
+}
+
+/* ---------- spreadsheets ---------- */
+const ROW_CAP = 1000;
+function parseSheet(buf, ext) {
+  const wb = (ext === 'csv' || ext === 'tsv') ? XLSX.read(decode(buf), { type: 'string', FS: ext === 'tsv' ? '\t' : ',' }) : XLSX.read(buf, { type: 'array' });
+  const blocks = [], q = newQ();
+  for (const name of wb.SheetNames) {
+    let rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, blankrows: false, defval: '' }).map(r => r.map(c => clean(c)));
+    rows = rows.filter(r => r.some(Boolean));
+    if (!rows.length) continue;
+    let w = Math.max(...rows.map(r => r.length));
+    while (w > 0 && rows.every(r => !r[w - 1])) w--;
+    rows = rows.map(r => r.slice(0, w));
+    blocks.push({ k: 'h', l: 2, t: 'Sheet: ' + name });
+    if (rows.length > ROW_CAP + 1) { q.truncated += rows.length - ROW_CAP - 1; q.warnings.push('Sheet "' + name + '" has ' + fmt(rows.length - 1) + ' rows; kept the first ' + fmt(ROW_CAP) + '.'); rows = rows.slice(0, ROW_CAP + 1); }
+    blocks.push({ k: 'table', rows });
+  }
+  return { blocks, q };
+}
+
+/* ---------- plain text ---------- */
+function parseMD(text) {
+  const blocks = []; let buf = [], fence = null;
+  const flush = () => { const t = buf.join('\n').trim(); if (t) blocks.push({ k: 'raw', t }); buf = []; };
+  for (const line of text.split(/\r?\n/)) {
+    if (fence) { buf.push(line); if (line.trim().startsWith(fence)) { fence = null; flush(); } continue; }
+    const f = /^\s*(```|~~~)/.exec(line); if (f) { flush(); fence = f[1]; buf.push(line); continue; }
+    const h = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
+    if (h) { flush(); blocks.push({ k: 'h', l: h[1].length, t: clean(h[2]) }); continue; }
+    if (!line.trim()) { flush(); continue; }
+    buf.push(line);
+  }
+  flush();
+  return { blocks, q: newQ() };
+}
+function parseTXT(text) {
+  const blocks = [];
+  for (const para of text.replace(/\r/g, '').split(/\n\s*\n/)) {
+    const lines = para.split('\n').map(clean).filter(Boolean);
+    if (!lines.length) continue;
+    const one = lines.length === 1 ? lines[0] : null;
+    if (one && one.length < 90 && /\p{L}/u.test(one) && !/[.,;]$/.test(one)) {
+      if (/^(chapter|part|book)\s+\S+/i.test(one)) { blocks.push({ k: 'h', l: 1, t: one }); continue; }
+      if (/^(section\s+\S+|\d+(\.\d+)*\.?\s+\p{Lu})/iu.test(one) || (one === one.toUpperCase() && /\p{Lu}{3}/u.test(one))) { blocks.push({ k: 'h', l: 2, t: one }); continue; }
+    }
+    if (lines.every(l => /^(?:[•\-*]|\d+[.)])\s+/.test(l))) lines.forEach(l => blocks.push({ k: 'li', t: l.replace(/^(?:[•\-*]|\d+[.)])\s+/, ''), d: 0 }));
+    else blocks.push({ k: 'p', t: joinLines(lines) });
+  }
+  return { blocks, q: newQ() };
+}
+function stripRTF(t) {
+  return t.replace(/\\par[d]?/g, '\n').replace(/\{\\\*[^{}]*\}/g, '').replace(/\\'([0-9a-f]{2})/gi, (m, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/\\[a-z]+-?\d* ?/gi, '').replace(/[{}]/g, '');
+}
+
+/* ---------- dispatch ---------- */
+async function parseFile(file, opts, prog) {
+  const ext = extOf(file.name);
+  const buf = await file.arrayBuffer();
+  switch (ext) {
+    case 'pdf': return parsePDF(buf, opts, prog);
+    case 'docx': return parseDOCX(buf);
+    case 'pptx': return parsePPTX(buf);
+    case 'xlsx': case 'xls': case 'ods': case 'csv': case 'tsv': return parseSheet(buf, ext);
+    case 'epub': return parseEPUB(buf);
+    case 'odt': return parseODT(buf);
+    case 'html': case 'htm': return htmlToDoc(decode(buf));
+    case 'md': case 'markdown': return parseMD(decode(buf));
+    case 'rtf': return parseTXT(stripRTF(decode(buf)));
+    case 'txt': case 'log': return parseTXT(decode(buf));
+    case 'doc': case 'ppt': throw new Error('Old binary .' + ext + ' is not supported. Save it as .' + ext + 'x first.');
+    default: {
+      let t = decode(buf);
+      if (ext === 'json') { try { t = JSON.stringify(JSON.parse(t), null, 2); } catch (e) { } }
+      return { blocks: [{ k: 'code', lang: ext, t }], q: newQ() };
+    }
+  }
+}
+
+/* ---------- sections ---------- */
+const SKIP_RE = /^(table of )?contents$|^index$|^copyright|^acknowledg|^about the authors?$|^also by|^dedication|^list of (figures|tables)$|^(front |back )?cover( page)?$|^(half[- ])?title page$|^eula$|^wiley end user license|^end[- ]user licen[cs]e|^praise for|^other books by|^(more |further )?titles in this series/i;
+function buildSections(doc) {
+  const levels = doc.blocks.filter(b => b.k === 'h').map(b => b.l);
+  const split = levels.some(l => l <= doc.split) ? doc.split : (levels.length ? Math.min(...levels) : 0);
+  const secs = []; let cur = null, page = null;
+  const start = (title, level, front) => {
+    const carry = [];
+    if (cur) while (cur.blocks.length && cur.blocks[cur.blocks.length - 1].k === 'pg') carry.unshift(cur.blocks.pop());
+    cur = { id: uid(), title, level, blocks: carry, include: true, front: !!front, pStart: carry.length ? carry[0].n : page, pEnd: page };
+    secs.push(cur);
+  };
+  for (const b of doc.blocks) {
+    if (b.k === 'pg') { page = b.n; if (cur) { cur.blocks.push(b); cur.pEnd = page; if (cur.pStart == null) cur.pStart = page; } else { start(doc.title, 1, true); cur.blocks.push(b); cur.pStart = cur.pEnd = page; } continue; }
+    if (b.k === 'h' && split && b.l <= split) { start(b.t, b.l); continue; }
+    if (!cur) start(doc.title, 1, true);
+    cur.blocks.push(b);
+  }
+  // drop empty front-matter stubs
+  let out = secs.filter(s => !(s.front && !s.blocks.some(b => b.k !== 'pg')));
+  out.forEach(s => { if (s.front) s.title = 'Opening pages'; });
+  // no structure in a long PDF: fall back to 10-page sections
+  if (out.length <= 1 && doc.unit === 'pdf' && doc.q.pages > 20) {
+    out = []; let grp = null;
+    for (const b of doc.blocks) {
+      if (b.k === 'pg' && (b.n - 1) % 10 === 0) { grp = { id: uid(), title: '', level: 1, blocks: [], include: true, pStart: b.n, pEnd: b.n }; out.push(grp); }
+      if (!grp) { grp = { id: uid(), title: '', level: 1, blocks: [], include: true, pStart: 1, pEnd: 1 }; out.push(grp); }
+      grp.blocks.push(b); if (b.k === 'pg') grp.pEnd = b.n;
+    }
+    out.forEach(g => g.title = 'Pages ' + g.pStart + '–' + g.pEnd);
+    doc.q.pageSplit = true;
+  }
+  out.forEach(s => { if (SKIP_RE.test(s.title.trim())) { s.include = false; s.autoSkip = true; } });
+  return out;
+}
+function mergeUp(doc, i) {
+  const s = doc.secs[i], p = doc.secs[i - 1]; if (!p) return;
+  p.blocks.push({ k: 'h', l: Math.max(s.level, p.level + 1), t: s.title }, ...s.blocks);
+  if (s.pEnd != null) p.pEnd = Math.max(p.pEnd || 0, s.pEnd);
+  p._tok = null; doc.secs.splice(i, 1);
+}
+
+/* ---------- markdown rendering ---------- */
+const escMd = t => t.replace(/^(#{1,6}\s|>\s?|[-+*]\s|\d+\.\s)/, m => '\\' + m);
+const cell = c => String(c == null ? '' : c).replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ').trim().slice(0, 400);
+function mdTable(rows) {
+  const w = Math.max(1, ...rows.map(r => r.length));
+  const line = r => '| ' + Array.from({ length: w }, (_, i) => cell(r[i])).join(' | ') + ' |';
+  return [line(rows[0]), '|' + ' --- |'.repeat(w), ...rows.slice(1).map(line)].join('\n');
+}
+const hd = l => '#'.repeat(Math.min(6, l + 1)) + ' ';
+function blockMD(doc, b, o) {
+  switch (b.k) {
+    case 'pg': return (o.markers && doc.unit === 'pdf') ? '[p.' + b.n + ']' : null;
+    case 'h': return hd(b.l) + b.t;
+    case 'p': return escMd(b.t);
+    case 'li': return '  '.repeat(b.d || 0) + '- ' + b.t;
+    case 'q': return '> ' + b.t;
+    case 'note': return '> **Speaker notes:** ' + b.t;
+    case 'table': return mdTable(b.rows);
+    case 'code': return '```' + (b.lang || '') + '\n' + b.t + '\n```';
+    case 'raw': return b.t;
+  }
+  return null;
+}
+function secMD(doc, s, o) {
+  let out = hd(s.level) + s.title, prevK = 'h';
+  for (const b of s.blocks) {
+    const m = blockMD(doc, b, o); if (m == null) continue;
+    out += (b.k === 'li' && prevK === 'li' ? '\n' : '\n\n') + m; prevK = b.k;
+  }
+  return out;
+}
+function secTok(doc, s) { if (s._tok == null) s._tok = estTok(secMD(doc, s, { markers: true })); return s._tok; }
+const docTok = d => d.secs.filter(s => s.include).reduce((a, s) => a + secTok(d, s), 0);
+function pageLabel(doc, s) { if (doc.unit !== 'pdf' || s.pStart == null) return ''; return 'p.' + s.pStart + (s.pEnd && s.pEnd !== s.pStart ? '–' + s.pEnd : ''); }
+
+/* ---------- build ---------- */
+// Strip download-site tags ("(z-library.sk, 1lib.sk)", "libgen", "Anna's Archive"…) and underscores from file names.
+const SITE_RE = /z-?lib(rary)?|1lib|libgen|annas?[-'’ ]?s? ?archive|pdfdrive|b-ok|booksc|dokumen\.pub|ebookee|\b[\w-]+\.(sk|org|li|is|pub|io|to)\b/i;
+function cleanName(n) {
+  let t = String(n).replace(/[_]+/g, ' ');
+  t = t.replace(/[\(\[\{][^\)\]\}]*[\)\]\}]/g, m => SITE_RE.test(m) ? ' ' : m);
+  t = t.split(/\s+-\s+|\s+--\s+/).filter(part => !SITE_RE.test(part)).join(' - ');
+  return clean(t.replace(/\s+[-–,;]+\s*$/, '')) || clean(String(n));
+}
+function readOpts() {
+  return { split: +$('#optSplit').value, hf: $('#optHF').checked, ocr: $('#optOCR').value, lang: $('#optLang').value };
+}
+function makeDoc(file, r, opts) {
+  const doc = {
+    id: uid(), name: file.name, ext: extOf(file.name), title: r.title || cleanName(file.name.replace(/\.[^.]+$/, '')), source: cleanName(file.name.replace(/\.[^.]+$/, '')) + '.' + extOf(file.name),
+    unit: r.unit || '', blocks: r.blocks, q: r.q, pdf: r.pdf || null, split: opts.split
+  };
+  doc.secs = buildSections(doc);
+  doc.q.headings = doc.blocks.filter(b => b.k === 'h').length;
+  doc.q.tables = doc.blocks.filter(b => b.k === 'table').length;
+  return doc;
+}
+async function buildFiles(only, overrides) {
+  const base = readOpts();
+  $('#btnBuild').disabled = true;
+  let n = 0;
+  for (const f of S.files) {
+    if (only ? f !== only : f.doc) continue;
+    const opts = Object.assign({}, base, overrides || {});
+    f.state = 'busy'; f.status = 'reading…'; renderFiles();
+    try {
+      const r = await parseFile(f.file, opts, msg => { f.status = msg; renderFileStatus(f); });
+      if (!r.blocks.length) throw new Error('No text found');
+      const old = f.doc;
+      f.doc = makeDoc(f.file, r, opts);
+      if (old) { f.doc.id = old.id; f.doc.title = old.title; }
+      f.state = 'done'; f.status = '~' + fmt(docTok(f.doc)) + ' tokens'; n++;
+    } catch (e) { console.error(e); f.state = 'err'; f.status = e.message || 'failed'; toast(f.file.name + ': ' + (e.message || 'failed'), 'err'); }
+    renderFiles();
+  }
+  $('#btnBuild').disabled = !S.files.length;
+  refreshNav();
+  return n;
+}
+
+/* ---------- step 1 UI ---------- */
+function addFiles(list) {
+  const have = new Set(S.files.map(f => f.file.name + f.file.size));
+  for (const file of list) if (!have.has(file.name + file.size)) S.files.push({ file, doc: null, state: '', status: 'ready' });
+  renderFiles();
+}
+function renderFiles() {
+  $('#fileItems').replaceChildren(...S.files.map((f, i) => el('div', { class: 'fitem' },
+    el('span', { class: 'fext', text: extOf(f.file.name) }),
+    el('span', { class: 'fname', text: f.file.name, title: f.file.name }),
+    el('span', { class: 'fsize', text: fmtBytes(f.file.size) }),
+    el('span', { class: 'fstat ' + f.state, id: 'st-' + i, text: f.status, title: f.status }),
+    el('button', { class: 'icon', title: 'Remove', onclick: () => { S.files.splice(i, 1); renderFiles(); refreshNav(); } }, '✕'))));
+  $('#fileCount').textContent = S.files.length;
+  $('#emptyFiles').hidden = S.files.length > 0;
+  $('#btnBuild').disabled = !S.files.length;
+  $('#btnBuild').textContent = S.files.some(f => !f.doc) || !S.files.length ? 'Extract & review →' : 'Review →';
+}
+function renderFileStatus(f) { const e = document.getElementById('st-' + S.files.indexOf(f)); if (e) { e.textContent = f.status; e.className = 'fstat ' + f.state; } }
+
+/* ---------- navigation ---------- */
+function refreshNav() {
+  const has = docs().length > 0;
+  document.querySelectorAll('.stepbtn').forEach(b => { if (b.dataset.step !== '1') b.disabled = !has; });
+}
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.toggle('on', s.id === 'step' + n));
+  document.querySelectorAll('.stepbtn').forEach(b => b.classList.toggle('on', b.dataset.step === String(n)));
+  if (n === 2) renderReview();
+  if (n === 3) renderExport();
+  window.scrollTo({ top: 0 });
+}
+
+/* ---------- step 2 UI ---------- */
+function renderReview() {
+  const ds = docs();
+  if (!ds.find(d => d.id === S.cur)) { S.cur = ds[0] ? ds[0].id : null; S.sec = null; }
+  $('#docList').replaceChildren(...ds.map(d => el('button', { class: 'doc' + (d.id === S.cur ? ' on' : ''), onclick: () => { S.cur = d.id; S.sec = null; renderReview(); } },
+    el('span', { class: 'fext', text: d.ext }), el('span', { class: 'dname', text: d.title, title: d.name }),
+    (d.q.warnings.length ? el('span', { class: 'dot warn', title: 'Has warnings' }) : el('span')),
+    el('span', { class: 'dmeta', id: 'dm-' + d.id, text: docMeta(d) }))));
+  const doc = curDoc();
+  if (!doc) { $('#outline').replaceChildren(el('div', { class: 'empty', text: 'Nothing extracted yet.' })); return; }
+  $('#docTitle').value = doc.title;
+  $('#docSource').value = doc.source;
+  $('#docSplit').value = String(doc.split);
+  renderQuality(doc); renderOutline(doc); renderPreview();
+}
+const docMeta = d => d.secs.filter(s => s.include).length + '/' + d.secs.length + ' sections · ~' + fmt(docTok(d)) + ' tok';
+function updateDocMeta() {
+  const d = curDoc(); if (!d) return;
+  const m = document.getElementById('dm-' + d.id); if (m) m.textContent = docMeta(d);
+  $('#docSum').textContent = docMeta(d);
+}
+function renderQuality(doc) {
+  const q = doc.q, chips = [];
+  const chip = (b, t) => el('span', { class: 'chip' }, el('b', { text: b }), ' ' + t);
+  if (q.pages) chips.push(chip(fmt(q.pages), doc.ext === 'pptx' ? 'slides' : 'pages'));
+  chips.push(chip(fmt(q.headings), 'headings'));
+  if (q.tables) chips.push(chip(fmt(q.tables), 'tables'));
+  if (q.outline) chips.push(chip('✓', 'PDF bookmarks used'));
+  if (q.hfRemoved) chips.push(chip(fmt(q.hfRemoved), 'header/footer lines removed'));
+  if (q.ocrPages.length) chips.push(chip(fmt(q.ocrPages.length), 'pages OCR\'d'));
+  chips.push(chip('~' + fmt(docTok(doc)), 'tokens included'));
+  const notes = [];
+  q.warnings.forEach(w => {
+    const scanned = /no text layer/.test(w);
+    notes.push(el('div', { class: 'note warn' }, el('span', { text: w }),
+      scanned ? el('button', { class: 'btn sm', onclick: () => rebuildOCR(doc) }, 'Re-extract with OCR') : null));
+  });
+  if (q.pageSplit) notes.push(el('div', { class: 'note info', text: 'No headings or bookmarks were found, so this PDF was split every 10 pages. Rename the sections if that helps.' }));
+  if (doc.unit === 'pdf' && !q.outline && q.headings > 0) notes.push(el('div', { class: 'note info', text: 'Headings were detected from font sizes. Check the outline and merge any false headings.' }));
+  const auto = doc.secs.filter(s => s.autoSkip).length;
+  if (auto) notes.push(el('div', { class: 'note info', text: auto + ' section(s) such as contents or index were excluded automatically.' }));
+  $('#quality').replaceChildren(el('div', { class: 'qual' }, chips), ...notes);
+  $('#docSum').textContent = docMeta(doc);
+}
+async function rebuildOCR(doc) {
+  const f = S.files.find(x => x.doc === doc); if (!f) return;
+  toast('Running OCR on ' + doc.name + '…');
+  $('#outline').replaceChildren(el('div', { class: 'empty', text: 'Running OCR. This can take a while…' }));
+  await buildFiles(f, { ocr: 'auto' });
+  S.cur = f.doc ? f.doc.id : S.cur; renderReview();
+}
+function renderOutline(doc) {
+  $('#outline').replaceChildren(...doc.secs.map((s, i) => {
+    const row = el('div', {
+      class: 'srow' + (s.id === S.sec ? ' on' : '') + (s.include ? '' : ' off'), style: '--lvl:' + Math.max(0, Math.min(3, s.level - 1)),
+      onclick: e => { if (e.target.closest('input,button')) return; selectSec(s); }
+    },
+      el('input', { type: 'checkbox', checked: s.include, title: 'Include in pack', onchange: e => { s.include = e.target.checked; row.classList.toggle('off', !s.include); updateDocMeta(); } }),
+      el('input', { class: 'stitle', value: s.title, onfocus: () => selectSec(s), onchange: e => { s.title = clean(e.target.value) || s.title; s._tok = null; if (S.sec === s.id) renderPreview(); } }),
+      el('span', { class: 'smeta', text: [pageLabel(doc, s), fmt(secTok(doc, s))].filter(Boolean).join(' · ') }),
+      el('button', { class: 'icon', title: 'Merge into the section above', disabled: i === 0, onclick: () => { mergeUp(doc, i); renderOutline(doc); updateDocMeta(); renderPreview(); } }, '⤒'));
+    return row;
+  }));
+}
+function selectSec(s) {
+  if (S.sec === s.id) return;
+  S.sec = s.id; S.pvPage = s.pStart || 1;
+  document.querySelectorAll('.srow').forEach((r, i) => { const d = curDoc(); r.classList.toggle('on', d && d.secs[i] && d.secs[i].id === s.id); });
+  renderPreview();
+}
+let _pvToken = 0;
+async function renderPreview() {
+  const doc = curDoc(), pane = $('#pvBody');
+  const origBtn = document.querySelector('#pvSeg [data-pv="orig"]');
+  origBtn.disabled = !(doc && doc.pdf);
+  if (S.pv === 'orig' && origBtn.disabled) S.pv = 'render';
+  document.querySelectorAll('#pvSeg button').forEach(b => b.classList.toggle('on', b.dataset.pv === S.pv));
+  if (!doc || !doc.secs.length) { pane.replaceChildren(); return; }
+  let s = doc.secs.find(x => x.id === S.sec);
+  if (!s) { s = doc.secs[0]; S.sec = s.id; S.pvPage = s.pStart || 1; document.querySelectorAll('.srow')[0]?.classList.add('on'); }
+  $('#pvTitle').textContent = s.title;
+  const token = ++_pvToken;
+  if (S.pv === 'md') { pane.replaceChildren(el('pre', { class: 'mdraw', text: secMD(doc, s, { markers: $('#optMarkers').checked }) })); return; }
+  if (S.pv === 'orig') {
+    const n = Math.min(Math.max(1, S.pvPage || 1), doc.pdf.numPages);
+    const nav = el('div', { class: 'pnav' },
+      el('button', { class: 'btn sm', disabled: n <= 1, onclick: () => { S.pvPage = n - 1; renderPreview(); } }, '‹'),
+      el('span', { text: 'Page ' + n + ' of ' + doc.pdf.numPages }),
+      el('button', { class: 'btn sm', disabled: n >= doc.pdf.numPages, onclick: () => { S.pvPage = n + 1; renderPreview(); } }, '›'));
+    const cv = el('canvas', { class: 'pdfpage' });
+    pane.replaceChildren(nav, cv);
+    const pg = await doc.pdf.getPage(n);
+    if (token !== _pvToken) return;
+    const dpr = window.devicePixelRatio || 1, w = Math.max(300, pane.clientWidth - 40);
+    const vp = pg.getViewport({ scale: (w / pg.getViewport({ scale: 1 }).width) * dpr });
+    cv.width = vp.width; cv.height = vp.height; cv.style.width = (vp.width / dpr) + 'px';
+    await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+    return;
+  }
+  const div = el('div', { class: 'md' });
+  div.innerHTML = DOMPurify.sanitize(marked.parse(secMD(doc, s, { markers: $('#optMarkers').checked })));
+  pane.replaceChildren(div);
+}
+
+/* ---------- step 3: pack ---------- */
+function exportOpts() {
+  return { maxTok: +$('#optMax').value, markers: $('#optMarkers').checked, jsonl: $('#optJsonl').checked, chunkWords: +$('#optChunk').value, combined: $('#optCombined').checked, collection: clean($('#optTitle').value), notes: $('#optNotes').value.trim() };
+}
+function rangeOf(doc, secs) {
+  if (doc.unit !== 'pdf') return '';
+  const a = Math.min(...secs.map(s => s.pStart || Infinity)), b = Math.max(...secs.map(s => s.pEnd || 0));
+  return isFinite(a) && b ? (a === b ? String(a) : a + '–' + b) : '';
+}
+function docChunks(doc, secs, o, key) {
+  const out = []; let n = 1;
+  for (const s of secs) {
+    let page = s.pStart, sub = null, buf = [], w = 0, p0 = page, p1 = page;
+    const flush = () => {
+      if (!buf.length) return;
+      const text = buf.join('\n\n');
+      const c = { id: key + '-' + (n++), doc: doc.title, source: doc.source, section: s.title, heading_path: sub ? [doc.title, s.title, sub] : [doc.title, s.title] };
+      if (doc.unit === 'pdf' && p0 != null) c.pages = [p0, p1];
+      c.text = text; c.approx_tokens = estTok(text);
+      out.push(c); buf = []; w = 0;
+    };
+    for (const b of s.blocks) {
+      if (b.k === 'pg') { page = b.n; if (!buf.length) p0 = page; continue; }
+      if (b.k === 'h') { flush(); sub = b.t; p0 = page; }
+      const m = blockMD(doc, b, { markers: false }); if (m == null) continue;
+      const bw = words(m);
+      if (buf.length && w + bw > o.chunkWords) { flush(); p0 = page; }
+      buf.push(m); w += bw; p1 = page;
+    }
+    flush();
+  }
+  return out;
+}
+function buildPack() {
+  const o = exportOpts(), today = new Date().toISOString().slice(0, 10);
+  const files = [], used = new Set(), chunks = [], bodies = [];
+  const uniq = n => { let x = n, i = 2; while (used.has(x)) x = n.replace(/(\.\w+)$/, '-' + (i++) + '$1'); used.add(x); return x; };
+  used.add('index.md'); used.add('chunks.jsonl'); used.add('knowledge.md');
+  docs().forEach((doc, di) => {
+    const secs = doc.secs.filter(s => s.include); if (!secs.length) return;
+    const rendered = secs.map(s => { const md = secMD(doc, s, o); return { s, md, tok: estTok(md) }; });
+    const parts = []; let cur = [], t = 0;
+    for (const r of rendered) { if (cur.length && o.maxTok && t + r.tok > o.maxTok) { parts.push(cur); cur = []; t = 0; } cur.push(r); t += r.tok; }
+    if (cur.length) parts.push(cur);
+    const key = slug(doc.title) || ('document-' + (di + 1));
+    parts.forEach((p, pi) => {
+      const toc = p.map(r => '- ' + r.s.title + (pageLabel(doc, r.s) ? ' (' + pageLabel(doc, r.s) + ')' : '')).join('\n');
+      const body = '# ' + doc.title + (parts.length > 1 ? ' — part ' + (pi + 1) + ' of ' + parts.length : '') + '\n\n## Contents\n\n' + toc + '\n\n---\n\n' + p.map(r => r.md).join('\n\n') + '\n';
+      const pr = rangeOf(doc, p.map(r => r.s)), tok = estTok(body);
+      const fm = ['---', 'title: ' + JSON.stringify(doc.title), 'source: ' + JSON.stringify(doc.source), 'type: ' + doc.ext];
+      if (pr) fm.push('pages: "' + pr + '"');
+      if (parts.length > 1) fm.push('part: "' + (pi + 1) + ' of ' + parts.length + '"');
+      fm.push('sections: ' + p.length, 'approx_tokens: ' + tok);
+      if (o.collection) fm.push('collection: ' + JSON.stringify(o.collection));
+      fm.push('generated: ' + today, '---', '');
+      files.push({ name: uniq(key + (parts.length > 1 ? '-part' + (pi + 1) : '') + '.md'), content: fm.join('\n') + '\n' + body, tok, doc: doc.title, sections: p.length, pages: pr, toc: p.map(r => ({ t: r.s.title, pg: pageLabel(doc, r.s), tok: r.tok })) });
+      bodies.push(body);
+    });
+    if (o.jsonl) chunks.push(...docChunks(doc, secs, o, key));
+  });
+  const totalTok = files.reduce((a, f) => a + f.tok, 0);
+  const idx = ['# ' + (o.collection || 'Knowledge pack'), ''];
+  if (o.notes) idx.push(o.notes, '');
+  idx.push('Generated ' + today + ' · ' + new Set(files.map(f => f.doc)).size + ' document(s) · ' + files.length + ' file(s) · ~' + fmt(totalTok) + ' tokens', '',
+    '## How to read this pack', '',
+    '- Each `.md` file is one source document; large documents are split into parts.',
+    '- Every file starts with front matter (source, pages, size) and a contents list.',
+    '- Headings follow the structure of the original document.');
+  if (o.markers) idx.push('- `[p.N]` marks where page N of the original PDF starts. Use it to cite pages.');
+  if (o.jsonl) idx.push('- `chunks.jsonl` holds the same text as retrieval chunks with heading path and pages.');
+  idx.push('', '## Files', '', '| File | Document | Sections | Pages | ~Tokens |', '| --- | --- | --- | --- | --- |',
+    ...files.map(f => '| ' + f.name + ' | ' + cell(f.doc) + ' | ' + f.sections + ' | ' + (f.pages || '–') + ' | ' + fmt(f.tok) + ' |'), '',
+    '## Where each chapter is', '', 'Open only the file that holds the chapter you need.', '');
+  files.forEach(f => {
+    idx.push('### ' + f.name + ' — ' + f.doc + (f.pages ? ' (p.' + f.pages + ')' : ''), '');
+    f.toc.forEach(c => idx.push('- ' + c.t + (c.pg ? ' — ' + c.pg : '') + ' · ~' + fmt(c.tok) + ' tok'));
+    idx.push('');
+  });
+  const out = [{ name: 'index.md', content: idx.join('\n'), tok: estTok(idx.join('\n')), doc: 'Pack overview' }, ...files];
+  if (o.jsonl && chunks.length) { const c = chunks.map(x => JSON.stringify(x)).join('\n') + '\n'; out.push({ name: 'chunks.jsonl', content: c, tok: estTok(c), doc: chunks.length + ' chunks' }); }
+  if (o.combined && bodies.length) { const c = idx.join('\n') + '\n\n---\n\n' + bodies.join('\n\n---\n\n'); out.push({ name: 'knowledge.md', content: c, tok: estTok(c), doc: 'All documents in one file' }); }
+  return { files: out, totalTok, docCount: new Set(files.map(f => f.doc)).size, secCount: files.reduce((a, f) => a + f.sections, 0), o };
+}
+function renderExport() {
+  const pack = S.pack = buildPack();
+  const stat = (v, l) => el('div', { class: 'stat' }, el('b', { text: v }), el('span', { text: l }));
+  $('#stats').replaceChildren(stat(fmt(pack.docCount), 'documents'), stat(fmt(pack.secCount), 'sections'), stat(fmt(pack.files.length), 'files'), stat('~' + fmt(pack.totalTok), 'tokens'));
+  if (!pack.files.some(f => f.name.endsWith('.md') && f.name !== 'index.md')) { $('#outFiles').replaceChildren(el('div', { class: 'empty', text: 'No sections are included. Go back to Review.' })); $('#viewer').replaceChildren(); return; }
+  if (!pack.files.find(f => f.name === S.view)) S.view = (pack.files[1] || pack.files[0]).name;
+  $('#outFiles').replaceChildren(...pack.files.map(f => el('div', { class: 'ofrow' + (f.name === S.view ? ' on' : '') },
+    el('div', { class: 'ofname', onclick: () => { S.view = f.name; renderExport(); } }, f.name, el('small', { text: f.doc + (f.pages ? ' · p.' + f.pages : '') })),
+    el('span', { class: 'smeta', text: '~' + fmt(f.tok) }),
+    el('span', {}, el('button', { class: 'icon', title: 'Copy', onclick: () => copyText(f.content) }, '⧉'), el('button', { class: 'icon', title: 'Download', onclick: () => download(f.name, f.content) }, '↓')))));
+  const v = pack.files.find(f => f.name === S.view);
+  const shown = v.content.length > 200000 ? v.content.slice(0, 200000) + '\n\n… (preview truncated; the download is complete)' : v.content;
+  $('#viewer').replaceChildren(el('pre', { text: shown }));
+}
+async function copyText(t) { try { await navigator.clipboard.writeText(t); toast('Copied', 'ok'); } catch (e) { toast('Copy failed, use download instead', 'err'); } }
+function download(name, content, blob) {
+  const b = blob || new Blob([content], { type: name.endsWith('.jsonl') ? 'application/jsonl' : 'text/markdown;charset=utf-8' });
+  const u = URL.createObjectURL(b); const a = el('a', { href: u, download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000);
+}
+async function downloadZip() {
+  const pack = S.pack || buildPack();
+  const base = slug(pack.o.collection) || 'knowledge-pack';
+  const zip = new JSZip(), dir = zip.folder(base);
+  pack.files.forEach(f => dir.file(f.name, f.content));
+  const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  download(base + '.zip', null, blob); toast('ZIP ready', 'ok');
+}
+
+/* ---------- wiring ---------- */
+(function wire() {
+  const drop = $('#drop'), fi = $('#fileInput');
+  drop.addEventListener('click', () => fi.click());
+  fi.addEventListener('change', e => { addFiles([...e.target.files]); fi.value = ''; });
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); addFiles([...e.dataTransfer.files]); });
+  $('#btnClear').addEventListener('click', () => { S.files = []; S.cur = null; renderFiles(); refreshNav(); });
+  $('#btnBuild').addEventListener('click', async () => {
+    if (S.files.some(f => !f.doc)) await buildFiles();
+    if (docs().length) goStep(2); else toast('Nothing could be extracted', 'err');
+  });
+  document.querySelectorAll('.stepbtn').forEach(b => b.addEventListener('click', () => goStep(+b.dataset.step)));
+  $('#toExport').addEventListener('click', () => goStep(3));
+  $('#docSource').addEventListener('change', e => { const d = curDoc(); if (d) d.source = clean(e.target.value) || d.source; });
+  $('#docTitle').addEventListener('change', e => { const d = curDoc(); if (d) { d.title = clean(e.target.value) || d.title; d.secs.forEach(s => { if (s.front) s._tok = null; }); renderReview(); } });
+  $('#docSplit').addEventListener('change', e => {
+    const d = curDoc(); if (!d) return;
+    if (!confirm('Re-split this document? Your outline edits for it will be reset.')) { e.target.value = String(d.split); return; }
+    d.split = +e.target.value; d.secs = buildSections(d); S.sec = null; renderReview();
+  });
+  $('#incAll').addEventListener('click', () => { const d = curDoc(); if (d) { d.secs.forEach(s => s.include = true); renderOutline(d); updateDocMeta(); } });
+  $('#incNone').addEventListener('click', () => { const d = curDoc(); if (d) { d.secs.forEach(s => s.include = false); renderOutline(d); updateDocMeta(); } });
+  document.querySelectorAll('#pvSeg button').forEach(b => b.addEventListener('click', () => { if (b.disabled) return; S.pv = b.dataset.pv; renderPreview(); }));
+  ['#optMax', '#optMarkers', '#optJsonl', '#optChunk', '#optCombined'].forEach(id => $(id).addEventListener('change', () => { if ($('#step3').classList.contains('on')) renderExport(); }));
+  $('#btnZip').addEventListener('click', () => downloadZip().catch(e => toast('ZIP failed: ' + e.message, 'err')));
+  const root = document.documentElement;
+  try { const t = localStorage.getItem('kpb-theme'); if (t) root.dataset.theme = t; } catch (e) { }
+  $('#btnTheme').addEventListener('click', () => {
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+    try { localStorage.setItem('kpb-theme', root.dataset.theme); } catch (e) { }
+  });
+  renderFiles();
+})();
+</script>
 </body>
 </html>
