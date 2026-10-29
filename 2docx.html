@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to DOCX Converter</title>
+    <title>Markdown to DOCX &amp; PDF</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -25,6 +25,8 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <!-- html2canvas for capturing rendered elements as images -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- html2pdf (jsPDF + html2canvas) for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -494,6 +496,76 @@
         }
         .ds-saved .ds-row { margin-bottom: 10px; }
         .ds-saved label > button { margin-top: 1px; }
+
+        /* ===== ORGANIZED LAYOUT ===== */
+        :root { --brand:#0F5F3A; --brand-2:#33A036; --ink:#16181d; --muted:#5c6370; --line:#e2e5ea; }
+        body { background:#f3f5f8; color:var(--ink); }
+        .topbar {
+            position: sticky; top: 0; z-index: 50;
+            display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+            padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--line);
+            box-shadow: 0 1px 6px rgba(0,0,0,.04);
+        }
+        .brand { display:flex; align-items:center; gap:10px; margin-right:auto; }
+        .brand-logo {
+            width:34px; height:34px; border-radius:9px; display:grid; place-items:center;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2)); color:#fff;
+            font-weight:700; font-size:15px;
+        }
+        .brand h1 { font-size:16px; font-weight:700; margin:0; line-height:1.2; }
+        .brand p  { font-size:12px; color:var(--muted); margin:0; }
+        .toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .tb-group { display:flex; gap:6px; padding-right:8px; border-right:1px solid var(--line); }
+        .tb-group:last-child { border-right:none; padding-right:0; }
+        .tb {
+            padding: 8px 14px; font-size: 13px; font-weight: 600; border-radius: 8px;
+            border: 1px solid var(--line); background: #fff; color: var(--ink);
+            cursor: pointer; display:inline-flex; align-items:center; gap:6px;
+            box-shadow:none; transition: background .15s, border-color .15s;
+            white-space: nowrap; font-family: inherit;
+        }
+        .tb:hover:not(:disabled) { background:#f2f4f6; }
+        .tb:disabled { opacity:.55; cursor:not-allowed; }
+        .tb.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+        .tb.primary:hover:not(:disabled) { background:#0b4a2d; }
+        .tb.pdf { background:#B42318; border-color:#B42318; color:#fff; }
+        .tb.pdf:hover:not(:disabled) { background:#8f1c13; }
+        .tb.math-active { background:#eef2ff !important; color:#3730a3 !important; border-color:#c7d2fe !important; }
+
+        .main-content { height: calc(100vh - 76px); padding: 16px 20px; gap: 16px; max-width: none; }
+        .panel { min-height: 0; }
+        .panel-header { padding: 10px 16px; }
+        .panel-header h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+        textarea, .preview { min-height: 0; overflow: auto; }
+        .stats { font-size: 12px; color: var(--muted); }
+
+        #message { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 200; }
+        #message.message { margin: 0; box-shadow: 0 6px 24px rgba(0,0,0,.15); font-weight:600; }
+
+        /* Settings drawer */
+        .drawer-scrim { position: fixed; inset: 0; background: rgba(15,20,25,.28); z-index: 90;
+                        opacity: 0; pointer-events: none; transition: opacity .2s; }
+        .drawer-scrim.open { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); z-index: 100;
+            background: #fff; box-shadow: -8px 0 32px rgba(0,0,0,.12);
+            transform: translateX(100%); transition: transform .25s ease;
+            display: flex; flex-direction: column;
+        }
+        .drawer.open { transform: none; }
+        .drawer-head { display:flex; align-items:center; justify-content:space-between;
+                       padding: 14px 18px; border-bottom:1px solid var(--line); }
+        .drawer-head h2 { font-size: 16px; margin: 0; }
+        .drawer-body { flex: 1; overflow: auto; }
+        .drawer .ds-panel { margin: 0; border: none; border-radius: 0; }
+        .drawer .ds-tabbar { position: sticky; top: 0; z-index: 2; }
+        .drawer .ds-row { grid-template-columns: 1fr 1fr; }
+        .drawer .ds-row label.ds-wide { grid-column: span 2; }
+
+        @media (max-width: 1024px) {
+            .main-content { height: auto; }
+            textarea, .preview { min-height: 50vh; }
+        }
     </style>
 </head>
 <body>
@@ -502,9 +574,28 @@
     </div>
 
     <div class="container">
-        <header class="header">
-            <h1>📝 Markdown to DOCX Converter</h1>
-            <p>Convert your markdown to Word documents with proper styles</p>
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-logo">MD</div>
+                <div>
+                    <h1>Markdown Converter</h1>
+                    <p>Word &amp; PDF output with real styles</p>
+                </div>
+            </div>
+            <div class="toolbar">
+                <div class="tb-group">
+                    <button class="tb primary" id="convertBtn" title="Download as a Word document">⬇ DOCX</button>
+                    <button class="tb pdf" id="pdfBtn" title="Download as a PDF using the current template">⬇ PDF</button>
+                </div>
+                <div class="tb-group">
+                    <button class="tb" id="copyBtn" title="Copy the formatted preview">📋 Copy</button>
+                    <button class="tb" id="mathToggleBtn" title="Switch the preview maths renderer">🔢 Math: KaTeX</button>
+                    <button class="tb" id="clearBtn" title="Clear the editor">🗑 Clear</button>
+                </div>
+                <div class="tb-group">
+                    <button class="tb" id="settingsBtn" title="Template, styles, page layout, header/footer, diagrams, properties">⚙ Settings</button>
+                </div>
+            </div>
         </header>
 
         <div class="main-content">
@@ -622,10 +713,7 @@ End of demonstration.
             <div class="panel">
                 <div class="panel-header">
                     <h2>Live Preview</h2>
-                    <span class="info">
-                        Author: <input type="text" id="authorInput" value="Khaled Diab"
-                            style="border:1px solid #ddd;border-radius:4px;padding:2px 6px;font-size:12px;width:130px;">
-                    </span>
+                    <span class="stats" id="docStats"></span>
                 </div>
                 <div class="preview" id="preview"></div>
             </div>
@@ -633,6 +721,13 @@ End of demonstration.
 
         <div id="message"></div>
 
+        <div class="drawer-scrim" id="drawerScrim"></div>
+        <aside class="drawer" id="settingsDrawer" aria-label="Document settings">
+          <div class="drawer-head">
+            <h2>⚙ Document settings</h2>
+            <button type="button" class="tb" id="drawerClose">✕ Close</button>
+          </div>
+          <div class="drawer-body">
          <div class="ds-panel" id="docSettings">
             <div class="ds-tabbar" role="tablist">
                 <button type="button" class="ds-tab is-active" data-tab="template">Template</button>
@@ -700,7 +795,6 @@ End of demonstration.
                     </div>
                     <div id="dsImportReport" class="ds-import-report"></div>
                 </div>
-            </section>
                 <div class="ds-saved">
                     <div class="ds-import-head">My templates</div>
                     <div class="ds-row">
@@ -725,6 +819,7 @@ End of demonstration.
                     </div>
                     <div id="dsTplReport" class="ds-import-report"></div>
                 </div>
+            </section>
             <!-- ── STYLES ─────────────────────────────────── -->
             <section class="ds-pane" data-pane="styles">
                 <div class="ds-styleedit">
@@ -913,21 +1008,9 @@ End of demonstration.
                 <option>Traditional Arabic</option><option>Simplified Arabic</option>
                 <option>Dubai</option><option>Amiri</option>
             </datalist>
-        </div>     
-
-
-
-        <div class="actions">
-            <button class="convert-btn" id="convertBtn">⬇️ Download as DOCX</button>
-            <button class="copy-btn" id="copyBtn">📋 Copy Formatted</button>
-            <button class="clear-btn" id="clearBtn">🗑️ Clear</button>
-              <button class="clear-btn" id="mathToggleBtn">🔢 Math: KaTeX</button>
         </div>
-
-        <footer class="footer">
-            <p>💡 All markdown is converted to proper Word styles with harmonized typography</p>
-            <p class="subtext">Built with Marked.js + JSZip | Professional Document Formatting</p>
-        </footer>
+          </div>
+        </aside>
     </div>
 
     <script>
@@ -4152,6 +4235,209 @@ End of demonstration.
             readForm();
         })();
         // ===== END DOCUMENT PROPERTIES WIRING =====
+        // ===== PDF EXPORT =====
+        // Renders the live preview with the active template (fonts, sizes,
+        // colours, table/code/quote look, page size, margins, header/footer,
+        // document properties) and saves it as a PDF.
+        function pdfTitleFromMarkdown(md) {
+            const m = md.match(/^#\s+(.+)$/m);
+            return m ? m[1].replace(/[*_`]/g, '').trim() : '';
+        }
+
+        function pdfStyleCss(scope) {
+            const T = DOC_THEME;
+            const pt = hp => (hp / 2) + 'pt';
+            const tw = t => (t / 20) + 'pt';
+            const col = c => (c && c !== 'auto') ? '#' + c : '#1a1a1a';
+            const fam = (s, major) => '"' + (s.font || (major ? T.headingFont : T.bodyFont)) + '", sans-serif';
+            function block(sel, key, major) {
+                const s = resolveStyle(key);
+                return scope + ' ' + sel + '{font-family:' + fam(s, major) + ';font-size:' + pt(s.sizeHp)
+                    + ';color:' + col(s.color) + ';font-weight:' + (s.bold ? 700 : 400)
+                    + ';font-style:' + (s.italic ? 'italic' : 'normal')
+                    + ';margin:' + tw(s.before) + ' ' + tw(s.indRight || 0) + ' ' + tw(s.after) + ' ' + tw(s.indLeft || 0)
+                    + ';line-height:' + (s.line / 240 * 1.15).toFixed(2)
+                    + (s.indFirst ? ';text-indent:' + tw(s.indFirst) : '')
+                    + (s.align ? ';text-align:' + (s.align === 'both' ? 'justify' : s.align) : '')
+                    + ';border:none;padding:0;page-break-after:avoid;}';
+            }
+            const nrm = resolveStyle('normal');
+            const tb = resolveStyle('table');
+            const cd = resolveStyle('code');
+            const bc = '#' + T.tableBorderColor;
+            let tableCss;
+            if (T.tableStyle === 'grid') {
+                tableCss = scope + ' table{border:1px solid ' + bc + ';}' + scope + ' th,' + scope + ' td{border:1px solid ' + bc + ';}';
+            } else if (T.tableStyle === 'minimal') {
+                tableCss = scope + ' table{border:none;border-top:1.5px solid ' + bc + ';border-bottom:1.5px solid ' + bc + ';}'
+                         + scope + ' th,' + scope + ' td{border:none;}';
+            } else {
+                tableCss = scope + ' table{border:none;border-top:2px solid ' + bc + ';border-bottom:2px solid ' + bc + ';}'
+                         + scope + ' th,' + scope + ' td{border:none;border-bottom:1px solid #BFBFBF;}';
+            }
+            return scope + '{background:#fff;padding:0;overflow:visible;font-family:' + fam(nrm, false)
+                 + ';font-size:' + pt(nrm.sizeHp) + ';color:' + col(nrm.color)
+                 + ';line-height:' + (nrm.line / 240 * 1.15).toFixed(2) + ';}'
+                 + block('p', 'normal', false)
+                 + block('h1', 'title', true)
+                 + (T.titleRule ? scope + ' h1{border-bottom:1px solid #A6A6A6;padding-bottom:6pt;}' : '')
+                 + block('h2', 'h1', true) + block('h3', 'h2', true)
+                 + block('h4', 'h3', false) + block('h5', 'h4', false)
+                 + block('blockquote', 'quote', false)
+                 + scope + ' blockquote{border-left:3px solid #' + T.quoteBorder + ';padding-left:10pt;}'
+                 + scope + ' blockquote p{margin:0 0 4pt;font:inherit;color:inherit;}'
+                 + scope + ' li{margin:0 0 3pt;}'
+                 + scope + ' ul,' + scope + ' ol{margin:0 0 ' + tw(nrm.after) + ';padding-left:22pt;}'
+                 + scope + ' table{width:100%;border-collapse:collapse;margin:6pt 0 10pt;font-size:' + pt(tb.sizeHp) + ';}'
+                 + scope + ' th,' + scope + ' td{padding:4pt 6.5pt;text-align:' + (T.tableAlign === 'both' ? 'justify' : T.tableAlign)
+                 + ';vertical-align:' + (T.tableVAlign === 'center' ? 'middle' : T.tableVAlign) + ';}'
+                 + scope + ' th{font-weight:700;text-align:' + T.tableHeadAlign + ';vertical-align:'
+                 + (T.tableHeadVAlign === 'center' ? 'middle' : T.tableHeadVAlign) + ';background:'
+                 + (T.tableHeaderFill && T.tableHeaderFill !== 'FFFFFF' ? '#' + T.tableHeaderFill : 'transparent') + ';}'
+                 + tableCss
+                 + scope + ' tr{page-break-inside:avoid;}'
+                 + scope + ' pre{background:#' + T.codeFill + ';color:' + col(cd.color) + ';border:1px solid #' + T.codeBorder
+                 + ';border-radius:0;padding:6pt 8pt;font-size:' + pt(cd.sizeHp) + ';white-space:pre-wrap;word-break:break-word;}'
+                 + scope + ' code{font-family:"' + (cd.font || T.monoFont) + '",monospace;background:none;color:inherit;padding:0;}'
+                 + scope + ' hr{border:none;border-top:1px solid #BFBFBF;margin:10pt 0;}'
+                 + scope + ' .mermaid-container{text-align:center;margin:8pt 0;}'
+                 + scope + ' .mermaid-container svg{max-width:100%;height:auto;}'
+                 + scope + ' .katex-display{margin:8pt 0;}';
+        }
+
+        async function markdownToPdf(markdown) {
+            if (typeof html2pdf === 'undefined') throw new Error('PDF library did not load — check your connection');
+            await renderPreview();
+
+            const T = DOC_THEME;
+            const M = DOC_META;
+            const dims = themePageDims();                 // twips
+            const mg = T.margins;
+            const mm = t => t / 56.6929;                  // twips -> mm
+            const contentPx = Math.round((dims.w - mg.left - mg.right) / 1440 * 96);
+
+            const host = document.createElement('div');
+            host.style.cssText = 'position:absolute;left:-30000px;top:0;width:' + contentPx + 'px;background:#fff;';
+            const style = document.createElement('style');
+            style.textContent = pdfStyleCss('.pdf-doc');
+            const doc = document.createElement('div');
+            doc.className = 'pdf-doc';
+            doc.innerHTML = preview.innerHTML;
+            // Mermaid SVGs reuse element ids; give clones unique ids so html2canvas keeps their styles
+            doc.querySelectorAll('.mermaid-container svg').forEach((svg, n) => {
+                svg.style.maxWidth = '100%';
+            });
+            host.appendChild(style);
+            host.appendChild(doc);
+            document.body.appendChild(host);
+
+            const title = M.title || pdfTitleFromMarkdown(markdown) || 'document';
+            const fileName = title.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').slice(0, 60) || 'document';
+
+            let headerText = '';
+            if (T.headerMode === 'text') headerText = T.headerText || '';
+            if (T.headerMode === 'title') headerText = title;
+
+            try {
+                const opt = {
+                    margin: [mm(mg.top), mm(mg.right), mm(mg.bottom), mm(mg.left)],
+                    filename: fileName + '.pdf',
+                    image: { type: 'jpeg', quality: 0.96 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: contentPx },
+                    jsPDF: { unit: 'mm', format: [mm(dims.w), mm(dims.h)],
+                             orientation: T.landscape ? 'landscape' : 'portrait', compress: true },
+                    pagebreak: { mode: ['css', 'legacy'],
+                                 avoid: ['tr', 'pre', 'blockquote', 'img', 'h1', 'h2', 'h3', 'h4', '.mermaid-container', '.katex-display'] }
+                };
+
+                await html2pdf().set(opt).from(doc).toPdf().get('pdf').then(pdf => {
+                    const n = pdf.internal.getNumberOfPages();
+                    const W = pdf.internal.pageSize.getWidth();
+                    const H = pdf.internal.pageSize.getHeight();
+                    const L = mm(mg.left), R = W - mm(mg.right);
+                    for (let p = 1; p <= n; p++) {
+                        if (p === 1 && T.differentFirstPage) continue;
+                        pdf.setPage(p);
+                        pdf.setFontSize(9);
+                        pdf.setTextColor(128, 128, 128);
+                        if (headerText) {
+                            const y = Math.max(8, mm(mg.top) / 2);
+                            pdf.text(headerText, W / 2, y, { align: 'center' });
+                            pdf.setDrawColor(208, 208, 208);
+                            pdf.setLineWidth(0.2);
+                            pdf.line(L, y + 2, R, y + 2);
+                        }
+                        const fy = H - Math.max(6, mm(mg.bottom) / 2);
+                        if (T.footerMode === 'page') {
+                            pdf.text(String(p), W / 2, fy, { align: 'center' });
+                        } else if (T.footerMode === 'textPage') {
+                            if (T.footerText) pdf.text(T.footerText, L, fy);
+                            pdf.text(String(p), R, fy, { align: 'right' });
+                        }
+                    }
+                    pdf.setProperties({
+                        title: title,
+                        subject: M.subject || '',
+                        author: M.author || '',
+                        keywords: M.keywords || '',
+                        creator: 'Microsoft Word'
+                    });
+                }).save();
+            } finally {
+                if (host.parentNode) host.parentNode.removeChild(host);
+            }
+        }
+
+        (function initOrganizedUi() {
+            // PDF button
+            const pdfBtn = document.getElementById('pdfBtn');
+            if (pdfBtn) pdfBtn.addEventListener('click', async () => {
+                const markdown = editor.value.trim();
+                if (!markdown) { showMessage('Please enter markdown content', 'error'); return; }
+                pdfBtn.disabled = true;
+                pdfBtn.textContent = '⏳ PDF…';
+                showProgress(); setProgress(30);
+                try {
+                    await markdownToPdf(markdown);
+                    setProgress(100);
+                    showMessage('✓ PDF downloaded', 'success');
+                    setTimeout(hideProgress, 500);
+                } catch (err) {
+                    console.error('PDF error:', err);
+                    showMessage('PDF error: ' + err.message, 'error');
+                    hideProgress();
+                } finally {
+                    pdfBtn.disabled = false;
+                    pdfBtn.textContent = '⬇ PDF';
+                }
+            });
+
+            // Settings drawer
+            const drawer = document.getElementById('settingsDrawer');
+            const scrim = document.getElementById('drawerScrim');
+            const open = () => { drawer.classList.add('open'); scrim.classList.add('open'); };
+            const close = () => { drawer.classList.remove('open'); scrim.classList.remove('open'); };
+            document.getElementById('settingsBtn').addEventListener('click', open);
+            document.getElementById('drawerClose').addEventListener('click', close);
+            scrim.addEventListener('click', close);
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') close();
+                if ((e.ctrlKey || e.metaKey) && e.key === ',') { e.preventDefault(); open(); }
+            });
+
+            // Live word / character count
+            const stats = document.getElementById('docStats');
+            function updateStats() {
+                if (!stats) return;
+                const t = editor.value;
+                const w = t.split(/\s+/).filter(Boolean).length;
+                stats.textContent = w.toLocaleString() + ' words · ' + t.length.toLocaleString() + ' chars';
+            }
+            editor.addEventListener('input', updateStats);
+            mdFile.addEventListener('change', () => setTimeout(updateStats, 200));
+            updateStats();
+        })();
+        // ===== END PDF EXPORT =====
     </script>
 </body>
 </html>
